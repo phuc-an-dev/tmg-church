@@ -1,6 +1,6 @@
 # Plan 02: Supabase clients and authentication
 
-Status: planned, blocked until Plan 01 passes review
+Status: ready for implementation
 
 Depends on: Plan 01 database and RLS
 

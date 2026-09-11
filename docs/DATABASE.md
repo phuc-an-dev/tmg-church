@@ -70,6 +70,7 @@ The migration should preserve the supplied domain model and include these refine
 - Model attendance from `session_participant` to avoid duplicating session and member references in `attendance_record`.
 - Add `created_at` to relationship and history records. Add `updated_at` to mutable entity, attendance, and note records.
 - Store status-like values as text with check constraints in the first migration. Promote them to enums only if their lifecycle becomes stable.
+- Church and term ownership keys are immutable after insertion. Reassigning a ministry, term, group, department, member, membership, recurrence rule, session, service role, or roster across its owning scope is rejected; historical reassignment requires an explicit replacement record.
 
 ## Required constraints
 

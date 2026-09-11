@@ -1,6 +1,6 @@
 # Plan 01: Database migration and RLS
 
-Status: ready for implementation
+Status: complete
 
 Depends on: Foundation, complete
 
