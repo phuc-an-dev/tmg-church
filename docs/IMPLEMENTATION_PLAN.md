@@ -27,6 +27,10 @@ Exit criteria:
 
 ## Slice 1: Database migration and generated types
 
+Detailed plan: `docs/plans/01-database-and-rls.md`
+
+Status: ready for implementation.
+
 Deliverables:
 
 - One ordered initial migration under `supabase/migrations/`
@@ -49,6 +53,10 @@ Review focus:
 
 ## Slice 2: Supabase clients and authentication
 
+Detailed plan: `docs/plans/02-authentication.md`
+
+Status: planned; blocked until Slice 1 passes independent review.
+
 Deliverables:
 
 - Validated environment module
@@ -70,6 +78,10 @@ Review focus:
 
 ## Slice 3: Administration shell and active church
 
+Detailed plan: `docs/plans/03-admin-church-and-ministry.md`, checkpoint 03A.
+
+Status: planned; blocked until Slice 2 passes independent review.
+
 Deliverables:
 
 - Mobile-first admin navigation
@@ -88,6 +100,10 @@ Review focus:
 - Lucide-only icons and no emoji
 
 ## Slice 4: Ministry structure management
+
+Detailed plan: `docs/plans/03-admin-church-and-ministry.md`, checkpoint 03B.
+
+Status: planned; blocked until checkpoint 03A passes independent review.
 
 Deliverables:
 

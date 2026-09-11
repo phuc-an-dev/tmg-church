@@ -12,21 +12,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 These instructions apply to the entire repository. User instructions take precedence. When requirements are unclear but do not change data safety or product scope, use the documented decision and continue.
 
-## Required reading
+## Context routing
 
-Before changing feature code, read:
-
-1. `docs/PROJECT_BRIEF.md`
-2. `docs/ENGINEERING_RULES.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/DATABASE.md`
-5. `docs/SECURITY.md`
-6. `docs/DESIGN_SYSTEM.md`
-7. `docs/IMPLEMENTATION_PLAN.md`
-8. `docs/WORKFLOW.md`
-9. `docs/NEXT_AGENT_TASK.md` when it exists and is marked ready
-
-Read the relevant bundled Next.js documentation in `node_modules/next/dist/docs/` before using a framework API. Do not rely on remembered Next.js conventions when local documentation differs.
+- Start with `docs/NEXT_AGENT_TASK.md` and read only the files listed in its `Required reading` section.
+- Do not scan the complete `docs/` directory, queued plans, archived history, or unrelated review entries.
+- Read an additional repository document only when the active task directly references it or missing information blocks implementation.
+- Read relevant bundled Next.js documentation in `node_modules/next/dist/docs/` before using a framework API. Do not rely on remembered conventions when local documentation differs.
+- `docs/NEXT_AGENT_TASK.md` is the only source of implementation authorization. A queued plan is not authorized work.
 
 ## Product language
 
@@ -37,7 +29,7 @@ Read the relevant bundled Next.js documentation in `node_modules/next/dist/docs/
 
 ## Scope discipline
 
-- Work on one implementation slice from `docs/IMPLEMENTATION_PLAN.md` at a time.
+- Work only on the plan named by `docs/NEXT_AGENT_TASK.md`.
 - Do not implement later-phase workflows while completing an earlier slice.
 - Do not create a separate backend, Express server, Spring Boot service, or privileged API service.
 - Do not add automated tests during the initial MVP unless a task explicitly asks for them. Verification commands are still mandatory.
@@ -54,27 +46,6 @@ Read the relevant bundled Next.js documentation in `node_modules/next/dist/docs/
 - Treat RLS as the authorization boundary. Hiding a control in the UI is not authorization.
 - Validate every mutation with Zod before calling Supabase.
 - Return structured mutation results. Do not expose raw database errors to users.
-
-## Routing and state
-
-- Use friendly lowercase slugs for public routes.
-- Use `/ministries/[ministrySlug]/terms/[termSlug]` for the public member directory.
-- Use `nuqs` for shareable search, filters, sort, page, page size, and archive view state.
-- Search updates that trigger server work must use a 300 ms debounce.
-- Reset pagination to page 1 when a filter or search term changes.
-- Preserve useful URL state after create, edit, archive, restore, or navigation actions.
-
-## Interface rules
-
-- Design mobile first.
-- Use cards for mobile collections and a table for desktop administration views.
-- Use a bottom drawer for mobile create, edit, filter, and detail flows. Use a dialog or side sheet only when the documented design calls for it at larger breakpoints.
-- Do not use the native HTML `select` control. Use a searchable shadcn combobox when there are five or more options and a non-searchable custom dropdown when there are fewer than five.
-- All `input`, `textarea`, combobox input, and select-trigger text must render at a minimum of 16 px on mobile. Do not disable pinch zoom in viewport metadata.
-- Provide skeletons for route and collection loading states. Avoid full-page spinners.
-- Use the white theme by default, support a black dark theme, and use blue as the semantic primary accent.
-- Use semantic HTML, visible focus styles, accessible names, keyboard support, and at least 44 by 44 px touch targets for primary mobile actions.
-- Keep the DOM bounded through server pagination, progressive disclosure, and conditional mounting. Do not render every member or every drawer/dialog at once.
 
 ## Data and privacy rules
 
@@ -95,7 +66,7 @@ pnpm format:check
 pnpm build
 ```
 
-Then perform the slice-specific checks in `docs/REVIEW_CHECKLIST.md` and append evidence to `docs/reviews/REVIEW_LOG.md`. A passing build does not replace manual authorization, privacy, responsive, or accessibility review.
+Then perform the active plan's verification matrix and append evidence to `docs/reviews/REVIEW_LOG.md`. A passing build does not replace the plan's manual review requirements.
 
 ## Planning and review separation
 

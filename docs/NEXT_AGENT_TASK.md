@@ -4,47 +4,27 @@ Status: ready
 
 Owner: coding agent
 
-Plan slice: Slice 1, database migration and generated types
+Current plan: `docs/plans/01-database-and-rls.md`
 
-## Objective
+## Required reading
 
-Create the complete initial Supabase database migration and generated TypeScript database types. Do not implement application pages, authentication UI, or CRUD interfaces in this slice.
+Read only these files before implementation, in this order:
 
-## Required preparation
+1. `AGENTS.md`
+2. `docs/NEXT_AGENT_TASK.md`
+3. `docs/plans/01-database-and-rls.md`
+4. `docs/DATABASE.md`
+5. `docs/SECURITY.md`
 
-Read `AGENTS.md`, every document listed in its required-reading section, and the current Supabase documentation relevant to RLS, Postgres views, and generated types.
+Do not read Plans 02 or 03, UI/design documents, the master implementation plan, old review entries, or other repository documents unless Plan 01 references them directly or implementation is blocked by missing information.
 
-Before writing the migration, resolve the two documented model refinements explicitly in the implementation log:
+## Instruction
 
-1. Normalize `attendance_record` to reference `session_participant` without duplicated session/member foreign keys, unless verified use cases require ad hoc attendance.
-2. Decide whether one ministry membership may belong to multiple term groups. Default to one group per membership for the current product unless the supplied domain meaning proves otherwise.
+Implement Plan 01 exactly within its documented scope. Do not implement authentication, application pages, or administration features.
 
-## Deliverables
+When implementation and required verification are complete, append evidence to `docs/reviews/REVIEW_LOG.md` and stop for independent review. Do not mark the plan complete or begin Plan 02.
 
-- One timestamped SQL migration in `supabase/migrations/`
-- All tables listed in `docs/DATABASE.md`
-- `member_profile_public` with the approved public fields and term context
-- UUID defaults, timestamps, archive field, slugs, constraints, foreign keys, indexes, and update trigger
-- RLS enabled on every base table
-- Leader-only base-table policies
-- A safe leader check that cannot recurse or self-promote
-- Explicit public-view grants for `anon` and `authenticated`
-- Generated database types at `src/types/database.ts`
-- A documented first-leader bootstrap SQL snippet using a placeholder email, not a committed personal email
-- An implementation entry in `docs/reviews/REVIEW_LOG.md`
+## Queued plans
 
-## Required verification
-
-- Apply the migration to a clean local or disposable Supabase database.
-- Prove anonymous base-table reads and writes fail.
-- Prove authenticated non-leader base-table reads and writes fail.
-- Prove leader operations succeed.
-- Prove an authenticated user cannot insert themselves into `leaders`.
-- Prove anonymous `member_profile_public` reads succeed and expose no private fields.
-- Prove archived members are absent from the public view.
-- Prove duplicate and cross-term-invalid relationships are rejected.
-- Run `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, and `pnpm build`.
-
-## Handoff
-
-Do not mark Slice 1 complete. Record implementation evidence and request an independent review. The planning/review agent will either issue a bounded revision plan or mark the slice complete.
+1. `docs/plans/02-authentication.md`, blocked until Plan 01 review passes
+2. `docs/plans/03-admin-church-and-ministry.md`, blocked until Plan 02 review passes; includes an internal review gate between checkpoints 03A and 03B

@@ -68,7 +68,7 @@ The migration should preserve the supplied domain model and include these refine
 - Keep `phone` private and nullable.
 - Make `ministry_assignment.term_department_id` required; an assignment without a department has no defined meaning.
 - Model attendance from `session_participant` to avoid duplicating session and member references in `attendance_record`.
-- Add optional operational timestamps such as `created_at` to attendance, assignments, flags, and notes where history matters.
+- Add `created_at` to relationship and history records. Add `updated_at` to mutable entity, attendance, and note records.
 - Store status-like values as text with check constraints in the first migration. Promote them to enums only if their lifecycle becomes stable.
 
 ## Required constraints
@@ -81,7 +81,7 @@ The migration should preserve the supplied domain model and include these refine
 - `member_profile.user_id` is unique when present.
 - `ministry_membership` is unique by `(ministry_term_id, member_profile_id)`.
 - `member_segment_membership` is unique by `(member_segment_id, member_profile_id)`.
-- `term_group_membership` is unique by `(term_group_id, ministry_membership_id)`; if the business confirms one group per term, also make `ministry_membership_id` unique.
+- `term_group_membership` is unique by `ministry_membership_id`, enforcing zero or one group per membership within its term.
 - `ministry_assignment` is unique by `(ministry_membership_id, term_department_id)`.
 - `session_participant` is unique by `(ministry_session_id, member_profile_id)`.
 - `attendance_record` is unique by `session_participant_id` and has status `present`, `absent`, or `excused`.
@@ -137,3 +137,5 @@ Index every foreign key used for joins or policy checks. Add focused indexes for
 - Leader lookup by `user_id`
 
 Choose the name-search strategy during implementation. For approximately 90 members, normalized indexed text is sufficient; trigram search can be added when scale or fuzzy matching justifies it.
+
+The canonical implementation decisions and verification matrix are defined in `docs/plans/01-database-and-rls.md`.

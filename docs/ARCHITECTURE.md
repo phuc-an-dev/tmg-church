@@ -23,12 +23,16 @@ src/
     (public)/
       page.tsx
       ministries/[ministrySlug]/terms/[termSlug]/
-    admin/
-      login/
-      auth/callback/
-      church/
-      ministries/
-      members/
+    (auth)/
+      admin/
+        login/
+        auth/callback/
+        unauthorized/
+    (protected)/
+      admin/
+        church/
+        ministries/
+        members/
     layout.tsx
   components/
     ui/
@@ -45,8 +49,9 @@ src/
       public.ts
       client.ts
       server.ts
-      middleware.ts
+      proxy.ts
     env.ts
+  proxy.ts
   types/
     database.ts
 supabase/
@@ -64,6 +69,8 @@ The requirement defines two trust contexts, but Next.js needs three small factor
 3. `server.ts` creates the cookie-backed server client with `createServerClient` for Server Components, Server Actions, and callback exchange.
 
 The second and third factories represent one authenticated trust context. They exist separately because browser and server cookie APIs differ.
+
+Next.js 16 uses the `proxy.ts` file convention for request-time session refresh. Authorization remains in the server-only data-access guard and Supabase RLS; Proxy is never the sole authorization boundary.
 
 ## Authentication flow
 

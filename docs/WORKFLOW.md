@@ -59,3 +59,18 @@ A slice is complete only when:
 - Medium findings are closed or explicitly scheduled with a reason.
 - Documentation and generated types match the implementation.
 - The review log contains current evidence.
+
+## Plan retirement
+
+After a slice passes review:
+
+1. Move durable decisions into the canonical architecture, database, security, design, or ADR document.
+2. Add one compact completion entry containing the result, commit, verification, and remaining findings to the implementation history.
+3. Remove detailed closed findings from the active review surface after their outcome is summarized.
+4. Delete the completed detailed plan from the working tree. Git history is the archive; do not create `old`, `final`, `v2`, backup, or permanent plan-archive copies.
+5. Update `docs/NEXT_AGENT_TASK.md` to list the next plan and its minimal required-reading set.
+6. Remove stale links and confirm no active document references the retired file.
+
+A file is ready for removal only when its durable value has been transferred, no active task depends on it, no code imports it, no live document links to it, and Git history can recover it.
+
+Before committing plan retirement, use `rg` to check stale references, inspect Git status for temporary files, and run the repository quality gate.
