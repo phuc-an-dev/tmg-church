@@ -27,29 +27,14 @@ Exit criteria:
 
 ## Slice 1: Database migration and generated types
 
-Detailed plan: `docs/plans/01-database-and-rls.md`
-
-Status: ready for implementation.
+Status: complete. Commit: `42cd479 feat: establish database schema and RLS`.
 
 Deliverables:
 
 - One ordered initial migration under `supabase/migrations/`
-- Complete schema listed in `docs/DATABASE.md`
-- Constraints, indexes, timestamps, slug fields, and update trigger
-- Member archive support
-- Leader authorization helper and RLS policies for every base table
-- Reduced public member directory view and grants
-- Seed or documented bootstrap path for the active church and first leader
-- Generated TypeScript database types
-
-Review focus:
-
-- Anonymous and non-leader denial
-- Leader permissions
-- Public view privacy
-- Cross-term relationship integrity
-- Archive behavior
-- Repeatable migration on a clean Supabase database
+- Initial Supabase migration with schema, immutable-scope integrity, and RLS
+- Public member directory view and generated database types
+- First-leader bootstrap runbook
 
 ## Slice 2: Supabase clients and authentication
 

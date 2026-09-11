@@ -15,7 +15,7 @@ Read only these files before implementation, in this order:
 3. `docs/plans/02-authentication.md`
 4. `docs/ARCHITECTURE.md`
 5. `docs/SECURITY.md`
-6. `docs/DESIGN.md`
+6. `docs/DESIGN_SYSTEM.md`
 
 Do not read Plan 03, the master implementation plan, old review entries, or other repository documents unless Plan 02 references them directly or implementation is blocked by missing information.
 

@@ -139,4 +139,4 @@ Index every foreign key used for joins or policy checks. Add focused indexes for
 
 Choose the name-search strategy during implementation. For approximately 90 members, normalized indexed text is sufficient; trigram search can be added when scale or fuzzy matching justifies it.
 
-The canonical implementation decisions and verification matrix are defined in `docs/plans/01-database-and-rls.md`.
+Canonical implementation artifacts are the initial migration in `supabase/migrations/` and the generated types in `src/types/database.ts`.
