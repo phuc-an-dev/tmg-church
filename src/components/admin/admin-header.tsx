@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Church, LayoutDashboard, Menu } from "lucide-react";
 import { cn } from "cn";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -57,24 +58,12 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
             href="/admin"
             className="text-foreground focus-visible:ring-ring flex items-center gap-2.5 transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:outline-hidden"
           >
-            <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
-              <Church className="size-5" aria-hidden="true" />
-            </div>
-            <div className="flex flex-col">
-              {/* User-entered database value displayed verbatim */}
-              <span className="max-w-[200px] truncate text-sm font-bold tracking-tight sm:max-w-xs">
-                {activeChurch ? activeChurch.name : "TMG Church"}
-              </span>
-              {activeChurch ? (
-                <span className="text-muted-foreground font-mono text-[10px]">
-                  /{activeChurch.slug}
-                </span>
-              ) : (
-                <span className="text-muted-foreground text-[10px]">
-                  Administration
-                </span>
-              )}
-            </div>
+            <BrandLockup
+              name={activeChurch ? activeChurch.name : "TMG Church"}
+              subtitle={
+                activeChurch ? `/${activeChurch.slug}` : "Administration"
+              }
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -135,11 +124,9 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
               <SheetContent side="left" className="flex flex-col p-0">
                 <SheetHeader className="border-border border-b p-4 pr-16 text-left">
                   <div className="flex items-center gap-2.5">
-                    <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">
-                      <Church className="size-4" aria-hidden="true" />
-                    </div>
+                    <BrandLockup compact />
                     <div>
-                      <SheetTitle className="text-base font-bold">
+                      <SheetTitle className="text-base font-semibold">
                         {activeChurch ? activeChurch.name : "TMG Church"}
                       </SheetTitle>
                       <SheetDescription className="text-muted-foreground text-xs">

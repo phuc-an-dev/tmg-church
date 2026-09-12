@@ -5,6 +5,7 @@ import { ShieldAlert, Home } from "lucide-react";
 import { getAuthContext } from "@/features/auth/queries";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { buttonVariants } from "@/components/ui/button";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export const metadata: Metadata = {
   title: "Access Denied",
@@ -23,8 +24,9 @@ export default async function UnauthorizedPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div className="from-primary/10 via-background to-background flex min-h-screen flex-col items-center justify-center bg-gradient-to-b px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 text-center">
+        <BrandLockup className="mx-auto w-fit" compact />
         <div className="bg-destructive/10 text-destructive mx-auto flex size-12 items-center justify-center rounded-xl">
           <ShieldAlert className="size-6" aria-hidden="true" />
         </div>
@@ -39,7 +41,7 @@ export default async function UnauthorizedPage() {
           </p>
         </div>
 
-        <div className="border-border bg-card rounded-xl border p-6 shadow-xs">
+        <div className="border-primary/10 bg-card shadow-primary/5 rounded-3xl border p-6 shadow-lg">
           <div className="space-y-4">
             <div className="text-sm">
               <span className="text-muted-foreground">Signed in as: </span>

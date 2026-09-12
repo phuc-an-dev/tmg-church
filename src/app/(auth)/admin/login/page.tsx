@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Church } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 
 export const metadata: Metadata = {
   title: "Admin Sign In",
@@ -22,13 +22,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div className="from-primary/10 via-background to-background flex min-h-screen flex-col items-center justify-center bg-gradient-to-b px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-xl">
-            <Church className="size-6" aria-hidden="true" />
-          </div>
-          <h1 className="text-foreground mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
+          <BrandLockup className="mx-auto w-fit" compact />
+          <h1 className="text-foreground mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
             Admin Sign In
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
@@ -36,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
         </div>
 
-        <div className="border-border bg-card rounded-xl border p-6 shadow-xs sm:p-8">
+        <div className="border-primary/10 bg-card/95 shadow-primary/5 rounded-3xl border p-6 shadow-lg sm:p-8">
           <LoginForm initialErrorMessage={initialErrorMessage} />
         </div>
 
