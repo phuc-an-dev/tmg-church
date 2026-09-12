@@ -3,8 +3,8 @@ import { Church } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Đăng nhập Quản trị",
-  description: "Trang đăng nhập dành cho Ban điều hành Hội Thánh",
+  title: "Admin Sign In",
+  description: "Sign-in portal for authorized church leaders",
 };
 
 interface LoginPageProps {
@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   let initialErrorMessage: string | undefined;
   if (status === "link-invalid") {
     initialErrorMessage =
-      "Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.";
+      "This sign-in link is invalid or has expired. Please request a new link.";
   }
 
   return (
@@ -29,10 +29,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <Church className="size-6" aria-hidden="true" />
           </div>
           <h1 className="text-foreground mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-            Đăng nhập Quản trị
+            Admin Sign In
           </h1>
           <p className="text-muted-foreground mt-2 text-sm">
-            Hệ thống quản trị nội bộ dành cho Ban điều hành Hội Thánh.
+            Internal administration system for authorized church leaders.
           </p>
         </div>
 
@@ -41,8 +41,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <p className="text-muted-foreground text-center text-xs">
-          Chỉ các tài khoản thuộc danh sách Ban điều hành mới có quyền truy cập
-          vào hệ thống.
+          Only authorized leader accounts can access the administration area.
         </p>
       </div>
     </div>

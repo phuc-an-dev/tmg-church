@@ -8,18 +8,18 @@ Until an official logo is supplied, use the Lucide `Church` icon with a text wor
 
 ## Content
 
-Product copy is Vietnamese. Keep labels direct and familiar to church members. Developer identifiers and code stay English.
+Product copy is English. Keep labels direct, natural, and operational. Developer identifiers, documentation, and code stay English.
 
 Example terms:
 
-- `Hội Thánh`
-- `Ban ngành`
-- `Nhiệm kỳ`
-- `Tổ`
-- `Ban phụ trách`
-- `Thành viên`
-- `Đã lưu trữ`
-- `Khôi phục`
+- `Church Settings`
+- `Ministries`
+- `Terms`
+- `Member groups`
+- `Departments`
+- `Members`
+- `Archived`
+- `Restore`
 
 ## Responsive collection pattern
 
@@ -41,7 +41,7 @@ Desktop:
 - Use `input`, `textarea`, and combobox text at 16 px or larger on mobile.
 - Keep native browser pinch zoom enabled.
 - Labels remain visible; placeholders do not replace labels.
-- Use field-level Vietnamese validation messages.
+- Use field-level English validation messages.
 - Use a custom dropdown for fewer than five options.
 - Use a searchable shadcn combobox for five or more options.
 - A search box that causes server work debounces by 300 ms.
@@ -54,7 +54,7 @@ The 16 px rule addresses the widely reproduced iOS WebKit behavior where focusin
 - Import icons from `lucide-react`.
 - Use a consistent default size of 16 or 18 px inside controls.
 - Decorative icons use `aria-hidden="true"`.
-- Icon-only buttons require a Vietnamese accessible name and tooltip when the action is not obvious.
+- Icon-only buttons require an English accessible name and tooltip when the action is not obvious.
 - Destructive actions use clear text in confirmation surfaces.
 
 ## Theme tokens

@@ -53,7 +53,7 @@ In the Supabase Dashboard, navigate to **Authentication** -> **Email Templates**
 ### Subject
 
 ```text
-Đăng nhập vào Hệ thống Quản trị Hội Thánh TMG
+Sign in to TMG Church Administration
 ```
 
 ### Body (HTML)
@@ -69,6 +69,6 @@ Copy the exact contents of `supabase/templates/magic_link.html`. That file is th
 After applying in the hosted dashboard:
 
 1. Trigger a Magic Link sign-in from `/admin/login` on production or staging.
-2. Confirm that the delivered email has the subject `Đăng nhập vào Hệ thống Quản trị Hội Thánh TMG`.
+2. Confirm that the delivered email has the subject `Sign in to TMG Church Administration`.
 3. Confirm that clicking the button directs to `https://tmgchurch.website/admin/auth/callback?code=...&next=/admin`.
 4. Confirm successful PKCE session exchange and redirect to `/admin`.

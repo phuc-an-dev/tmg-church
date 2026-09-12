@@ -34,7 +34,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
       <div
         role="status"
         aria-live="polite"
-        className="border-border bg-card rounded-lg border p-6 shadow-xs"
+        className="border-border bg-card rounded-xl border p-6 shadow-xs"
       >
         <div className="flex items-start gap-3">
           <CheckCircle2
@@ -43,13 +43,15 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
           />
           <div className="min-w-0 flex-1 space-y-2">
             <h2 className="text-card-foreground text-base font-semibold">
-              Đã gửi yêu cầu đăng nhập
+              Sign-in link sent
             </h2>
             <p className="text-muted-foreground text-sm">{state.message}</p>
             {submittedEmail && (
               <p className="text-foreground text-sm font-medium break-all">
-                Địa chỉ nhận:{" "}
-                <span className="font-mono">{submittedEmail}</span>
+                Sent to:{" "}
+                <span className="text-primary font-mono font-semibold">
+                  {submittedEmail}
+                </span>
               </p>
             )}
             <div className="pt-2">
@@ -58,10 +60,10 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
                 variant="outline"
                 size="sm"
                 onClick={onReset}
-                className="min-h-[44px] gap-1.5"
+                className="min-h-[44px] gap-2"
               >
-                <RotateCcw className="size-3.5" aria-hidden="true" />
-                <span>Gửi lại hoặc nhập địa chỉ khác</span>
+                <RotateCcw className="size-4" aria-hidden="true" />
+                <span>Resend or enter a different email</span>
               </Button>
             </div>
           </div>
@@ -105,7 +107,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
 
       <div className="space-y-2">
         <label htmlFor="email" className="text-foreground text-sm font-medium">
-          Địa chỉ email
+          Email address
         </label>
         <Input
           id="email"
@@ -114,7 +116,8 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
           autoComplete="email"
           required
           disabled={isPending}
-          placeholder="ban-dieu-hanh@tmgchurch.website"
+          placeholder="leader@tmgchurch.website"
+          className="text-base"
           aria-describedby={
             state.fieldErrors?.email ? "email-error" : undefined
           }
@@ -134,7 +137,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
       <Button
         type="submit"
         disabled={isPending}
-        className="h-11 min-h-[44px] w-full text-sm font-medium"
+        className="h-11 min-h-[44px] w-full gap-2 text-sm font-medium"
       >
         {isPending ? (
           <>
@@ -142,12 +145,12 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
               className="size-4 animate-spin motion-reduce:animate-none"
               aria-hidden="true"
             />
-            <span>Đang gửi liên kết...</span>
+            <span>Sending sign-in link...</span>
           </>
         ) : (
           <>
             <Mail className="size-4" aria-hidden="true" />
-            <span>Nhận liên kết đăng nhập</span>
+            <span>Send sign-in link</span>
           </>
         )}
       </Button>

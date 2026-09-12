@@ -4,8 +4,8 @@ import { FileQuestion, Home } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Không tìm thấy trang",
-  description: "Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển.",
+  title: "Page Not Found",
+  description: "The page you are looking for does not exist or has been moved.",
 };
 
 export default function NotFound() {
@@ -18,11 +18,11 @@ export default function NotFound() {
 
         <div className="space-y-2">
           <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-            Không tìm thấy trang
+            Page not found
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Trang bạn đang tìm kiếm không tồn tại, đã bị gỡ bỏ hoặc đường dẫn
-            không chính xác.
+            The page you are looking for does not exist, has been removed, or
+            the link is incorrect.
           </p>
         </div>
 
@@ -35,7 +35,7 @@ export default function NotFound() {
             })}
           >
             <Home className="size-4" aria-hidden="true" />
-            <span>Về trang chủ</span>
+            <span>Return to Home</span>
           </Link>
         </div>
       </div>

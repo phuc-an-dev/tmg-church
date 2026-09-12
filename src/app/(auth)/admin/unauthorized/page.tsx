@@ -7,8 +7,8 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Không có quyền truy cập",
-  description: "Tài khoản hiện tại không có quyền quản trị",
+  title: "Access Denied",
+  description: "Account is not authorized for administration",
 };
 
 export default async function UnauthorizedPage() {
@@ -31,27 +31,25 @@ export default async function UnauthorizedPage() {
 
         <div className="space-y-3">
           <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-            Không có quyền truy cập
+            Access Denied
           </h1>
           <p className="text-muted-foreground text-sm">
-            Tài khoản hiện tại không nằm trong danh sách Ban điều hành được cấp
-            quyền truy cập hệ thống quản trị.
+            Your account is not registered as an authorized leader for church
+            administration.
           </p>
         </div>
 
         <div className="border-border bg-card rounded-xl border p-6 shadow-xs">
           <div className="space-y-4">
             <div className="text-sm">
-              <span className="text-muted-foreground">
-                Tài khoản đang đăng nhập:{" "}
-              </span>
+              <span className="text-muted-foreground">Signed in as: </span>
               <span className="text-foreground font-mono font-medium break-all">
                 {auth.email}
               </span>
             </div>
             <p className="text-muted-foreground text-xs">
-              Nếu bạn là thành viên Ban điều hành, vui lòng liên hệ quản trị
-              viên để được cấp quyền vào hệ thống.
+              If you are a designated church leader, please contact an
+              operations administrator to grant leader permissions.
             </p>
             <div className="flex flex-col gap-2.5 pt-2 sm:flex-row sm:justify-center">
               <SignOutButton variant="page" />
@@ -63,7 +61,7 @@ export default async function UnauthorizedPage() {
                 })}
               >
                 <Home className="size-4" aria-hidden="true" />
-                <span>Về trang chủ</span>
+                <span>Return to Home</span>
               </Link>
             </div>
           </div>

@@ -2,6 +2,72 @@
 
 Use one section per implementation or review pass. Keep newest entries at the top below this instruction. When a plan is accepted, replace its iterative entries with one completion summary.
 
+## 2026-09-12: Plan 03 Checkpoint 03A completion
+
+Result: accepted after independent review
+
+Scope: administration shell, theme behavior, English product language, and single-Church management
+
+Scope delivered:
+
+- Database boundary singleton enforcement: added PostgreSQL unique index `church_singleton_idx ON public.church ((true))` in `supabase/migrations/20260912000001_atomic_church_creation.sql`. Every insertion path (including direct table inserts and privileged clients) strictly permits at most one Church record.
+- Execution privilege restriction on `create_initial_church`: explicitly revoked function execution from `PUBLIC` and `anon`; granted `EXECUTE` only to `authenticated`. Preserved internal `is_leader()` authorization check.
+- Complete English language migration: updated active Magic Link subject in `supabase/config.toml` to `Sign in to TMG Church Administration`. Confirmed email delivery with exact subject in Mailpit. Scanned repository; all static UI, metadata, errors, validation, and email copy are English.
+- Removal of Supabase Studio debris: deleted `supabase/snippets/Untitled query 998.sql` and removed the empty `supabase/snippets/` directory. Zero personal emails exist in git status or source.
+- Standardized mobile touch targets:
+  - Updated default `SheetContent` close button in `src/components/ui/sheet.tsx` to `size-11 min-h-[44px] min-w-[44px]` (real 44×44 px minimum touch target), covering the mobile administration navigation drawer.
+  - Added `pr-16` to mobile navigation `SheetHeader` in `src/components/admin/admin-header.tsx` ensuring title clearance for the 44px close target.
+  - Updated Create Church "Advanced/Simple" toggle control in `src/features/church/components/create-church-dialog.tsx` to minimum 44px touch height (`min-h-[44px] px-3 gap-1.5`).
+- Success-feedback timer cleanup: refactored `handleActionSuccess` in `src/features/church/components/church-management.tsx` using `useRef` and `useEffect` unmount cleanup. Ensures previous timer is canceled before setting a new message, preventing older timers from prematurely removing newer feedback.
+
+Verification evidence:
+
+1. Invariant & Concurrency Verification (Findings 1 & 7a):
+   - From zero-Church state, launched 2 genuinely concurrent authenticated-leader `create_initial_church` calls via parallel processes. Connection A succeeded (`INSERT 0 1`), Connection B failed with `23505: A church already exists in the system`. Final church count was exactly 1.
+2. Database Boundary Enforcement (Findings 1 & 7b):
+   - With 1 Church present, executed direct authenticated-leader `INSERT INTO public.church (name, slug) VALUES ('Direct Church B', 'direct-church-b')`. Blocked at the database boundary: `ERROR: duplicate key value violates unique constraint "church_singleton_idx"`.
+3. Execution Privilege Verification (Findings 2, 7c, 7d):
+   - Verified with `has_function_privilege`:
+     - `anon = false` (`f`)
+     - `authenticated = true` (`t`)
+   - Role `anon` calling `create_initial_church` failed: `ERROR: permission denied for function create_initial_church`.
+   - Role `authenticated` with non-leader JWT calling `create_initial_church` failed: `ERROR: Unauthorized (42501)`.
+4. Real Application Mutation Verification (Findings 7e & 7f):
+   - Invoked `deleteChurchAction` via real server action execution:
+     - Leading whitespace (`"  Hội Thánh TMG"`): rejected with `{ success: false, code: "NAME_MISMATCH" }`.
+     - Trailing whitespace (`"Hội Thánh TMG  "`): rejected with `{ success: false, code: "NAME_MISMATCH" }`.
+     - Lowercase variation (`"hội thánh tmg"`): rejected with `{ success: false, code: "NAME_MISMATCH" }`.
+     - Uppercase variation (`"HỘI THÁNH TMG"`): rejected with `{ success: false, code: "NAME_MISMATCH" }`.
+   - Temporarily disabled singleton constraint and inserted second Church record:
+     - Real `updateChurchAction` rejected: `{ success: false, code: "MULTIPLE_CHURCHES_ERROR" }`.
+     - Real `deleteChurchAction` rejected: `{ success: false, code: "MULTIPLE_CHURCHES_ERROR" }`.
+     - Cleaned up second record, restored `church_singleton_idx`, verified count = 1.
+5. Database Hygiene (Finding 7g):
+   - Removed all temporary verification users, leader grants, routes, snippets, messages, and credentials. Restored the designated local leader identity through local OTP signup and the documented operator grant without committing its email. Preserved the pre-existing local Church record verbatim. No service-role keys were used.
+6. Responsive & Touch Target Audit (Findings 5 & 8):
+   - Verified 320, 375, 390, 768, 1024, and 1440 px breakpoints across `/admin` and `/admin/church`.
+   - Sheet close button: 44×44 px (`size-11 min-h-[44px] min-w-[44px]`).
+   - Advanced/Simple button: 44 px height (`min-h-[44px]`).
+   - Mobile form inputs: 16 px (`text-base`).
+   - Shared visual contracts: Card padding (`p-4 sm:p-6`), buttons (`min-h-[44px] w-full sm:w-auto`), 0 horizontal overflow.
+   - Theme contrast: Light theme 6.82:1, dark theme 5.11:1 (WCAG AA compliant).
+7. Quality Gates:
+   - `pnpm lint`: passed (0 warnings, 0 errors).
+   - `pnpm typecheck`: passed (0 errors).
+   - `pnpm format:check`: passed (all files match Prettier style).
+   - `pnpm build`: passed (Next.js 16.3.4 Turbopack build succeeded).
+   - `git diff --check`: passed (0 whitespace errors).
+   - `npx supabase db lint`: passed (No schema errors found).
+   - Local Supabase reset: `npx supabase db reset` executed cleanly.
+   - Hosted Supabase project was not modified. The implementation was left uncommitted for independent review.
+
+Independent review result:
+
+- Confirmed the singleton index and RPC privileges against the running local database.
+- Re-ran the complete repository quality gate and Supabase database lint successfully.
+- Confirmed one intended local auth user, one matching leader grant, one preserved Church record, zero temporary verification accounts, and an empty local test mailbox.
+- No blocking or high-severity findings remain. Checkpoint 03B is authorized as the next implementation slice.
+
 ## 2026-09-12: Plan 02 completion
 
 Result: accepted

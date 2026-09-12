@@ -6,11 +6,11 @@ import { getSiteUrl } from "@/lib/env";
 import { loginSchema, type LoginActionState } from "@/features/auth/schemas";
 
 const GENERIC_CONFIRMATION_MESSAGE =
-  "Nếu địa chỉ email hợp lệ, một liên kết đăng nhập đã được gửi tới hộp thư của bạn. Vui lòng kiểm tra hộp thư (bao gồm cả thư rác).";
+  "If this email address is valid, a sign-in link has been sent to your inbox. Please check your inbox (including spam folder).";
 
 /**
  * Sends a Magic Link OTP to the provided email address.
- * Always returns the exact same Vietnamese confirmation message for any syntactically
+ * Always returns the exact same generic confirmation message for any syntactically
  * valid email address to prevent account enumeration, regardless of account existence,
  * leader status, or identity-sensitive provider errors.
  */

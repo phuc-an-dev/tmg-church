@@ -1,6 +1,6 @@
 # Plan 03: Administration, Church, and Ministry
 
-Status: in progress; checkpoint 03A ready, checkpoint 03B blocked until 03A passes independent review
+Status: in progress; checkpoint 03A accepted, checkpoint 03B ready for implementation
 
 Depends on: Plans 01 and 02
 
@@ -25,7 +25,7 @@ Included:
 - `nuqs` URL state
 - Mobile cards and bottom drawers
 - Desktop tables and editor dialogs or side surfaces
-- Vietnamese product copy and full state coverage
+- English product copy and full state coverage
 
 Excluded:
 
@@ -69,7 +69,7 @@ Responsibilities:
 - `/admin/ministries/[ministryId]`: Ministry summary and paginated Term collection
 - `/admin/ministries/[ministryId]/terms/[termId]`: Term summary with one active section for Groups or Departments
 
-Invalid UUIDs or inaccessible records return a Vietnamese not-found state without revealing whether a record exists in another authorization scope.
+Invalid UUIDs or inaccessible records return an English not-found state without revealing whether a record exists in another authorization scope.
 
 ## Suggested feature structure
 
@@ -123,7 +123,7 @@ Mutations:
 
 - Use Server Actions with server-side Zod validation.
 - Return a discriminated result containing field errors, a safe form error code, and success data when needed.
-- Translate stable error codes into Vietnamese at the UI boundary.
+- Translate stable error codes into English at the UI boundary.
 - Recheck leader authorization within each action.
 - Revalidate only affected paths or tags.
 - Never expose raw Postgres or Supabase error text.
@@ -162,9 +162,11 @@ Use shared `nuqs` parser declarations on client and server. Filter, search, sort
 
 ## Checkpoint 03A: Administration shell and Church
 
+Status: accepted after independent review on 2026-09-12
+
 ### Shell
 
-- Replace the temporary protected page with a Vietnamese admin overview.
+- Replace the temporary protected page with an English admin overview.
 - Desktop navigation uses a compact sidebar or header appropriate to the final information hierarchy.
 - Mobile navigation uses a bottom-safe navigation or Drawer opened by a Lucide menu icon.
 - Navigation includes only implemented destinations.

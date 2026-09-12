@@ -251,7 +251,7 @@ otp_expiry = 3600
 # content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
-subject = "Đăng nhập vào Hệ thống Quản trị Hội Thánh TMG"
+subject = "Sign in to TMG Church Administration"
 content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template

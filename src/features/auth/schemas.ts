@@ -4,8 +4,8 @@ export const loginSchema = z.object({
   email: z
     .string()
     .trim()
-    .min(1, "Vui lòng nhập địa chỉ email.")
-    .email("Địa chỉ email không đúng định dạng.")
+    .min(1, "Email address is required.")
+    .email("Please enter a valid email address.")
     .toLowerCase(),
 });
 

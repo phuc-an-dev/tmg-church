@@ -12,17 +12,17 @@ export default function Home() {
 
         <div className="space-y-2">
           <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-            Hội Thánh TMG
+            TMG Church
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Hệ thống thông tin và quản trị Hội Thánh. Cổng thông tin công khai
-            đang trong quá trình hoàn thiện.
+            Church information and administration platform. Public directory
+            features will be available soon.
           </p>
         </div>
 
         <div className="border-border bg-card rounded-xl border p-6 shadow-xs">
           <p className="text-muted-foreground text-xs leading-relaxed">
-            Dành cho Ban điều hành và nhân sự phụ trách:
+            For church leadership and authorized personnel:
           </p>
           <div className="mt-4 flex justify-center">
             <Link
@@ -33,7 +33,7 @@ export default function Home() {
               })}
             >
               <Shield className="size-4" aria-hidden="true" />
-              <span>Khu vực quản trị</span>
+              <span>Go to Administration</span>
             </Link>
           </div>
         </div>

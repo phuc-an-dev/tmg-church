@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const geist = Geist({
   subsets: ["latin", "vietnamese"],
@@ -10,16 +11,29 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hội Thánh TMG",
-    template: "%s | Hội Thánh TMG",
+    default: "TMG Church",
+    template: "%s | TMG Church",
   },
-  description: "Hệ thống thông tin và quản trị Hội Thánh TMG",
+  description: "Information and administration platform for TMG Church",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="vi" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn("font-sans", geist.variable)}
+    >
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={true}
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

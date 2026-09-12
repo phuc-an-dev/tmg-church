@@ -13,17 +13,17 @@ The initial data set is approximately 90 youth ministry members. The architectur
 
 ## Language policy
 
-Implementation and developer material are English. Product content is Vietnamese.
+All implementation, developer material, and product content are English.
 
 Initial product copy direction:
 
-- Product name: `Hội Thánh TMG`
-- Public directory heading: `Danh sách thành viên`
-- Search placeholder: `Tìm theo tên`
-- Administration label: `Quản trị`
-- Sign-in label: `Đăng nhập dành cho người phụ trách`
+- Product name: `TMG Church`
+- Public directory heading: `Members Directory`
+- Search placeholder: `Search by name`
+- Administration label: `Administration`
+- Sign-in label: `Leader Sign In`
 
-The final official Vietnamese church name and organization description can be updated later without changing the architecture.
+The default product brand is "TMG Church". User-entered database values must be displayed verbatim. Vietnamese names remain supported by the slug generator.
 
 ## Confirmed requirements
 

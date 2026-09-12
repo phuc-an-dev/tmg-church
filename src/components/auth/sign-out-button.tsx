@@ -32,14 +32,19 @@ export function SignOutButton({
         className={`min-h-[44px] gap-2 ${className}`}
       >
         {isPending ? (
-          <Loader2
-            className="size-4 animate-spin motion-reduce:animate-none"
-            aria-hidden="true"
-          />
+          <>
+            <Loader2
+              className="size-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            <span>Signing out...</span>
+          </>
         ) : (
-          <LogOut className="size-4" aria-hidden="true" />
+          <>
+            <LogOut className="size-4" aria-hidden="true" />
+            <span>Sign out</span>
+          </>
         )}
-        <span>Đăng xuất</span>
       </Button>
     );
   }
@@ -51,19 +56,24 @@ export function SignOutButton({
       size="sm"
       onClick={handleSignOut}
       disabled={isPending}
-      title="Đăng xuất khỏi hệ thống quản trị"
-      aria-label="Đăng xuất"
+      title="Sign out of administration"
+      aria-label="Sign out"
       className={`text-muted-foreground hover:text-foreground min-h-[44px] gap-1.5 text-xs sm:min-h-0 ${className}`}
     >
       {isPending ? (
-        <Loader2
-          className="size-3.5 animate-spin motion-reduce:animate-none"
-          aria-hidden="true"
-        />
+        <>
+          <Loader2
+            className="size-3.5 animate-spin motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+          <span>Signing out...</span>
+        </>
       ) : (
-        <LogOut className="size-3.5" aria-hidden="true" />
+        <>
+          <LogOut className="size-3.5" aria-hidden="true" />
+          <span>Sign out</span>
+        </>
       )}
-      <span>Đăng xuất</span>
     </Button>
   );
 }

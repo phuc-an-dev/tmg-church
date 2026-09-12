@@ -995,6 +995,22 @@ export type Database = {
       };
     };
     Functions: {
+      create_initial_church: {
+        Args: { church_name: string; church_slug: string };
+        Returns: {
+          created_at: string;
+          id: string;
+          name: string;
+          slug: string;
+          updated_at: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "church";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       is_leader: { Args: never; Returns: boolean };
     };
     Enums: {

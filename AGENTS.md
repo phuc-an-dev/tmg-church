@@ -23,7 +23,10 @@ These instructions apply to the entire repository. User instructions take preced
 ## Product language
 
 - Write all source code, identifiers, filenames, comments, commit messages, technical documentation, validation keys, and developer-facing logs in English.
-- Write all user-facing interface copy, empty states, validation messages, email instructions, metadata, and SEO content in Vietnamese.
+- Write all user-facing interface copy, navigation, headings, descriptions, forms, validation messages, empty states, errors, success messages, metadata, SEO content, accessible names, screen-reader labels, and authentication email content in English.
+- The default product brand is "TMG Church".
+- User-entered database values must be displayed verbatim and must not be automatically translated.
+- Vietnamese names must remain supported by the slug generator.
 - Do not use emoji anywhere in the product or repository documentation.
 - Use Lucide icons through `lucide-react`. Do not use Unicode symbols as interface icons.
 
