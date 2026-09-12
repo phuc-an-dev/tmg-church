@@ -1,6 +1,6 @@
 # Plan 03: Administration, Church, and Ministry
 
-Status: planned, blocked until Plan 02 passes review
+Status: in progress; checkpoint 03A ready, checkpoint 03B blocked until 03A passes independent review
 
 Depends on: Plans 01 and 02
 
@@ -299,13 +299,12 @@ Use Lucide icons. Do not add another icon library. The coding agent must verify 
 
 Checkpoint 03A:
 
-1. Confirm Plan 02 review is accepted.
-2. Add only required shared shadcn components.
-3. Implement theme provider and final semantic tokens.
-4. Implement protected admin shell, responsive navigation, loading, and error states.
-5. Implement active-Church query contract and zero/one/multiple handling.
-6. Implement Church validation, create, edit, and guarded delete.
-7. Verify 03A and request checkpoint review.
+1. Add only required shared shadcn components.
+2. Implement theme provider and final semantic tokens.
+3. Implement protected admin shell, responsive navigation, loading, and error states.
+4. Implement active-Church query contract and zero/one/multiple handling.
+5. Implement Church validation, create, edit, and guarded delete.
+6. Verify 03A and request checkpoint review.
 
 Checkpoint 03B after acceptance:
 

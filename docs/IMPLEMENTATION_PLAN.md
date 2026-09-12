@@ -38,9 +38,7 @@ Deliverables:
 
 ## Slice 2: Supabase clients and authentication
 
-Detailed plan: `docs/plans/02-authentication.md`
-
-Status: planned; blocked until Slice 1 passes independent review.
+Status: complete. Commit: `25d6cf2 feat: add Supabase authentication and admin shell`.
 
 Deliverables:
 
@@ -65,7 +63,7 @@ Review focus:
 
 Detailed plan: `docs/plans/03-admin-church-and-ministry.md`, checkpoint 03A.
 
-Status: planned; blocked until Slice 2 passes independent review.
+Status: checkpoint 03A ready for implementation.
 
 Deliverables:
 

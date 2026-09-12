@@ -2,7 +2,7 @@
 
 TMG Church is a mobile-first church management application for public member information and authenticated leader administration. The production domain is `tmgchurch.website`.
 
-The repository is currently in the foundation stage. It contains the Next.js scaffold, shared dependencies, project rules, architecture decisions, an implementation plan, and a review workflow. Feature implementation is intentionally left to a coding agent.
+The foundation, database, and authentication slices are complete. The currently authorized implementation checkpoint is the administration shell and Church management defined in `docs/NEXT_AGENT_TASK.md`.
 
 ## Stack
 
@@ -63,8 +63,6 @@ pnpm build
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
 - [Next coding-agent task](docs/NEXT_AGENT_TASK.md)
-- [Database and RLS plan](docs/plans/01-database-and-rls.md)
-- [Authentication plan](docs/plans/02-authentication.md)
 - [Admin, Church, and Ministry plan](docs/plans/03-admin-church-and-ministry.md)
 - [Plan and review workflow](docs/WORKFLOW.md)
 - [Review checklist](docs/REVIEW_CHECKLIST.md)

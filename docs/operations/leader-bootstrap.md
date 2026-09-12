@@ -17,7 +17,7 @@ This document describes the manual procedure for an authorized database operator
 
 ### Step 1: Initial user sign-in
 
-After Plan 02 has been implemented and reviewed, have the designated leader perform the initial Magic Link sign-in flow through the application. Plan 01 creates only the database authorization boundary; it does not include an application login flow.
+Have the designated leader perform the Magic Link sign-in flow through the application before adding their authorization record.
 
 1. Navigate to `/admin/login`.
 2. Enter the leader's email (e.g., `leader@example.com`).
