@@ -171,3 +171,45 @@ Findings: Vietnamese public content remains scheduled for Slice 6; administratio
 Role: planning agent
 
 Decisions recorded: member archive uses `archived_at`; the public directory uses ministry and term slugs; the database schema is created in full while UI work remains incremental; the current UI supports one active church.
+
+## 2026-09-13: Checkpoint 03B implementation evidence
+
+Role: coding agent
+
+Result: ready for independent review; not accepted
+
+Delivered: private Ministry, Ministry Term, Term Group, and Term Department CRUD routes; server-only RLS-backed queries and Server Actions; Zod validation; slug generation and advanced slug editing; date range validation; parent-child checks; URL-backed search, sort, filters, sections, pagination, and page size; responsive table/card collection treatment; responsive editor and guarded permanent deletes. The active administration navigation now includes Ministries.
+
+Database: no migration was required because the accepted initial schema already contains the required structural uniqueness, restrictive foreign keys, and term date constraint. `npx supabase db lint` reported no schema errors.
+
+Verification: `node_modules/.bin/tsc --noEmit`, targeted ESLint, `node_modules/.bin/prettier --check 'src/**/*.{ts,tsx}'`, `node_modules/.bin/next build`, and `git diff --check` passed. The build recognizes all three new protected routes. The prescribed `pnpm` commands could not run because the installed pnpm 11 requires Node 22.13+ while the host shell provides Node 20.20.2; direct project binaries supplied equivalent TypeScript, lint, formatting, and build evidence.
+
+Remaining review work: perform the signed-out, non-leader, leader, direct-RLS, tampering, date-boundary, deletion-dependency, and required viewport/accessibility manual matrix against a local authenticated data set. No temporary users or records were created, and no hosted Supabase project was modified.
+
+## 2026-09-13: Ministry visual identity extension evidence
+
+Role: coding agent
+
+Result: ready for independent review; not accepted
+
+Delivered: a constrained Ministry accent color and Lucide icon identity model, including a database migration with normalized color and fixed icon-key constraints; defaults for new records; generated Ministry database types; shared registry and safe visual fallbacks; Zod validation; Server Action persistence; color swatches with one selected check; an optional custom hex/color control; a searchable keyboard-operable icon grid; live identity preview; and Ministry identity tiles in collection and nested Ministry/Term headers. Terms, Groups, and Departments do not receive identity fields.
+
+Database: local migration `20260913000002_ministry_visual_identity.sql` applied without reset. `npx supabase db lint --local` reported no schema errors. The existing local Ministry record remained present with its already-configured identity values, so no Church, leader, or Ministry records were reset or overwritten.
+
+Verification: `node_modules/.bin/tsc --noEmit`, targeted ESLint, Prettier check, `node_modules/.bin/next build`, `git diff --check`, local migration status, and local database lint passed. The production build completed successfully; Supabase emitted its existing Node 20 deprecation warning. The prescribed `pnpm` commands remain unavailable because pnpm 11 requires Node 22.13+ while the host shell provides Node 20.20.2.
+
+Remaining review work: manually verify the identity picker in light and dark themes at mobile and desktop breakpoints, and run the authorized authentication/RLS matrix before acceptance. No hosted Supabase project was modified.
+
+## 2026-09-13: Ministry implementation independent review and remediation
+
+Role: independent review followed by coding remediation
+
+Result: ready to commit; not accepted
+
+Review findings: the independent reviewer found no P0 security issue and confirmed the protected query/action RLS boundaries, migration constraints, and static Lucide registry. It identified two P1 collection defects—non-reactive debounced search and invalid out-of-range pagination—and four P2 picker issues: stale name preview, whitespace-sensitive icon search, incomplete custom-color radio state, and missing arrow-key color-radio behavior.
+
+Remediation: search now uses a controlled draft with debounce plus immediate Enter/clear behavior. Collection queries count before fetching the resolved page, preventing invalid PostgREST ranges and returning a valid page consistently. The identity preview follows the live name draft; icon search collapses whitespace; custom color is represented in the color radio group; and the swatches support roving arrow-key selection. Removed the obsolete uncontrolled search ref.
+
+Manual smoke evidence: `/admin/ministries?page=99` rendered the single valid record with `Showing 1–1 of 1` and disabled Previous/Next controls. The Add Ministry editor showed one selected color radio, a searchable icon grid, a live preview that changed to `Youth Ministry`, and matched `open    book` to the Open book icon. The editor was cancelled without saving, so no test Ministry was created.
+
+Verification after remediation: `node_modules/.bin/tsc --noEmit`, targeted ESLint, Prettier check, `node_modules/.bin/next build`, `git diff --check`, and `npx supabase db lint --local` passed. `pnpm lint` remains blocked by the host Node 20.20.2 runtime because installed pnpm 11.19.0 requires Node 22.13+ and `node:sqlite`.

@@ -1,4 +1,4 @@
-import { Church, LayoutDashboard } from "lucide-react";
+import { Church, LayoutDashboard, Layers3 } from "lucide-react";
 
 export const ADMIN_NAVIGATION_ITEMS = [
   {
@@ -13,6 +13,13 @@ export const ADMIN_NAVIGATION_ITEMS = [
     label: "Church Settings",
     mobileLabel: "Church",
     icon: Church,
+    exact: false,
+  },
+  {
+    href: "/admin/ministries",
+    label: "Ministries",
+    mobileLabel: "Ministries",
+    icon: Layers3,
     exact: false,
   },
 ] as const;

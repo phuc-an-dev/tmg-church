@@ -27,13 +27,19 @@ export function MobileAdminDock() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-3 text-[11px] font-semibold transition-all duration-150",
+              "flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 text-[11px] font-semibold transition-all duration-150",
               active
-                ? "bg-primary text-primary-foreground shadow-[0_8px_18px_-10px_color-mix(in_oklch,var(--primary)_90%,transparent)]"
+                ? "bg-card text-primary ring-border/80 shadow-sm ring-1"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <Icon className="size-4" aria-hidden="true" />
+            <Icon
+              className={cn(
+                "size-4",
+                active && "fill-primary/10 stroke-[2.25]",
+              )}
+              aria-hidden="true"
+            />
             <span>{item.mobileLabel}</span>
           </Link>
         );

@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const geist = Geist({
   subsets: ["latin", "vietnamese"],
@@ -33,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem={true}
           disableTransitionOnChange
         >
-          {children}
+          <NuqsAdapter>{children}</NuqsAdapter>
           <SpeedInsights />
           <Analytics />
         </ThemeProvider>

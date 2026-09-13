@@ -363,24 +363,30 @@ export type Database = {
       };
       ministry: {
         Row: {
+          accent_color: string;
           church_id: string;
           created_at: string;
+          icon_key: string;
           id: string;
           name: string;
           slug: string;
           updated_at: string;
         };
         Insert: {
+          accent_color?: string;
           church_id: string;
           created_at?: string;
+          icon_key?: string;
           id?: string;
           name: string;
           slug: string;
           updated_at?: string;
         };
         Update: {
+          accent_color?: string;
           church_id?: string;
           created_at?: string;
+          icon_key?: string;
           id?: string;
           name?: string;
           slug?: string;
