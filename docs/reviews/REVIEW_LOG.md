@@ -2,6 +2,25 @@
 
 Use one section per implementation or review pass. Keep newest entries at the top below this instruction. When a plan is accepted, replace its iterative entries with one completion summary.
 
+## 2026-09-13: Administrative request-path optimization
+
+Result: ready for review
+
+Scope: restricted Supabase session-refresh Proxy execution to `/admin/:path*` and changed server-side identity verification from `getUser()` to JWT-validating `getClaims()`. Leader authorization remains a separate RLS-backed `leaders` query. Removed the unused full-user payload from the auth context.
+
+Manual verification:
+
+- Reloaded `/admin/church` with an authenticated session and confirmed the protected Church Settings page remained accessible.
+- Confirmed every protected Server Action and protected query continues to call `requireLeader()` independently of Proxy coverage.
+
+Quality gates:
+
+- `pnpm lint`: passed.
+- `pnpm typecheck`: passed.
+- `pnpm format:check`: passed.
+- `pnpm build`: passed with Next.js 16.3.4 Turbopack.
+- `git diff --check`: passed.
+
 ## 2026-09-13: Administration visual-system refinement
 
 Result: ready for review

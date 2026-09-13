@@ -1,7 +1,6 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -10,17 +9,14 @@ export type LeaderRow = Database["public"]["Tables"]["leaders"]["Row"];
 export type AuthContext =
   | {
       status: "unauthenticated";
-      user: null;
       email: null;
     }
   | {
       status: "unauthorized";
-      user: User;
       email: string;
     }
   | {
       status: "authorized";
-      user: User;
       email: string;
       leader: LeaderRow;
     };
@@ -28,20 +24,20 @@ export type AuthContext =
 /**
  * Retrieves the current authentication and leader authorization context.
  * Deduplicated per request using React cache().
- * Uses getUser() rather than getSession() as server authorization evidence.
+ * Verifies the session JWT with getClaims() before checking leader status.
  */
 export const getAuthContext = cache(async (): Promise<AuthContext> => {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
 
-  if (userError || !user) {
+  const claims = claimsData?.claims;
+  const userId = claims?.sub;
+
+  if (claimsError || !claims || typeof userId !== "string") {
     return {
       status: "unauthenticated",
-      user: null,
       email: null,
     };
   }
@@ -49,22 +45,23 @@ export const getAuthContext = cache(async (): Promise<AuthContext> => {
   const { data: leader, error: leaderError } = await supabase
     .from("leaders")
     .select("user_id, email, created_at")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
-  const email = user.email ?? leader?.email ?? "";
+  const email =
+    (typeof claims.email === "string" ? claims.email : null) ??
+    leader?.email ??
+    "";
 
   if (leaderError || !leader) {
     return {
       status: "unauthorized",
-      user,
       email,
     };
   }
 
   return {
     status: "authorized",
-    user,
     email,
     leader,
   };
