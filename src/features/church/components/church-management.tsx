@@ -75,7 +75,6 @@ export function ChurchManagement({
         )}
         <div className="mx-auto max-w-4xl space-y-6">
           <AdminPageHeader
-            eyebrow="Organization profile"
             title="Church Settings"
             description="Set up the primary church profile to begin organization management."
           />
@@ -129,7 +128,6 @@ export function ChurchManagement({
     return (
       <div className="mx-auto max-w-4xl space-y-6">
         <AdminPageHeader
-          eyebrow="Organization profile"
           title="Church Settings"
           description="Configuration error: multiple church records found in the database."
         />
@@ -221,7 +219,6 @@ export function ChurchManagement({
       )}
       <div className="mx-auto max-w-4xl space-y-6">
         <AdminPageHeader
-          eyebrow="Organization profile"
           title="Church Settings"
           description="Operational details and configuration for the active church profile."
           action={<ChurchPageActions />}

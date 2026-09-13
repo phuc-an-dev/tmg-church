@@ -35,7 +35,6 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <AdminPageHeader
-        eyebrow="Church administration"
         title="Overview"
         description="Administration dashboard and operational summary."
       />
