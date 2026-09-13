@@ -9,18 +9,21 @@ import {
   ChevronRight,
   Check,
   Layers3,
-  Pencil,
   Plus,
   Rows3,
   Search,
   SlidersHorizontal,
-  Trash2,
 } from "lucide-react";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { StatusToast } from "@/components/ui/status-toast";
+import {
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -580,8 +583,10 @@ export function MinistryManagement({
     });
   }
 
+  const resetKey = `${query.q}-${query.page}-${query.pageSize}-${query.sort}-${mode}-${Boolean(editor)}-${Boolean(deleting)}`;
+
   return (
-    <>
+    <ExpandableCoordinatorProvider resetKey={resetKey}>
       {feedback && (
         <StatusToast message={feedback} onDismiss={() => setFeedback(null)} />
       )}
@@ -671,105 +676,165 @@ export function MinistryManagement({
             </p>
           </div>
         ) : (
-          <div className="md:overflow-hidden md:rounded-xl md:border">
-            <table className="block w-full text-left md:table">
-              <thead className="bg-muted/50 hidden text-xs md:table-header-group">
-                <tr>
-                  <th className="p-3">Name</th>
-                  {mode !== "groups" && mode !== "departments" && (
-                    <th className="p-3">Slug</th>
+          <>
+            <p className="sr-only">
+              Use the Actions button on mobile to reveal actions for an item.
+            </p>
+            <div
+              role="table"
+              aria-label={title}
+              className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
+            >
+              <div role="rowgroup">
+                <div
+                  role="row"
+                  className={cn(
+                    "bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:items-center md:border-b md:px-4 md:py-3",
+                    mode === "ministries"
+                      ? "md:grid-cols-[1fr_180px_120px_180px]"
+                      : mode === "terms"
+                        ? "md:grid-cols-[1fr_180px_120px_180px]"
+                        : "md:grid-cols-[1fr_180px]",
                   )}
-                  {mode === "ministries" && <th className="p-3">Terms</th>}
-                  {mode === "terms" && <th className="p-3">Status</th>}
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="block space-y-3 md:table-row-group md:space-y-0">
-                {result.items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="bg-card block rounded-2xl border p-5 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] md:table-row md:rounded-none md:border-0 md:p-0 md:shadow-none"
-                  >
-                    <td className="block py-1 font-medium md:table-cell md:p-3">
-                      <div className="flex items-start gap-3">
-                        {isMinistry(item) ? (
-                          <MinistryIdentityTile
-                            accentColor={item.accentColor}
-                            iconKey={item.iconKey}
-                          />
-                        ) : (
-                          <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
-                            <Layers3 className="size-5" aria-hidden="true" />
-                          </span>
-                        )}
-                        <span className="min-w-0">
-                          {detailHref(item) ? (
-                            <Link
-                              className="hover:text-primary text-base font-semibold underline-offset-4 hover:underline"
-                              href={detailHref(item)!}
-                            >
-                              {item.name}
-                            </Link>
-                          ) : (
-                            item.name
-                          )}
-                          {isTerm(item) && (
-                            <span className="text-muted-foreground mt-1 block text-xs">
-                              {item.startDate ?? "No start date"} to{" "}
-                              {item.endDate ?? "No end date"}
-                            </span>
-                          )}
-                        </span>
+                >
+                  <div role="columnheader">Name</div>
+                  {mode !== "groups" && mode !== "departments" && (
+                    <div role="columnheader">Slug</div>
+                  )}
+                  {mode === "ministries" && (
+                    <div role="columnheader">Terms</div>
+                  )}
+                  {mode === "terms" && <div role="columnheader">Status</div>}
+                  <div role="columnheader" className="text-right">
+                    Actions
+                  </div>
+                </div>
+              </div>
+              <div
+                role="rowgroup"
+                className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
+              >
+                {result.items.map((item) => {
+                  const isDeleteDisabled =
+                    isMinistry(item) && item.termCount > 0;
+                  const deleteDisabledReason = isDeleteDisabled
+                    ? "Cannot delete a ministry with existing terms."
+                    : undefined;
+
+                  return (
+                    <ExpandableActionItem
+                      key={item.id}
+                      id={item.id}
+                      name={item.name}
+                      onEdit={() => openEditor(item)}
+                      onDelete={() => {
+                        setFormError(null);
+                        setDeleting(item);
+                      }}
+                      deleteDisabled={isDeleteDisabled}
+                      deleteDisabledReason={deleteDisabledReason}
+                      className={cn(
+                        "p-4 sm:p-5 md:grid md:items-center md:gap-4 md:p-3",
+                        mode === "ministries"
+                          ? "md:grid-cols-[1fr_180px_120px_180px]"
+                          : mode === "terms"
+                            ? "md:grid-cols-[1fr_180px_120px_180px]"
+                            : "md:grid-cols-[1fr_180px]",
+                      )}
+                    >
+                      <div role="cell" className="min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 flex-1 items-start gap-3">
+                            {isMinistry(item) ? (
+                              <MinistryIdentityTile
+                                accentColor={item.accentColor}
+                                iconKey={item.iconKey}
+                              />
+                            ) : (
+                              <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
+                                <Layers3
+                                  className="size-5"
+                                  aria-hidden="true"
+                                />
+                              </span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              {detailHref(item) ? (
+                                <Link
+                                  className="hover:text-primary text-base font-semibold underline-offset-4 hover:underline"
+                                  href={detailHref(item)!}
+                                >
+                                  {item.name}
+                                </Link>
+                              ) : (
+                                <span className="text-base font-semibold">
+                                  {item.name}
+                                </span>
+                              )}
+                              {isTerm(item) && (
+                                <span className="text-muted-foreground mt-0.5 block text-xs">
+                                  {item.startDate ?? "No start date"} to{" "}
+                                  {item.endDate ?? "No end date"}
+                                </span>
+                              )}
+                              <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs md:hidden">
+                                {(isMinistry(item) || isTerm(item)) && (
+                                  <span className="font-mono">
+                                    /{item.slug}
+                                  </span>
+                                )}
+                                {isMinistry(item) && (
+                                  <span>
+                                    • {item.termCount}{" "}
+                                    {item.termCount === 1 ? "term" : "terms"}
+                                  </span>
+                                )}
+                                {isTerm(item) && (
+                                  <span className="capitalize">
+                                    • {item.status}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <ExpandableActionItem.Trigger className="md:hidden" />
+                        </div>
+                        <ExpandableActionItem.MobileActions />
                       </div>
-                    </td>
-                    {(isMinistry(item) || isTerm(item)) && (
-                      <td className="text-muted-foreground block py-1 font-mono text-xs md:table-cell md:p-3">
-                        /{item.slug}
-                      </td>
-                    )}
-                    {isMinistry(item) && (
-                      <td className="text-muted-foreground block py-1 text-sm md:table-cell md:p-3">
-                        {item.termCount}{" "}
-                        {item.termCount === 1 ? "term" : "terms"}
-                      </td>
-                    )}
-                    {isTerm(item) && (
-                      <td className="block py-1 text-sm capitalize md:table-cell md:p-3">
-                        {item.status}
-                      </td>
-                    )}
-                    <td className="mt-4 block border-t pt-4 text-right md:mt-0 md:table-cell md:border-t-0 md:p-3">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="min-h-11"
-                          onClick={() => {
-                            openEditor(item);
-                          }}
+                      {(isMinistry(item) || isTerm(item)) && (
+                        <div
+                          role="cell"
+                          className="text-muted-foreground hidden font-mono text-xs md:block"
                         >
-                          <Pencil aria-hidden="true" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="min-h-11"
-                          onClick={() => {
-                            setFormError(null);
-                            setDeleting(item);
-                          }}
+                          /{item.slug}
+                        </div>
+                      )}
+                      {isMinistry(item) && (
+                        <div
+                          role="cell"
+                          className="text-muted-foreground hidden text-sm md:block"
                         >
-                          <Trash2 aria-hidden="true" />
-                          Delete
-                        </Button>
+                          {item.termCount}{" "}
+                          {item.termCount === 1 ? "term" : "terms"}
+                        </div>
+                      )}
+                      {isTerm(item) && (
+                        <div
+                          role="cell"
+                          className="hidden text-sm capitalize md:block"
+                        >
+                          {item.status}
+                        </div>
+                      )}
+                      <div role="cell" className="hidden justify-end md:flex">
+                        <ExpandableActionItem.DesktopActions />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </ExpandableActionItem>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
         <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">
           <div className="flex items-center justify-between gap-3 p-4">
@@ -1022,6 +1087,6 @@ export function MinistryManagement({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </ExpandableCoordinatorProvider>
   );
 }

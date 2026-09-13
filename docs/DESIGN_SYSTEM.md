@@ -54,25 +54,27 @@ Mobile:
 - Keep the primary action reachable near the bottom edge or header.
 - Open create, edit, detail, and filters in a bottom drawer.
 - Mount only the active drawer content.
-- Use the shared swipe-action item for routine list actions. A right-to-left swipe reveals labeled Edit and Delete actions; it never executes them automatically.
-- Keep one accessible 44 by 44 px Lucide `More` menu trigger as the non-gesture action path. Swipe must never be required for keyboard or assistive-technology users.
-- Permit only one open action rail. Close it on another interaction, outside tap, scrolling, Escape, collection-state changes, navigation, or editor/confirmation opening.
+- Use the shared expandable action item for routine list actions. Opening an item on mobile reveals labeled Edit and Delete actions below the unchanged identity content; it never executes them automatically.
+- Every mobile item exposes an explicit 44 by 44 px Lucide `Ellipsis` action button with `aria-expanded` and `aria-controls` as the primary action path.
+- Permit only one open action section. Close it on another interaction, outside tap, scrolling, Escape, collection-state changes, navigation, or editor/confirmation opening.
 
 Desktop:
 
 - Render a data table with explicit columns and row actions.
 - Use a dialog or side panel for focused editing when it improves context.
 - Do not render a second complete collection merely to hide it by CSS at another breakpoint.
-- Use one `More` action menu per row instead of persistent inline Edit and Delete buttons. Desktop does not require swipe or drag interaction.
+- Use one `More` action menu per row instead of persistent inline Edit and Delete buttons. Desktop does not require double tap or drag interaction.
 
-Shared swipe behavior:
+Shared expandable action behavior:
 
-- Implement gesture mechanics once in the shared component documented by the active implementation plan. Entity pages provide actions but do not copy pointer handlers, thresholds, animation state, or open-item coordination.
-- Preserve native vertical scrolling with horizontal intent locking and `touch-action: pan-y`.
-- Never bind a full swipe directly to edit, delete, navigation, or a mutation.
-- The foreground surface moves over an underlying trailing action rail. Animate transforms only, respect reduced motion, and keep hidden rails out of the tab order and accessibility tree.
-- Swipe rail and `More` menu actions must use the same handlers, authorization rules, dependency restrictions, editor, and deletion confirmation.
-- Keep one collection in the DOM and mount only the currently active action rail.
+- Implement expandable mechanics once in the shared component `src/components/shared/expandable-action-item.tsx`. Entity pages provide actions but do not copy pointer handlers, thresholds, animation state, or open-item coordination.
+- The item identity content never moves horizontally. The expanded card increases in height to reveal a divider and a two-column grid with equal-width Edit (`Pencil` icon, neutral outline) and Delete (`Trash2` icon, soft destructive) buttons with minimum 44×44 px touch targets.
+- Actions are toggled exclusively through the explicit 44×44 px action button. No double-tap shortcut or gesture recognition is used, keeping native card tap and scroll behavior completely unmodified.
+- Do not disable text selection or show a pointer cursor on the entire card.
+- Respect reduced motion, avoiding layout-heavy animation or backdrop blur.
+- Only the active item's action section is mounted. Closed items leave no hidden focusable controls in the tab order or accessibility tree.
+- Desktop tables keep semantic table presentation with one accessible `More` action menu per row instead of persistent inline Edit and Delete buttons.
+- Both mobile expanded actions and desktop menu use the same handlers, authorization rules, dependency restrictions, editor, and deletion confirmation.
 
 ## Forms
 

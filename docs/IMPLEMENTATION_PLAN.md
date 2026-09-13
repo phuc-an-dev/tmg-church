@@ -63,7 +63,7 @@ Review focus:
 
 Detailed plan: `docs/plans/03-admin-church-and-ministry.md`, checkpoint 03A.
 
-Status: checkpoint 03A ready for implementation.
+Status: complete after independent review on 2026-09-12.
 
 Deliverables:
 
@@ -71,7 +71,7 @@ Deliverables:
 - Light default theme and dark theme
 - Active single-church context
 - Church create/edit interface
-- Vietnamese loading, empty, error, and success states
+- English loading, empty, error, and success states
 - Responsive shell without horizontal overflow
 
 Review focus:
@@ -86,7 +86,7 @@ Review focus:
 
 Detailed plan: `docs/plans/03-admin-church-and-ministry.md`, checkpoint 03B.
 
-Status: planned; blocked until checkpoint 03A passes independent review.
+Status: complete after independent review on 2026-09-13.
 
 Deliverables:
 
