@@ -151,7 +151,7 @@ export function ResponsiveEditor({
         </div>
 
         {/* Independently scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-8">{children}</div>
 
         {/* Visible sticky action footer respecting safe-area */}
         <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">

@@ -15,6 +15,7 @@ Manual verification:
 - Confirmed `/admin/login` and `/admin/church` share the white brand header, neutral canvas, surface geometry, spacing, and typography at mobile width; the sign-in card contains only its title and form, preserves 24 px mobile padding, and sits slightly above viewport center.
 - Confirmed `/admin/church` at desktop width retains the horizontal navigation, compact Church card, visible Edit action, one-row numeric metadata, and no mobile dock.
 - Confirmed Edit remains a 44 px visible touch target; its editor contains only editable fields and equal-width Cancel/Save actions. Delete is absent from the card and edit editor, and requires navigation through More to the dedicated Advanced settings route before exact-name confirmation.
+- Confirmed mobile responsive editors preserve 40 px of visual separation between the final form control and the sticky action footer without changing the desktop dialog layout.
 - Confirmed the Advanced settings page renders correctly at mobile and desktop widths, keeps the deletion control isolated in its own destructive panel, and leaves Delete disabled until the exact Church name matches.
 - Confirmed successful deletion returns directly to the zero-Church state while carrying only a fixed status code for toast feedback; no stale deleted entity remains interactive.
 

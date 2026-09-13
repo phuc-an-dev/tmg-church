@@ -73,6 +73,7 @@ Desktop:
 - A search box that causes server work debounces by 300 ms.
 - Pending state must prevent duplicate submission and preserve the form.
 - Responsive editor footers use an equal two-column Cancel/Submit layout on mobile and desktop.
+- Mobile responsive editors preserve at least 40 px of visual separation between the final form control and the sticky action footer.
 - Authentication forms stay minimal because the shared header already communicates the administration context. Avoid repeating access labels, explanatory copy, or authorization disclaimers around a simple sign-in form.
 - Authentication field labels and controls use an explicit 12 px flex gap; do not rely on vertical margins applied to inline labels.
 - Authentication form panels use a dedicated inner content wrapper with 24 px mobile padding and 32 px desktop padding. Do not apply padding directly to `admin-panel-strong`, whose shared panel geometry intentionally controls block padding.
