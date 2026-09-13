@@ -11,14 +11,12 @@ import type { ChurchViewModel } from "../types";
 
 interface DeleteChurchDialogProps {
   church: ChurchViewModel;
-  onSuccess?: (message: string) => void;
-  triggerButton?: React.ReactNode;
+  onSuccess: (message: string) => void;
 }
 
 export function DeleteChurchDialog({
   church,
   onSuccess,
-  triggerButton,
 }: DeleteChurchDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [confirmationInput, setConfirmationInput] = React.useState("");
@@ -56,7 +54,7 @@ export function DeleteChurchDialog({
       } else {
         const successMsg = result.message || "Church deleted successfully.";
         setOpen(false);
-        onSuccess?.(successMsg);
+        onSuccess(successMsg);
       }
     } catch {
       setErrorMessage("An unexpected error occurred while deleting church.");
@@ -103,21 +101,15 @@ export function DeleteChurchDialog({
 
   return (
     <>
-      {triggerButton ? (
-        <div onClick={() => setOpen(true)} className="inline-block">
-          {triggerButton}
-        </div>
-      ) : (
-        <Button
-          variant="destructive"
-          onClick={() => setOpen(true)}
-          className="min-h-[44px] w-full gap-2 sm:w-auto"
-          disabled={!church.isDeletable}
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-          <span>Delete Church</span>
-        </Button>
-      )}
+      <Button
+        variant="destructive"
+        onClick={() => setOpen(true)}
+        className="min-h-[44px] w-full gap-2 sm:w-auto"
+        disabled={!church.isDeletable}
+      >
+        <Trash2 className="size-4" aria-hidden="true" />
+        <span>Delete Church</span>
+      </Button>
 
       <ResponsiveEditor
         open={open}
@@ -165,7 +157,7 @@ export function DeleteChurchDialog({
               value={confirmationInput}
               onChange={(e) => setConfirmationInput(e.target.value)}
               disabled={isPending}
-              className="font-mono text-base"
+              className="h-12 px-4 font-mono text-lg"
               autoComplete="off"
               aria-invalid={confirmationInput.length > 0 && !isMatched}
               aria-describedby="confirm-church-name-hint"

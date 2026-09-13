@@ -86,7 +86,12 @@ export function ResponsiveEditor({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={cn("overflow-hidden p-0", maxWidthClass)}>
+        <DialogContent
+          className={cn(
+            "border-border/80 bg-card overflow-hidden rounded-2xl p-0 shadow-xl",
+            maxWidthClass,
+          )}
+        >
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-foreground text-xl font-bold">
               {title}
@@ -102,7 +107,7 @@ export function ResponsiveEditor({
             {children}
           </div>
 
-          <div className="border-border bg-muted/20 flex flex-row justify-end gap-2 border-t px-6 py-4">
+          <div className="border-border/70 bg-muted/30 grid grid-cols-2 gap-3 border-t px-6 py-4 [&>*]:w-full">
             {footer}
           </div>
         </DialogContent>
@@ -115,7 +120,7 @@ export function ResponsiveEditor({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="border-border bg-card inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-xl focus:outline-none"
+        className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-none"
       >
         {/* Mobile visual drag handle */}
         <div
@@ -123,7 +128,7 @@ export function ResponsiveEditor({
           aria-hidden="true"
         />
 
-        <div className="border-border/50 flex shrink-0 items-start justify-between border-b px-5 pt-3 pb-3">
+        <div className="border-border/70 flex shrink-0 items-start justify-between border-b px-5 pt-3 pb-3">
           <SheetHeader className="p-0 text-left">
             <SheetTitle className="text-foreground text-lg font-bold">
               {title}
@@ -149,7 +154,7 @@ export function ResponsiveEditor({
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
 
         {/* Visible sticky action footer respecting safe-area */}
-        <div className="border-border bg-card flex shrink-0 flex-col-reverse gap-2.5 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">
           {footer}
         </div>
       </SheetContent>

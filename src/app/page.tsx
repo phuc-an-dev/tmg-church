@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
   return (
-    <main className="from-primary/10 via-background to-background relative isolate min-h-screen overflow-hidden bg-gradient-to-b">
+    <main className="admin-canvas relative isolate min-h-screen overflow-hidden">
       <Image
         src="/images/tmg-church-hero-v1.png"
         alt=""

@@ -8,13 +8,27 @@ export const metadata: Metadata = {
   description: "Manage church configuration and operational details",
 };
 
-export default async function AdminChurchPage() {
+interface AdminChurchPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function AdminChurchPage({
+  searchParams,
+}: AdminChurchPageProps) {
   await requireLeader();
-  const churchState = await getAdminChurchState();
+  const [churchState, params] = await Promise.all([
+    getAdminChurchState(),
+    searchParams,
+  ]);
+  const initialSuccessMessage =
+    params.status === "deleted" ? "Church deleted successfully." : undefined;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <ChurchManagement initialState={churchState} />
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <ChurchManagement
+        initialState={churchState}
+        initialSuccessMessage={initialSuccessMessage}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
-import { BrandLockup } from "@/components/brand/brand-lockup";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 export const metadata: Metadata = {
   title: "Admin Sign In",
@@ -22,26 +22,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <div className="from-primary/10 via-background to-background flex min-h-screen flex-col items-center justify-center bg-gradient-to-b px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <BrandLockup className="mx-auto w-fit" compact />
-          <h1 className="text-foreground mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
+    <AuthShell contentPosition="upper">
+      <div className="admin-panel-strong overflow-hidden">
+        <div className="p-6 sm:p-8">
+          <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
             Admin Sign In
           </h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Internal administration system for authorized church leaders.
-          </p>
+          <div className="mt-6">
+            <LoginForm initialErrorMessage={initialErrorMessage} />
+          </div>
         </div>
-
-        <div className="border-primary/10 bg-card/95 shadow-primary/5 rounded-3xl border p-6 shadow-lg sm:p-8">
-          <LoginForm initialErrorMessage={initialErrorMessage} />
-        </div>
-
-        <p className="text-muted-foreground text-center text-xs">
-          Only authorized leader accounts can access the administration area.
-        </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

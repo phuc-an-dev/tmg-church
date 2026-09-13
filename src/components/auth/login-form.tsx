@@ -34,7 +34,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
       <div
         role="status"
         aria-live="polite"
-        className="border-border bg-card rounded-xl border p-6 shadow-xs"
+        className="admin-surface p-5 sm:p-6"
       >
         <div className="flex items-start gap-3">
           <CheckCircle2
@@ -105,7 +105,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-3">
         <label htmlFor="email" className="text-foreground text-sm font-medium">
           Email address
         </label>
@@ -117,7 +117,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
           required
           disabled={isPending}
           placeholder="leader@tmgchurch.website"
-          className="text-base"
+          className="h-12 px-4 text-lg"
           aria-describedby={
             state.fieldErrors?.email ? "email-error" : undefined
           }
@@ -137,7 +137,7 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
       <Button
         type="submit"
         disabled={isPending}
-        className="h-11 min-h-[44px] w-full gap-2 text-sm font-medium"
+        className="h-12 w-full gap-2 text-sm font-medium"
       >
         {isPending ? (
           <>

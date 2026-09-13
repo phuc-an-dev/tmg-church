@@ -127,6 +127,7 @@ export async function createChurchAction(
 
     revalidatePath("/admin");
     revalidatePath("/admin/church");
+    revalidatePath("/admin/church/advanced");
 
     return {
       success: true,
@@ -294,6 +295,7 @@ export async function updateChurchAction(
 
     revalidatePath("/admin");
     revalidatePath("/admin/church");
+    revalidatePath("/admin/church/advanced");
 
     return {
       success: true,
@@ -467,6 +469,7 @@ export async function deleteChurchAction(
 
     revalidatePath("/admin");
     revalidatePath("/admin/church");
+    revalidatePath("/admin/church/advanced");
 
     return {
       success: true,

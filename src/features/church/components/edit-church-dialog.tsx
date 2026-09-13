@@ -12,13 +12,13 @@ import type { ChurchViewModel } from "../types";
 interface EditChurchDialogProps {
   church: ChurchViewModel;
   onSuccess?: (message: string) => void;
-  triggerButton?: React.ReactNode;
+  compactTrigger?: boolean;
 }
 
 export function EditChurchDialog({
   church,
   onSuccess,
-  triggerButton,
+  compactTrigger = false,
 }: EditChurchDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState(church.name);
@@ -112,20 +112,19 @@ export function EditChurchDialog({
 
   return (
     <>
-      {triggerButton ? (
-        <div onClick={() => setOpen(true)} className="inline-block">
-          {triggerButton}
-        </div>
-      ) : (
-        <Button
-          variant="outline"
-          onClick={() => setOpen(true)}
-          className="min-h-[44px] w-full gap-2 sm:w-auto"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-          <span>Edit</span>
-        </Button>
-      )}
+      <Button
+        variant={compactTrigger ? "default" : "outline"}
+        onClick={() => setOpen(true)}
+        className={
+          compactTrigger
+            ? "min-h-11 gap-2 rounded-lg px-4"
+            : "min-h-[44px] w-auto gap-2"
+        }
+        title={compactTrigger ? "Edit church" : undefined}
+      >
+        <Pencil className="size-4" aria-hidden="true" />
+        <span>Edit</span>
+      </Button>
 
       <ResponsiveEditor
         open={open}
@@ -161,7 +160,7 @@ export function EditChurchDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isPending}
-              className="text-base"
+              className="h-12 px-4 text-lg"
               aria-invalid={Boolean(fieldErrors.name?.[0])}
               aria-describedby={
                 fieldErrors.name?.[0] ? "edit-church-name-error" : undefined
@@ -191,7 +190,7 @@ export function EditChurchDialog({
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               disabled={isPending}
-              className="font-mono text-base"
+              className="h-12 px-4 font-mono text-lg"
               aria-invalid={Boolean(fieldErrors.slug?.[0])}
               aria-describedby={
                 fieldErrors.slug?.[0] ? "edit-church-slug-error" : undefined

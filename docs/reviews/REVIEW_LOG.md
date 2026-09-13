@@ -2,6 +2,30 @@
 
 Use one section per implementation or review pass. Keep newest entries at the top below this instruction. When a plan is accepted, replace its iterative entries with one completion summary.
 
+## 2026-09-13: Administration visual-system refinement
+
+Result: ready for review
+
+Scope: consolidated authenticated header utilities into an evenly padded avatar menu, aligned the authentication shell with the protected administration shell, kept Edit as the only visible Church card action, isolated Delete on `/admin/church/advanced` behind the page-header More menu, compressed created and updated metadata into one row using `yyyy-MM-dd, HH:mm`, moved mutation success feedback into a shared top-center toast with entry and exit transitions, simplified the login form, standardized primary login and Church inputs, corrected the sign-in panel's 24/32 px inner padding, positioned it slightly above center, and removed the superseded theme toggle plus unused trigger and compact-brand branches.
+
+Manual verification:
+
+- Confirmed the avatar menu exposes the signed-in email, spacious icon rows, Light, Dark, System, and Sign out actions.
+- Confirmed theme selection changes the protected Church page and restored Light as the default selection.
+- Confirmed `/admin/login` and `/admin/church` share the white brand header, neutral canvas, surface geometry, spacing, and typography at mobile width; the sign-in card contains only its title and form, preserves 24 px mobile padding, and sits slightly above viewport center.
+- Confirmed `/admin/church` at desktop width retains the horizontal navigation, compact Church card, visible Edit action, one-row numeric metadata, and no mobile dock.
+- Confirmed Edit remains a 44 px visible touch target; its editor contains only editable fields and equal-width Cancel/Save actions. Delete is absent from the card and edit editor, and requires navigation through More to the dedicated Advanced settings route before exact-name confirmation.
+- Confirmed the Advanced settings page renders correctly at mobile and desktop widths, keeps the deletion control isolated in its own destructive panel, and leaves Delete disabled until the exact Church name matches.
+- Confirmed successful deletion returns directly to the zero-Church state while carrying only a fixed status code for toast feedback; no stale deleted entity remains interactive.
+
+Quality gates:
+
+- `pnpm lint`: passed.
+- `pnpm typecheck`: passed.
+- `pnpm format:check`: passed.
+- `pnpm build`: passed with Next.js 16.3.4 Turbopack.
+- `git diff --check`: passed.
+
 ## 2026-09-12: Plan 03 Checkpoint 03A completion
 
 Result: accepted after independent review

@@ -5,7 +5,7 @@ import { ShieldAlert, Home } from "lucide-react";
 import { getAuthContext } from "@/features/auth/queries";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { buttonVariants } from "@/components/ui/button";
-import { BrandLockup } from "@/components/brand/brand-lockup";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 export const metadata: Metadata = {
   title: "Access Denied",
@@ -24,24 +24,22 @@ export default async function UnauthorizedPage() {
   }
 
   return (
-    <div className="from-primary/10 via-background to-background flex min-h-screen flex-col items-center justify-center bg-gradient-to-b px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 text-center">
-        <BrandLockup className="mx-auto w-fit" compact />
-        <div className="bg-destructive/10 text-destructive mx-auto flex size-12 items-center justify-center rounded-xl">
-          <ShieldAlert className="size-6" aria-hidden="true" />
-        </div>
-
-        <div className="space-y-3">
-          <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
+    <AuthShell>
+      <div className="admin-panel-strong overflow-hidden text-center">
+        <div className="p-6 sm:p-8 sm:pb-6">
+          <div className="bg-destructive/10 text-destructive mx-auto flex size-12 items-center justify-center rounded-xl">
+            <ShieldAlert className="size-6" aria-hidden="true" />
+          </div>
+          <h1 className="text-foreground mt-5 text-2xl font-bold tracking-tight sm:text-3xl">
             Access Denied
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
             Your account is not registered as an authorized leader for church
             administration.
           </p>
         </div>
 
-        <div className="border-primary/10 bg-card shadow-primary/5 rounded-3xl border p-6 shadow-lg">
+        <div className="border-border/70 border-t p-6">
           <div className="space-y-4">
             <div className="text-sm">
               <span className="text-muted-foreground">Signed in as: </span>
@@ -69,6 +67,6 @@ export default async function UnauthorizedPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

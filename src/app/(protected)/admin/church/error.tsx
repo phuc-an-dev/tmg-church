@@ -16,8 +16,8 @@ export default function AdminChurchError({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-md text-center">
+    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="admin-panel mx-auto max-w-md p-6 text-center sm:p-8">
         <div className="bg-destructive/10 text-destructive mx-auto mb-4 flex size-12 items-center justify-center rounded-xl">
           <AlertCircle className="size-6" aria-hidden="true" />
         </div>

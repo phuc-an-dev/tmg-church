@@ -11,13 +11,9 @@ import { createChurchAction } from "../actions";
 
 interface CreateChurchDialogProps {
   onSuccess?: (message: string) => void;
-  triggerButton?: React.ReactNode;
 }
 
-export function CreateChurchDialog({
-  onSuccess,
-  triggerButton,
-}: CreateChurchDialogProps) {
+export function CreateChurchDialog({ onSuccess }: CreateChurchDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [customSlug, setCustomSlug] = React.useState("");
@@ -114,19 +110,13 @@ export function CreateChurchDialog({
 
   return (
     <>
-      {triggerButton ? (
-        <div onClick={() => setOpen(true)} className="inline-block">
-          {triggerButton}
-        </div>
-      ) : (
-        <Button
-          onClick={() => setOpen(true)}
-          className="min-h-[44px] w-full gap-2 sm:w-auto"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          <span>Create Church</span>
-        </Button>
-      )}
+      <Button
+        onClick={() => setOpen(true)}
+        className="min-h-[44px] w-full gap-2 sm:w-auto"
+      >
+        <Plus className="size-4" aria-hidden="true" />
+        <span>Create Church</span>
+      </Button>
 
       <ResponsiveEditor
         open={open}
@@ -163,7 +153,7 @@ export function CreateChurchDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isPending}
-              className="text-base"
+              className="h-12 px-4 text-lg"
               aria-invalid={Boolean(fieldErrors.name?.[0])}
               aria-describedby={
                 fieldErrors.name?.[0] ? "create-church-name-error" : undefined
@@ -216,7 +206,7 @@ export function CreateChurchDialog({
                   value={customSlug}
                   onChange={(e) => setCustomSlug(e.target.value)}
                   disabled={isPending}
-                  className="font-mono text-base"
+                  className="h-12 px-4 font-mono text-lg"
                   aria-invalid={Boolean(fieldErrors.slug?.[0])}
                   aria-describedby={
                     fieldErrors.slug?.[0]

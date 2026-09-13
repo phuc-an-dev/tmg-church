@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 
 export const metadata: Metadata = {
   title: "Overview",
@@ -32,16 +33,12 @@ export default async function AdminPage() {
   const churchState = await getAdminChurchState();
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-          Overview
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Administration dashboard and operational summary.
-        </p>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <AdminPageHeader
+        eyebrow="Church administration"
+        title="Overview"
+        description="Administration dashboard and operational summary."
+      />
 
       {/* Church Status Section */}
       <section aria-labelledby="church-status-heading">
@@ -50,7 +47,7 @@ export default async function AdminPage() {
         </h2>
 
         {churchState.status === "zero" && (
-          <Card className="border-border bg-card rounded-xl border shadow-xs">
+          <Card className="admin-panel-strong">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                 <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
@@ -67,7 +64,7 @@ export default async function AdminPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardFooter className="border-border flex flex-col justify-start border-t p-4 sm:flex-row sm:p-6">
+            <CardFooter className="border-border/70 flex flex-col justify-start border-t bg-transparent p-4 sm:flex-row sm:p-6">
               <Button asChild className="min-h-[44px] w-full gap-2 sm:w-auto">
                 <Link href="/admin/church">
                   <Building2 className="size-4" aria-hidden="true" />
@@ -80,7 +77,7 @@ export default async function AdminPage() {
         )}
 
         {churchState.status === "multiple" && (
-          <Card className="border-destructive/30 bg-destructive/5 rounded-xl border shadow-xs">
+          <Card className="admin-panel border-destructive/30 bg-destructive/5">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex items-start gap-3">
                 <div className="bg-destructive/10 text-destructive flex size-10 shrink-0 items-center justify-center rounded-xl">
@@ -97,7 +94,7 @@ export default async function AdminPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardFooter className="border-destructive/20 flex flex-col justify-start border-t p-4 sm:flex-row sm:p-6">
+            <CardFooter className="border-destructive/20 flex flex-col justify-start border-t bg-transparent p-4 sm:flex-row sm:p-6">
               <Button
                 asChild
                 variant="outline"
@@ -113,7 +110,7 @@ export default async function AdminPage() {
         )}
 
         {churchState.status === "one" && (
-          <Card className="border-border bg-card rounded-xl border shadow-xs">
+          <Card className="admin-panel-strong">
             <CardHeader className="p-4 pb-4 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
@@ -147,9 +144,9 @@ export default async function AdminPage() {
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0 sm:p-6">
-              {/* Flat Statistics Row inside Primary Card */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="border-border bg-muted/20 flex items-center gap-3 rounded-lg border p-3.5">
+              {/* Compact Statistics Row inside Primary Card */}
+              <div className="admin-surface grid grid-cols-1 overflow-hidden sm:grid-cols-3">
+                <div className="border-border/70 flex items-center gap-3 border-b p-4 sm:border-r sm:border-b-0">
                   <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                     <Layers className="size-4" aria-hidden="true" />
                   </div>
@@ -163,7 +160,7 @@ export default async function AdminPage() {
                   </div>
                 </div>
 
-                <div className="border-border bg-muted/20 flex items-center gap-3 rounded-lg border p-3.5">
+                <div className="border-border/70 flex items-center gap-3 border-b p-4 sm:border-r sm:border-b-0">
                   <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                     <Users className="size-4" aria-hidden="true" />
                   </div>
@@ -175,7 +172,7 @@ export default async function AdminPage() {
                   </div>
                 </div>
 
-                <div className="border-border bg-muted/20 flex items-center gap-3 rounded-lg border p-3.5">
+                <div className="flex items-center gap-3 p-4">
                   <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                     <FolderTree className="size-4" aria-hidden="true" />
                   </div>
@@ -196,7 +193,7 @@ export default async function AdminPage() {
 
       {/* Operator Account Verification Card */}
       <section aria-labelledby="auth-status-heading">
-        <Card className="border-border bg-card rounded-xl border shadow-xs">
+        <Card className="admin-panel">
           <CardHeader className="p-4 pb-3 sm:p-6">
             <div className="flex items-center gap-3">
               <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
@@ -217,7 +214,7 @@ export default async function AdminPage() {
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0 sm:p-6">
-            <div className="border-border bg-muted/20 text-muted-foreground flex items-center gap-2 rounded-lg border p-3 text-xs">
+            <div className="admin-surface text-muted-foreground flex items-center gap-2 p-3 text-xs">
               <UserCheck
                 className="text-primary size-4 shrink-0"
                 aria-hidden="true"
