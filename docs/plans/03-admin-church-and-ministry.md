@@ -1,6 +1,6 @@
 # Plan 03: Administration, Church, and Ministry
 
-Status: in progress; checkpoint 03A accepted, checkpoint 03B ready for implementation
+Status: in progress; checkpoint 03A accepted, checkpoint 03B implementation in progress with the canonical swipe-action standard approved for completion
 
 Depends on: Plans 01 and 02
 
@@ -50,6 +50,12 @@ Excluded:
 10. Mobile cards and desktop tables use the same server result. Do not render two full collection copies simultaneously.
 11. Fewer than five choices use a custom non-searchable shadcn dropdown. Five or more choices use a searchable combobox.
 12. Only the active drawer, dialog, menu, and term-detail section are mounted.
+13. Mobile list items reveal `Edit` and `Delete` by swiping from right to left. Swiping right only closes an exposed action rail; it never reveals another action set.
+14. A full swipe never executes an action. Deletion always requires an explicit action selection followed by the existing confirmation surface.
+15. Swipe is progressive enhancement rather than the only action path. Mobile retains one accessible Lucide `More` menu trigger, and desktop tables use the same `More` action menu instead of inline Edit and Delete buttons.
+16. At most one list item may expose actions. The open item closes when another item begins interaction, the user taps outside, scrolls, presses Escape, changes collection state, navigates, or opens an editor or confirmation surface.
+17. Swipe state is transient local UI state. It is not persisted in `nuqs`, navigation history, storage, or the database.
+18. The shared swipe primitive is established and verified on Ministry cards first, then reused without page-local gesture implementations by every Term, Group, and Department collection in checkpoint 03B. Future list-based administration plans must reuse this contract.
 
 ## Route map
 
@@ -136,6 +142,26 @@ Responsive editor:
 - Is conditionally mounted only when open.
 - Supports create and edit without duplicating business logic.
 
+Canonical swipe-action item:
+
+- Implement one reusable shared primitive, suggested as `src/components/shared/swipe-action-item.tsx`, plus a list-level coordinator only if needed. Page components provide item identity, accessible name, actions, disabled state, and visible content; the primitive owns gesture mechanics and exposure state but contains no entity mutation logic.
+- Do not add a gesture or animation dependency. Use React state, Pointer Events, pointer capture, semantic buttons, and CSS transforms. Keep vertical page scrolling native with `touch-action: pan-y`.
+- Enable drag gestures only below the desktop breakpoint and for coarse touch or pen input. Small-screen mouse and keyboard users use the `More` menu. Desktop never requires dragging.
+- Use an 8 px movement slop before deciding intent. Lock horizontally only when absolute horizontal movement is at least 1.25 times vertical movement. If vertical intent wins, cancel the drag without preventing page scroll.
+- Clamp leftward translation to the action-rail width. The standard rail is 144 px wide with two equal 72 px actions. Rightward movement cannot pass the closed position.
+- Snap open when leftward displacement reaches at least 40 percent of the rail, or when leftward velocity reaches 0.5 px/ms after at least 24 px of intentional horizontal travel. Otherwise snap closed.
+- Pointer cancellation, lost capture, resize across the desktop breakpoint, and component unmount must leave the surface in a stable closed state.
+- Suppress the click that follows a recognized drag so a link or row action does not fire accidentally. Pointer starts originating from a link, button, input, menu, or other interactive descendant must preserve that control rather than initiate dragging.
+- Animate only the opaque foreground item surface with `transform`. Use a 180 ms ease-out settle transition, disable the transition under reduced motion, and avoid layout-affecting animation, backdrop blur, gradients, or page-level reflow.
+- The action rail sits beneath the card at its trailing edge. `Edit` uses the normal action treatment; `Delete` uses the destructive treatment. Both show a Lucide icon and English label, meet a 44 by 44 px minimum target, support light and dark themes, and remain visually subordinate to the item content until revealed.
+- Only the active or currently dragged item's action rail is mounted and interactive. Closed rails must not leave hidden focusable actions in the accessibility tree. Keep one server result and one item collection in the DOM; do not render parallel mobile and desktop lists.
+- The list owns a single `openItemId`. Opening or dragging another item closes the previous item before exposing the new rail. Collection query, sort, filter, page, and section changes reset it.
+- Tapping outside or beginning vertical scrolling closes an open rail without blocking the intended tap or scroll. Pressing Escape closes it and returns focus to the originating item action trigger when applicable.
+- Every item always exposes one 44 by 44 px Lucide `More` button with an accessible name such as `Actions for {item name}`. Use the existing accessible Dropdown Menu for Edit and Delete on mobile fallback and desktop. Add a tooltip where the icon meaning is not otherwise visible.
+- The swipe buttons and `More` menu call the same entity-level handlers. Edit closes the rail before opening the shared responsive editor. Delete closes the rail before opening the confirmation surface. No gesture directly calls a Server Action.
+- Disabled or dependency-blocked actions preserve the existing business rule, communicate the reason accessibly, and cannot be bypassed through swipe, menu, keyboard, or direct client state.
+- Add one concise screen-reader instruction for the collection rather than repeating gesture instructions inside every item. Never make swipe discovery a prerequisite for completing the task.
+
 ## Query parameter contracts
 
 Ministries:
@@ -214,8 +240,8 @@ Fields:
 Collection:
 
 - Search, sort, pagination, count, skeleton, empty, and filtered-empty states
-- Mobile card with summary and accessible action menu
-- Desktop table with name, slug, term count when available without N+1 queries, and actions
+- Mobile card with the canonical swipe-action item and accessible `More` fallback
+- Desktop table with name, slug, term count when available without N+1 queries, and one accessible `More` action menu instead of inline action buttons
 
 ### Ministry Term
 
@@ -248,10 +274,11 @@ Behavior:
 - Paginated active-section collection
 - Create, edit, and dependency-restricted delete
 - Uniqueness within the Term
+- Reuses the canonical swipe-action item and action menu; it must not implement independent gesture logic
 
 ### Term Department
 
-Fields and behavior mirror Term Group, with uniqueness within the Term. Do not implement service roles or rosters in this plan.
+Fields and behavior mirror Term Group, including reuse of the canonical swipe-action item and action menu, with uniqueness within the Term. Do not implement service roles or rosters in this plan.
 
 ### Parent context
 
@@ -310,11 +337,11 @@ Checkpoint 03A:
 
 Checkpoint 03B after acceptance:
 
-1. Implement shared URL parsers, pagination, collection toolbar, and responsive editor.
-2. Implement Ministry queries, forms, actions, collection, and deletion behavior.
-3. Implement Ministry detail and Term management.
-4. Implement Term detail with URL-backed Groups and Departments sections.
-5. Verify responsive, authorization, integrity, state, and performance requirements.
+1. Preserve existing 03B work and establish the shared swipe-action primitive and list coordinator without adding dependencies.
+2. Prove the complete gesture, fallback, accessibility, destructive-safety, and performance contract on Ministry cards.
+3. Replace inline actions with the shared primitive and shared `More` menu across the existing Term, Group, and Department collections; do not copy gesture code.
+4. Complete any remaining shared URL parsers, pagination, collection toolbar, queries, forms, actions, and responsive editor integration required by checkpoint 03B.
+5. Verify responsive, authorization, integrity, state, swipe, accessibility, and performance requirements.
 6. Stop and request independent review.
 
 ## Verification matrix
@@ -360,6 +387,21 @@ Responsive UI:
 - Dropdown search appears at five items and is absent below five.
 - Keyboard, focus, labels, errors, dark theme, reduced motion, and 44 px touch targets pass review.
 - No horizontal overflow or excessive hidden DOM appears.
+
+Swipe actions:
+
+- A deliberate left swipe below 40 percent of the rail snaps closed; a qualifying displacement or velocity snaps fully open.
+- Rightward swiping closes the rail and never reveals actions on the leading edge.
+- Full swipe never edits, deletes, navigates, or submits a mutation.
+- Vertical scrolling wins over diagonal movement and remains smooth at 320, 375, and 390 px widths.
+- Links, inputs, buttons, and menus inside an item remain usable and do not begin a drag.
+- A completed drag suppresses the accidental click that would otherwise follow pointer release.
+- Only one item can remain open, and it closes on outside tap, scroll, Escape, query/sort/filter/page/section change, editor opening, delete confirmation, navigation, and desktop breakpoint transition.
+- Edit from both swipe rail and `More` opens the same editor. Delete from both paths opens the same confirmation and never directly mutates.
+- Keyboard and screen-reader users can reach every enabled action through the `More` menu without performing a swipe. Focus is visible, closed rails have no focusable descendants, and focus returns predictably when a menu or rail closes.
+- Reduced-motion mode settles immediately without transform animation. Light and dark action colors meet contrast requirements and do not communicate meaning through color alone.
+- At page size 100, the collection mounts one item surface per record, only one active action rail, and no duplicate hidden mobile/desktop collection. Dragging does not cause full-list React rerenders on every pointer-move frame.
+- Verify touch behavior on iOS Safari and Android Chrome when available. At minimum, verify Chromium touch emulation and document any physical-device coverage that was not performed rather than claiming it passed.
 
 States:
 
