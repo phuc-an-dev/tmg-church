@@ -5,7 +5,9 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server";
 
-export const MEMBER_PAGE_SIZE = 20;
+export const MEMBER_PAGE_SIZES = [20, 50, 100] as const;
+export const DEFAULT_MEMBER_PAGE_SIZE = 20;
+export const MEMBER_PAGE_SIZE = DEFAULT_MEMBER_PAGE_SIZE;
 
 export const memberSearchParams = {
   q: parseAsString.withDefault(""),
@@ -13,7 +15,13 @@ export const memberSearchParams = {
     "full_name",
   ),
   order: parseAsStringLiteral(["asc", "desc"] as const).withDefault("asc"),
+  status: parseAsStringLiteral([
+    "active",
+    "archived",
+    "all",
+  ] as const).withDefault("active"),
   page: parseAsInteger.withDefault(1),
+  pageSize: parseAsInteger.withDefault(DEFAULT_MEMBER_PAGE_SIZE),
   edit: parseAsString.withDefault(""),
 };
 

@@ -1,15 +1,67 @@
 import { z } from "zod";
 
-export const memberIdSchema = z.uuid();
+export const memberIdSchema = z.string().uuid("Invalid member ID.");
 
-export const updateMemberSchema = z.object({
-  id: memberIdSchema,
-  fullName: z.string().trim().min(1, "Enter the member's full name."),
-  phone: z.string().trim(),
+export const createMemberSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(1, "Enter the member's full name.")
+    .max(120, "Full name must be 120 characters or fewer."),
+  phone: z
+    .string()
+    .trim()
+    .max(30, "Phone number must be 30 characters or fewer."),
   birthYear: z
     .number()
     .int("Enter a whole year.")
     .min(1900, "Birth year must be 1900 or later.")
     .max(2100, "Birth year must be 2100 or earlier.")
     .nullable(),
+});
+
+export const updateMemberSchema = createMemberSchema.extend({
+  id: memberIdSchema,
+});
+
+export const archiveMemberSchema = z.object({
+  id: memberIdSchema,
+});
+
+export const restoreMemberSchema = z.object({
+  id: memberIdSchema,
+});
+
+export const enrollMemberWithAssignmentsSchema = z.object({
+  memberId: memberIdSchema,
+  ministryTermId: z.string().uuid("Invalid ministry term ID."),
+  termGroupId: z.string().uuid("Invalid term group ID.").nullable(),
+  departmentIds: z
+    .array(z.string().uuid("Invalid department ID."))
+    .refine(
+      (departmentIds) => new Set(departmentIds).size === departmentIds.length,
+      "Each department can only be selected once.",
+    ),
+});
+
+export const removeMinistryMembershipSchema = z.object({
+  membershipId: z.string().uuid("Invalid membership ID."),
+  memberId: memberIdSchema,
+});
+
+export const assignTermGroupSchema = z.object({
+  membershipId: z.string().uuid("Invalid membership ID."),
+  memberId: memberIdSchema,
+  termGroupId: z.string().uuid("Invalid term group ID.").nullable(),
+});
+
+export const setMinistryAssignmentsSchema = z.object({
+  membershipId: z.string().uuid("Invalid membership ID."),
+  memberId: memberIdSchema,
+  termDepartmentIds: z
+    .array(z.string().uuid("Invalid department ID."))
+    .refine(
+      (departmentIds) => new Set(departmentIds).size === departmentIds.length,
+      "Each department can only be selected once.",
+    ),
 });

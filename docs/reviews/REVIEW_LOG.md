@@ -2,6 +2,12 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-14: Member Management slice (Detail, Ministry Memberships, Segments)
+
+Result: accepted after independent review.
+
+Removed out-of-scope spreadsheet functionality (Excel import/export UI, `/api/admin/members/export`, actions, and `xlsx` dependency). Implemented Member Detail route at `/admin/members/[memberId]` with leader authorization, profile summary, created/updated timestamps with project-standard Asia/Ho_Chi_Minh formatting, and the shared expandable member action control. Implemented cascading enrollment and management (Ministry -> Term -> optional single Group and multiple Departments) with duplicate prevention, atomic relationship writes, and non-destructive historical error handling. Linked member directory identities to detail pages. Lint, typecheck, formatting, and production build passed.
+
 ## 2026-09-14: Group and department visual identity
 
 Result: accepted after independent review.

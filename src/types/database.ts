@@ -1039,6 +1039,26 @@ export type Database = {
         };
       };
       is_leader: { Args: never; Returns: boolean };
+      enroll_member_with_assignments: {
+        Args: {
+          enrollment_department_ids: string[];
+          enrollment_group_id: string | null;
+          enrollment_member_id: string;
+          enrollment_term_id: string;
+        };
+        Returns: string;
+      };
+      remove_ministry_membership_with_assignments: {
+        Args: { removal_membership_id: string };
+        Returns: undefined;
+      };
+      set_ministry_assignments: {
+        Args: {
+          assignment_department_ids: string[];
+          assignment_membership_id: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
