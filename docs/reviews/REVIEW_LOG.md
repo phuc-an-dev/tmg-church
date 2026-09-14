@@ -2,6 +2,12 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-14: Group and department visual identity
+
+Result: accepted after independent review.
+
+Added per-term slugs plus configurable colors and icons to groups and departments, including Vietnamese-safe backfill, durable database constraints, validated leader mutations, shared identity controls, and balanced list rows with slug metadata. Review caught and corrected uppercase Vietnamese `Đ` normalization; duplicate normalized names are deterministically suffixed within each term. Local migration, rollback constraint checks, authenticated group/department UI checks, lint, typecheck, formatting, and production build passed.
+
 ## 2026-09-14: Operations Phase 1 — ministry-term lifecycle
 
 Result: accepted after independent review.
