@@ -30,7 +30,13 @@ export type TermItem = {
   endDate: string | null;
   lifecycle: "draft" | "active" | "closed";
 };
-export type StructureItem = { id: string; name: string };
+export type StructureItem = {
+  id: string;
+  name: string;
+  slug: string;
+  accentColor: string;
+  iconKey: string;
+};
 export type MinistryContext = {
   church: { id: string; name: string };
   ministry: {

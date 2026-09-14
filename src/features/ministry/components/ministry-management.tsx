@@ -105,6 +105,9 @@ function isTerm(item: Item): item is TermItem {
 function isMinistry(item: Item): item is MinistryItem {
   return "slug" in item && "termCount" in item;
 }
+function hasVisualIdentity(item: Item): item is MinistryItem | StructureItem {
+  return "accentColor" in item;
+}
 
 const MINISTRY_SORT_CHOICES = [
   { value: "name-asc", label: "Name: A to Z" },
@@ -242,7 +245,7 @@ function LifecycleDropdown({
   );
 }
 
-function MinistryIdentityTile({
+function IdentityTile({
   accentColor,
   iconKey,
 }: {
@@ -265,7 +268,8 @@ function MinistryIdentityTile({
   );
 }
 
-function MinistryIdentityPicker({
+function IdentityPicker({
+  entityLabel,
   accentColor,
   iconKey,
   iconSearch,
@@ -277,6 +281,7 @@ function MinistryIdentityPicker({
   onIconSearchChange,
   onCustomColorOpenChange,
 }: {
+  entityLabel: string;
   accentColor: string;
   iconKey: MinistryIconKey;
   iconSearch: string;
@@ -361,12 +366,12 @@ function MinistryIdentityPicker({
   return (
     <div className="bg-card space-y-5 rounded-2xl border p-4">
       <div className="space-y-3">
-        <Label>Ministry color</Label>
+        <Label>{entityLabel} color</Label>
         <div
           data-color-options
           className="flex flex-wrap gap-1.5"
           role="radiogroup"
-          aria-label="Ministry color"
+          aria-label={`${entityLabel} color`}
         >
           {MINISTRY_COLOR_OPTIONS.map((option) => {
             const selected = normalizedColor === option.value;
@@ -418,7 +423,7 @@ function MinistryIdentityPicker({
             <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-2">
               <Input
                 type="color"
-                aria-label="Choose custom ministry color"
+                aria-label={`Choose custom ${entityLabel.toLowerCase()} color`}
                 value={normalizedColor}
                 onChange={(event) => onAccentColorChange(event.target.value)}
                 className="h-11 w-12 p-1"
@@ -430,7 +435,7 @@ function MinistryIdentityPicker({
                 }
                 aria-invalid={Boolean(colorError)}
                 aria-describedby={colorError ? "custom-color-error" : undefined}
-                aria-label="Custom ministry color hex value"
+                aria-label={`Custom ${entityLabel.toLowerCase()} color hex value`}
                 placeholder="#3b82f6"
                 className="h-11 font-mono text-base"
                 pattern="^#[0-9a-fA-F]{6}$"
@@ -445,14 +450,14 @@ function MinistryIdentityPicker({
         )}
       </div>
       <div className="space-y-3">
-        <Label htmlFor="ministry-icon-search">Ministry icon</Label>
+        <Label htmlFor="identity-icon-search">{entityLabel} icon</Label>
         <div className="relative">
           <Search
             className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
             aria-hidden="true"
           />
           <Input
-            id="ministry-icon-search"
+            id="identity-icon-search"
             value={iconSearch}
             onChange={(event) => onIconSearchChange(event.target.value)}
             onKeyDown={(event) => {
@@ -466,7 +471,7 @@ function MinistryIdentityPicker({
           <div
             data-icon-grid
             className="grid max-h-56 grid-cols-5 gap-2 overflow-y-auto pr-1 sm:grid-cols-6"
-            aria-label="Ministry icon options"
+            aria-label={`${entityLabel} icon options`}
           >
             {icons.map((option, index) => {
               const Icon = ministryIconFor(option.key);
@@ -512,7 +517,7 @@ function MinistryIdentityPicker({
       <div
         className="flex items-center gap-3 rounded-xl border p-3"
         style={{ borderLeftColor: normalizedColor, borderLeftWidth: 3 }}
-        aria-label="Ministry identity preview"
+        aria-label={`${entityLabel} identity preview`}
       >
         <span
           className="flex size-10 shrink-0 items-center justify-center rounded-xl"
@@ -545,6 +550,8 @@ export function MinistryManagement({
   ministryId,
   termId,
 }: Props) {
+  const label = labelFor(mode);
+  const supportsVisualIdentity = mode !== "terms";
   const parsers =
     mode === "ministries"
       ? ministrySearchParams
@@ -566,7 +573,7 @@ export function MinistryManagement({
   const [iconSearch, setIconSearch] = React.useState("");
   const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [searchDraft, setSearchDraft] = React.useState(query.q);
-  const [ministryNameDraft, setMinistryNameDraft] = React.useState("");
+  const [identityNameDraft, setIdentityNameDraft] = React.useState("");
   const [termStartDate, setTermStartDate] = React.useState("");
   const [termEndDate, setTermEndDate] = React.useState("");
   const [termLifecycle, setTermLifecycle] =
@@ -638,7 +645,6 @@ export function MinistryManagement({
   const rangeStart =
     result.count === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
   const rangeEnd = Math.min(result.page * result.pageSize, result.count);
-  const label = labelFor(mode);
   const detailHref = (item: Item) =>
     mode === "ministries"
       ? `/admin/ministries/${item.id}`
@@ -647,21 +653,24 @@ export function MinistryManagement({
         : undefined;
 
   function openEditor(item: Item | "create") {
-    const ministry = item !== "create" && isMinistry(item) ? item : null;
+    const identityItem =
+      item !== "create" && hasVisualIdentity(item) ? item : null;
     setAccentColor(
-      ministry
-        ? normalizeMinistryColor(ministry.accentColor)
+      identityItem
+        ? normalizeMinistryColor(identityItem.accentColor)
         : DEFAULT_MINISTRY_COLOR,
     );
     setIconKey(
-      ministry &&
-        MINISTRY_ICON_OPTIONS.some((option) => option.key === ministry.iconKey)
-        ? (ministry.iconKey as MinistryIconKey)
+      identityItem &&
+        MINISTRY_ICON_OPTIONS.some(
+          (option) => option.key === identityItem.iconKey,
+        )
+        ? (identityItem.iconKey as MinistryIconKey)
         : DEFAULT_MINISTRY_ICON_KEY,
     );
     setIconSearch("");
     setCustomColorOpen(false);
-    setMinistryNameDraft(ministry ? ministry.name : "New Ministry");
+    setIdentityNameDraft(identityItem ? identityItem.name : `New ${label}`);
     const term = item !== "create" && isTerm(item) ? item : null;
     setTermStartDate(term?.startDate ?? "");
     setTermEndDate(term?.endDate ?? "");
@@ -673,7 +682,7 @@ export function MinistryManagement({
   function submit(form: FormData) {
     setFormError(null);
     if (
-      mode === "ministries" &&
+      supportsVisualIdentity &&
       !/^#[0-9a-f]{6}$/.test(accentColor.trim().toLowerCase())
     ) {
       setFormError("Use a six-digit hex color.");
@@ -684,7 +693,7 @@ export function MinistryManagement({
       id: item?.id,
       name: form.get("name"),
       slug: form.get("slug") || undefined,
-      ...(mode === "ministries" ? { accentColor, iconKey } : {}),
+      ...(supportsVisualIdentity ? { accentColor, iconKey } : {}),
     };
     let action: Promise<{ success: boolean; message?: string; error?: string }>;
     if (mode === "ministries") action = saveMinistryAction(payload);
@@ -864,13 +873,11 @@ export function MinistryManagement({
                       ? "md:grid-cols-[1fr_180px_120px_180px]"
                       : mode === "terms"
                         ? "md:grid-cols-[1fr_180px_120px_180px]"
-                        : "md:grid-cols-[1fr_180px]",
+                        : "md:grid-cols-[1fr_180px_180px]",
                   )}
                 >
                   <div role="columnheader">Name</div>
-                  {mode !== "groups" && mode !== "departments" && (
-                    <div role="columnheader">Slug</div>
-                  )}
+                  <div role="columnheader">Slug</div>
                   {mode === "ministries" && (
                     <div role="columnheader">Terms</div>
                   )}
@@ -909,14 +916,14 @@ export function MinistryManagement({
                           ? "md:grid-cols-[1fr_180px_120px_180px]"
                           : mode === "terms"
                             ? "md:grid-cols-[1fr_180px_120px_180px]"
-                            : "md:grid-cols-[1fr_180px]",
+                            : "md:grid-cols-[1fr_180px_180px]",
                       )}
                     >
                       <div role="cell" className="min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 flex-1 items-start gap-3">
-                            {isMinistry(item) ? (
-                              <MinistryIdentityTile
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            {hasVisualIdentity(item) ? (
+                              <IdentityTile
                                 accentColor={item.accentColor}
                                 iconKey={item.iconKey}
                               />
@@ -948,11 +955,7 @@ export function MinistryManagement({
                                 </span>
                               )}
                               <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs md:hidden">
-                                {(isMinistry(item) || isTerm(item)) && (
-                                  <span className="font-mono">
-                                    /{item.slug}
-                                  </span>
-                                )}
+                                <span className="font-mono">/{item.slug}</span>
                                 {isMinistry(item) && (
                                   <span>
                                     • {item.termCount}{" "}
@@ -971,14 +974,12 @@ export function MinistryManagement({
                         </div>
                         <ExpandableActionItem.MobileActions />
                       </div>
-                      {(isMinistry(item) || isTerm(item)) && (
-                        <div
-                          role="cell"
-                          className="text-muted-foreground hidden font-mono text-xs md:block"
-                        >
-                          /{item.slug}
-                        </div>
-                      )}
+                      <div
+                        role="cell"
+                        className="text-muted-foreground hidden font-mono text-xs md:block"
+                      >
+                        /{item.slug}
+                      </div>
                       {isMinistry(item) && (
                         <div
                           role="cell"
@@ -1090,9 +1091,9 @@ export function MinistryManagement({
           onOpenChange={(open) => !open && setEditor(null)}
           title={`${editor === "create" ? "Add" : "Edit"} ${label}`}
           description={
-            mode !== "groups" && mode !== "departments"
-              ? "Names are displayed exactly as entered. Slugs change links."
-              : "Names must be unique within this term."
+            mode === "groups" || mode === "departments"
+              ? "Names and slugs must be unique within this term."
+              : "Names are displayed exactly as entered. Slugs change links."
           }
           footer={
             <>
@@ -1123,23 +1124,24 @@ export function MinistryManagement({
                 name="name"
                 required
                 defaultValue={
-                  mode === "ministries"
+                  supportsVisualIdentity
                     ? undefined
                     : editor === "create"
                       ? ""
                       : editor.name
                 }
-                value={mode === "ministries" ? ministryNameDraft : undefined}
+                value={supportsVisualIdentity ? identityNameDraft : undefined}
                 onChange={
-                  mode === "ministries"
-                    ? (event) => setMinistryNameDraft(event.target.value)
+                  supportsVisualIdentity
+                    ? (event) => setIdentityNameDraft(event.target.value)
                     : undefined
                 }
                 className="h-12 text-base"
               />
             </div>
-            {mode === "ministries" && (
-              <MinistryIdentityPicker
+            {supportsVisualIdentity && (
+              <IdentityPicker
+                entityLabel={label}
                 accentColor={accentColor}
                 iconKey={iconKey}
                 iconSearch={iconSearch}
@@ -1149,37 +1151,35 @@ export function MinistryManagement({
                     ? null
                     : "Use a six-digit hex color."
                 }
-                previewName={ministryNameDraft || "New Ministry"}
+                previewName={identityNameDraft || `New ${label}`}
                 onAccentColorChange={setAccentColor}
                 onIconKeyChange={setIconKey}
                 onIconSearchChange={setIconSearch}
                 onCustomColorOpenChange={setCustomColorOpen}
               />
             )}
-            {mode !== "groups" && mode !== "departments" && (
-              <details className="admin-surface p-3">
-                <summary className="cursor-pointer text-sm font-medium">
-                  Advanced link settings
-                </summary>
-                <p className="text-muted-foreground mt-2 text-xs">
-                  Changing a slug affects existing links. Leave it blank when
-                  creating a record to generate one from the name.
-                </p>
-                <div className="mt-3 space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input
-                    id="slug"
-                    name="slug"
-                    defaultValue={
-                      editor === "create"
-                        ? ""
-                        : (editor as MinistryItem | TermItem).slug
-                    }
-                    className="h-12 font-mono text-base"
-                  />
-                </div>
-              </details>
-            )}
+            <details className="admin-surface p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                Advanced link settings
+              </summary>
+              <p className="text-muted-foreground mt-2 text-xs">
+                Leave the slug blank when creating a record to generate one from
+                the name.
+              </p>
+              <div className="mt-3 space-y-2">
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  name="slug"
+                  defaultValue={
+                    editor === "create"
+                      ? ""
+                      : (editor as MinistryItem | TermItem | StructureItem).slug
+                  }
+                  className="h-12 font-mono text-base"
+                />
+              </div>
+            </details>
             {mode === "terms" && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">

@@ -215,13 +215,19 @@ export async function getStructure(
   const { from, to } = range(page, pageSize);
   let query = supabase
     .from(section === "groups" ? "term_group" : "term_department")
-    .select("id, name")
+    .select("id, name, slug, accent_color, icon_key")
     .eq("ministry_term_id", termId);
   if (q) query = query.ilike("name", `%${q}%`);
   const { data, error } = await query.order("name").order("id").range(from, to);
   if (error) throw new Error("Failed to fetch term structure");
   return {
-    items: data ?? [],
+    items: (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      accentColor: row.accent_color,
+      iconKey: row.icon_key,
+    })),
     count: count ?? 0,
     page,
     pageSize,

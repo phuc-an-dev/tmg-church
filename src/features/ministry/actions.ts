@@ -83,6 +83,36 @@ async function uniqueSlug(
   }
   throw new Error("slug limit reached");
 }
+async function uniqueStructureSlug(
+  table: "term_group" | "term_department",
+  termId: string,
+  name: string,
+  customSlug?: string,
+  excludeId?: string,
+) {
+  const supabase = await createClient();
+  const base = customSlug || generateVietnameseSlug(name) || "item";
+  for (let n = 1; n < 100; n += 1) {
+    const candidate = n === 1 ? base : `${base}-${n}`;
+    let query =
+      table === "term_group"
+        ? supabase
+            .from("term_group")
+            .select("id")
+            .eq("ministry_term_id", termId)
+            .eq("slug", candidate)
+        : supabase
+            .from("term_department")
+            .select("id")
+            .eq("ministry_term_id", termId)
+            .eq("slug", candidate);
+    if (excludeId) query = query.neq("id", excludeId);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw new Error("structure slug lookup failed");
+    if (!data) return candidate;
+  }
+  throw new Error("structure slug limit reached");
+}
 function paths(ministryId?: string, termId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/ministries");
@@ -366,11 +396,15 @@ export async function saveStructureAction(
       .maybeSingle();
     if (!term)
       return resultError("NOT_FOUND", "The requested term was not found.");
-    const values = { name: parsed.data.name };
+    const values = {
+      name: parsed.data.name,
+      accent_color: parsed.data.accentColor,
+      icon_key: parsed.data.iconKey,
+    };
     if (parsed.data.id) {
       const { data: existing } = await supabase
         .from(table)
-        .select("id")
+        .select("id, slug")
         .eq("id", parsed.data.id)
         .eq("ministry_term_id", term.id)
         .maybeSingle();
@@ -379,9 +413,18 @@ export async function saveStructureAction(
           "NOT_FOUND",
           `The requested ${section === "groups" ? "group" : "department"} was not found.`,
         );
+      const slug = parsed.data.slug
+        ? await uniqueStructureSlug(
+            table,
+            term.id,
+            parsed.data.name,
+            parsed.data.slug,
+            existing.id,
+          )
+        : existing.slug;
       const { error } = await supabase
         .from(table)
-        .update(values)
+        .update({ ...values, slug })
         .eq("id", existing.id)
         .eq("ministry_term_id", term.id);
       if (error)
@@ -396,9 +439,15 @@ export async function saveStructureAction(
         message: `${section === "groups" ? "Group" : "Department"} updated successfully.`,
       };
     }
+    const slug = await uniqueStructureSlug(
+      table,
+      term.id,
+      parsed.data.name,
+      parsed.data.slug,
+    );
     const { data, error } = await supabase
       .from(table)
-      .insert({ ministry_term_id: term.id, ...values })
+      .insert({ ministry_term_id: term.id, ...values, slug })
       .select("id")
       .single();
     if (error || !data)

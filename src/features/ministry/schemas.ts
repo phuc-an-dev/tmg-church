@@ -60,6 +60,13 @@ export const structureSchema = z.object({
   ministryId: id,
   termId: id,
   name,
+  slug: optionalSlug,
+  accentColor: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^#[0-9a-f]{6}$/, "Use a six-digit hex color"),
+  iconKey: z.enum(MINISTRY_ICON_KEYS, "Choose an icon"),
 });
 export const deleteSchema = z.object({
   id,

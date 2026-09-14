@@ -860,24 +860,33 @@ export type Database = {
       };
       term_department: {
         Row: {
+          accent_color: string;
           created_at: string;
           id: string;
+          icon_key: string;
           ministry_term_id: string;
           name: string;
+          slug: string;
           updated_at: string;
         };
         Insert: {
+          accent_color?: string;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           ministry_term_id: string;
           name: string;
+          slug: string;
           updated_at?: string;
         };
         Update: {
+          accent_color?: string;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           ministry_term_id?: string;
           name?: string;
+          slug?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -899,24 +908,33 @@ export type Database = {
       };
       term_group: {
         Row: {
+          accent_color: string;
           created_at: string;
           id: string;
+          icon_key: string;
           ministry_term_id: string;
           name: string;
+          slug: string;
           updated_at: string;
         };
         Insert: {
+          accent_color?: string;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           ministry_term_id: string;
           name: string;
+          slug: string;
           updated_at?: string;
         };
         Update: {
+          accent_color?: string;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           ministry_term_id?: string;
           name?: string;
+          slug?: string;
           updated_at?: string;
         };
         Relationships: [
