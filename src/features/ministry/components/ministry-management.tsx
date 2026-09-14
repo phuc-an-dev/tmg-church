@@ -13,7 +13,17 @@ import {
   Rows3,
   Search,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
+import { RadioGroup as RadixRadioGroup } from "radix-ui";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +104,24 @@ function isTerm(item: Item): item is TermItem {
 function isMinistry(item: Item): item is MinistryItem {
   return "slug" in item && "termCount" in item;
 }
+
+const MINISTRY_SORT_CHOICES = [
+  { value: "name-asc", label: "Name: A to Z" },
+  { value: "name-desc", label: "Name: Z to A" },
+];
+
+const TERM_STATUS_CHOICES = [
+  { value: "all", label: "All statuses" },
+  { value: "current", label: "Current" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "ended", label: "Ended" },
+];
+
+const TERM_SORT_CHOICES = [
+  { value: "start-desc", label: "Start date: newest" },
+  { value: "start-asc", label: "Start date: oldest" },
+  { value: "name-asc", label: "Name: A to Z" },
+];
 
 interface ChoiceMenuProps {
   label: string;
@@ -474,6 +502,10 @@ export function MinistryManagement({
   const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [searchDraft, setSearchDraft] = React.useState(query.q);
   const [ministryNameDraft, setMinistryNameDraft] = React.useState("");
+  const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
+  const [draftStatus, setDraftStatus] = React.useState<string>("all");
+  const [draftSort, setDraftSort] = React.useState<string>("name-asc");
+  const filterButtonRef = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
     if (searchDraft === query.q) return;
     const timer = window.setTimeout(() => {
@@ -483,6 +515,54 @@ export function MinistryManagement({
   }, [query.q, searchDraft, setQuery]);
   const update = (value: Record<string, unknown>) =>
     void setQuery({ ...value, page: 1 } as never);
+
+  function openFilterSheet() {
+    if (mode === "terms") {
+      setDraftStatus((query as unknown as { status?: string }).status ?? "all");
+      setDraftSort(query.sort ?? "start-desc");
+    } else if (mode === "ministries") {
+      setDraftSort(query.sort ?? "name-asc");
+    }
+    setFilterSheetOpen(true);
+  }
+
+  function applyFilters() {
+    if (mode === "terms") {
+      update({ status: draftStatus, sort: draftSort });
+    } else if (mode === "ministries") {
+      update({ sort: draftSort });
+    }
+    setFilterSheetOpen(false);
+  }
+
+  function resetDraftFilters() {
+    if (mode === "terms") {
+      setDraftStatus("all");
+      setDraftSort("start-desc");
+    } else if (mode === "ministries") {
+      setDraftSort("name-asc");
+    }
+  }
+
+  const activeFilterCount =
+    mode === "terms"
+      ? ((query as unknown as { status?: string }).status &&
+        (query as unknown as { status?: string }).status !== "all"
+          ? 1
+          : 0) + (query.sort && (query.sort as string) !== "start-desc" ? 1 : 0)
+      : mode === "ministries"
+        ? query.sort && (query.sort as string) !== "name-asc"
+          ? 1
+          : 0
+        : 0;
+
+  const hasDraftFilterChanges =
+    mode === "terms"
+      ? draftStatus !== "all" || draftSort !== "start-desc"
+      : mode === "ministries"
+        ? draftSort !== "name-asc"
+        : false;
+
   const totalPages = Math.max(1, Math.ceil(result.count / result.pageSize));
   const rangeStart =
     result.count === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
@@ -590,15 +670,12 @@ export function MinistryManagement({
       {feedback && (
         <StatusToast message={feedback} onDismiss={() => setFeedback(null)} />
       )}
-      <section className="space-y-5" aria-label={title}>
+      <section
+        className="space-y-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0"
+        aria-label={title}
+      >
         <p className="sr-only">{description}</p>
-        <div
-          className={
-            mode === "terms"
-              ? "flex flex-wrap items-center gap-2 border-b pb-5"
-              : "flex items-center gap-2 border-b pb-5"
-          }
-        >
+        <div className="flex items-center gap-2 border-b pb-5">
           <div className="relative min-w-0 flex-1">
             <Search
               className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
@@ -621,46 +698,61 @@ export function MinistryManagement({
               placeholder={`Search ${title.toLowerCase()}`}
             />
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {mode === "ministries" && (
-              <ChoiceMenu
-                label="Sort ministries"
-                value={query.sort}
-                onChange={(value) => update({ sort: value })}
-                icon="filter"
-                choices={[
-                  { value: "name-asc", label: "Name: A to Z" },
-                  { value: "name-desc", label: "Name: Z to A" },
-                ]}
-              />
-            )}
-            {mode === "terms" && (
-              <>
-                <ChoiceMenu
-                  label="Filter terms"
-                  value={(query as unknown as { status: string }).status}
-                  onChange={(value) => update({ status: value })}
-                  icon="filter"
-                  choices={[
-                    { value: "all", label: "All statuses" },
-                    { value: "current", label: "Current" },
-                    { value: "upcoming", label: "Upcoming" },
-                    { value: "ended", label: "Ended" },
-                  ]}
+          {(mode === "ministries" || mode === "terms") && (
+            <>
+              <Button
+                ref={filterButtonRef}
+                type="button"
+                variant="outline"
+                onClick={openFilterSheet}
+                className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
+                aria-label={
+                  activeFilterCount > 0
+                    ? `Filter ${title.toLowerCase()} (${activeFilterCount} active)`
+                    : `Filter ${title.toLowerCase()}`
+                }
+              >
+                <SlidersHorizontal
+                  className="text-muted-foreground size-4"
+                  aria-hidden="true"
                 />
-                <ChoiceMenu
-                  label="Sort terms"
-                  value={query.sort}
-                  onChange={(value) => update({ sort: value })}
-                  choices={[
-                    { value: "start-desc", label: "Start date: newest" },
-                    { value: "start-asc", label: "Start date: oldest" },
-                    { value: "name-asc", label: "Name: A to Z" },
-                  ]}
-                />
-              </>
-            )}
-          </div>
+                <span>Filter</span>
+                {activeFilterCount > 0 && (
+                  <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+              <div className="hidden shrink-0 items-center gap-2 md:flex">
+                {mode === "ministries" && (
+                  <ChoiceMenu
+                    label="Sort ministries"
+                    value={query.sort}
+                    onChange={(value) => update({ sort: value })}
+                    icon="filter"
+                    choices={MINISTRY_SORT_CHOICES}
+                  />
+                )}
+                {mode === "terms" && (
+                  <>
+                    <ChoiceMenu
+                      label="Filter terms"
+                      value={(query as unknown as { status: string }).status}
+                      onChange={(value) => update({ status: value })}
+                      icon="filter"
+                      choices={TERM_STATUS_CHOICES}
+                    />
+                    <ChoiceMenu
+                      label="Sort terms"
+                      value={query.sort}
+                      onChange={(value) => update({ sort: value })}
+                      choices={TERM_SORT_CHOICES}
+                    />
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
         {result.items.length === 0 ? (
           <div className="admin-surface py-12 text-center">
@@ -906,7 +998,7 @@ export function MinistryManagement({
         </div>
       </section>
       <Button
-        className="fixed right-5 bottom-28 z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
+        className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
         onClick={() => {
           openEditor("create");
         }}
@@ -1054,6 +1146,153 @@ export function MinistryManagement({
             )}
           </form>
         </ResponsiveEditor>
+      )}
+      {(mode === "ministries" || mode === "terms") && (
+        <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+          <SheetContent
+            side="bottom"
+            showCloseButton={false}
+            onCloseAutoFocus={(event) => {
+              if (filterButtonRef.current) {
+                event.preventDefault();
+                filterButtonRef.current.focus();
+              }
+            }}
+            className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-hidden"
+          >
+            <div
+              className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
+              aria-hidden="true"
+            />
+
+            <div className="border-border/70 flex shrink-0 items-center justify-between border-b px-5 py-3">
+              <SheetHeader className="p-0 text-left">
+                <div className="flex items-center gap-2">
+                  <SheetTitle className="text-foreground text-lg font-bold">
+                    {mode === "terms" ? "Filter & sort" : "Sort options"}
+                  </SheetTitle>
+                  {hasDraftFilterChanges && (
+                    <button
+                      type="button"
+                      onClick={resetDraftFilters}
+                      className="text-primary text-xs font-semibold hover:underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
+                  {mode === "terms"
+                    ? "Filter by status and adjust sort order."
+                    : "Adjust ministry sort order."}
+                </SheetDescription>
+              </SheetHeader>
+
+              <SheetClose asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground hover:bg-muted/40 focus-visible:ring-ring flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+                  aria-label="Close"
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </button>
+              </SheetClose>
+            </div>
+
+            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+              {mode === "terms" && (
+                <div className="space-y-2">
+                  <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
+                    Status
+                  </span>
+                  <RadixRadioGroup.Root
+                    className="divide-border/60 border-border/60 bg-muted/20 divide-y rounded-xl border"
+                    aria-label="Status filter"
+                    value={draftStatus}
+                    onValueChange={setDraftStatus}
+                  >
+                    {TERM_STATUS_CHOICES.map((choice) => {
+                      const selected = draftStatus === choice.value;
+                      return (
+                        <RadixRadioGroup.Item
+                          key={choice.value}
+                          value={choice.value}
+                          className={cn(
+                            "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-hidden",
+                            selected
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "hover:bg-muted/50 text-foreground",
+                          )}
+                        >
+                          <span>{choice.label}</span>
+                          {selected && (
+                            <Check
+                              className="text-primary size-4 shrink-0"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </RadixRadioGroup.Item>
+                      );
+                    })}
+                  </RadixRadioGroup.Root>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
+                  Sort by
+                </span>
+                <RadixRadioGroup.Root
+                  className="divide-border/60 border-border/60 bg-muted/20 divide-y rounded-xl border"
+                  aria-label="Sort order"
+                  value={draftSort}
+                  onValueChange={setDraftSort}
+                >
+                  {(mode === "terms"
+                    ? TERM_SORT_CHOICES
+                    : MINISTRY_SORT_CHOICES
+                  ).map((choice) => {
+                    const selected = draftSort === choice.value;
+                    return (
+                      <RadixRadioGroup.Item
+                        key={choice.value}
+                        value={choice.value}
+                        className={cn(
+                          "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-hidden",
+                          selected
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted/50 text-foreground",
+                        )}
+                      >
+                        <span>{choice.label}</span>
+                        {selected && (
+                          <Check
+                            className="text-primary size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </RadixRadioGroup.Item>
+                    );
+                  })}
+                </RadixRadioGroup.Root>
+              </div>
+            </div>
+
+            <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={() => setFilterSheetOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" className="min-h-11" onClick={applyFilters}>
+                Apply
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
       <AlertDialog
         open={Boolean(deleting)}

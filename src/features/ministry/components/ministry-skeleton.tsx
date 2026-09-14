@@ -15,28 +15,29 @@ export function MinistryManagementSkeleton({
   const hasSlug = isMinistry || isTerm;
 
   return (
-    <div className="space-y-5" aria-hidden="true">
+    <div
+      className="space-y-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0"
+      aria-hidden="true"
+    >
       {/* Toolbar Skeleton */}
-      <div
-        className={cn(
-          "border-b pb-5",
-          isTerm
-            ? "flex flex-wrap items-center gap-2"
-            : "flex items-center gap-2",
-        )}
-      >
+      <div className="flex items-center gap-2 border-b pb-5">
         <div className="relative min-w-0 flex-1">
           <Skeleton className="h-12 w-full rounded-xl" />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {isMinistry && <Skeleton className="h-12 w-36 rounded-xl sm:w-44" />}
-          {isTerm && (
-            <>
-              <Skeleton className="h-12 w-32 rounded-xl" />
-              <Skeleton className="h-12 w-36 rounded-xl sm:w-44" />
-            </>
-          )}
-        </div>
+        {(isMinistry || isTerm) && (
+          <>
+            <Skeleton className="h-12 w-24 shrink-0 rounded-xl md:hidden" />
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              {isMinistry && <Skeleton className="h-12 w-44 rounded-xl" />}
+              {isTerm && (
+                <>
+                  <Skeleton className="h-12 w-36 rounded-xl" />
+                  <Skeleton className="h-12 w-44 rounded-xl" />
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Collection List Skeleton: Mobile Cards / Desktop Table */}
@@ -159,7 +160,7 @@ export function MinistryManagementSkeleton({
       </div>
 
       {/* Floating Action Button Skeleton */}
-      <Skeleton className="fixed right-5 bottom-28 z-30 h-12 w-36 rounded-full shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8" />
+      <Skeleton className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 h-12 w-36 rounded-full shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8" />
     </div>
   );
 }

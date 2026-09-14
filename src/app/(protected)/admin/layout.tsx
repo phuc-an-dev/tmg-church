@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { requireLeader } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
 import { AdminHeader } from "@/components/admin/admin-header";
-import { MobileAdminDock } from "@/components/admin/mobile-admin-dock";
 
 export const metadata: Metadata = {
   title: {
@@ -30,8 +29,7 @@ export default async function ProtectedAdminLayout({
   return (
     <div className="admin-canvas flex min-h-screen flex-col">
       <AdminHeader activeChurch={activeChurch} userEmail={auth.email} />
-      <main className="flex-1 pb-24 md:pb-0">{children}</main>
-      <MobileAdminDock />
+      <main className="flex-1">{children}</main>
     </div>
   );
 }

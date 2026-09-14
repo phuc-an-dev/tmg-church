@@ -3,7 +3,7 @@
 ## Naming and language
 
 - Use English for code, database identifiers, types, comments, technical documentation, and logs.
-- Use Vietnamese for all user-visible copy and SEO metadata.
+- Use English for all user-visible copy and SEO metadata.
 - Use `kebab-case` for route segments and document filenames, `camelCase` for variables and functions, `PascalCase` for React components and types, and `snake_case` for Postgres objects.
 - Use domain names rather than generic names such as `data`, `item`, or `handler` when a more precise name is available.
 
@@ -33,7 +33,7 @@
 - Verify the authenticated identity on the server before private reads or mutations.
 - Let RLS enforce leader permissions for every base table.
 - Select named columns. Avoid `select('*')` in application queries.
-- Convert database failures into typed domain errors and Vietnamese user messages.
+- Convert database failures into typed domain errors and English user messages.
 
 ## Forms and mutations
 

@@ -15,17 +15,17 @@ Use the following shared primitives. Do not recreate their visual treatment with
 - `admin-panel-strong`: higher-emphasis white surface for onboarding, forms, and primary summaries.
 - `admin-surface`: compact inner metric, account, or filter surface with minimal depth.
 - `admin-nav-chip`: desktop horizontal navigation item with a solid-blue active state, controlled by `data-active`.
-- `mobile-admin-dock`: elevated mobile safe-area navigation dock. It is mounted once by the protected admin layout.
+- `mobile-admin-sidebar`: left-side Sheet navigation drawer for mobile administration. It is triggered by a Lucide `Menu` button in the mobile admin header.
 
 The visual treatment uses opaque surfaces, a subtle one-pixel border, no backdrop blur, no decorative gradients, and carefully limited shadows. Primary panels use 16px corners; controls and inner surfaces use 10–12px corners. Avoid nested elevated cards: use spacing, dividers, or one quiet inner surface instead.
 
 ## Navigation
 
-The header surface is white in light mode. Desktop uses a compact brand row followed by pill navigation with a solid-blue active item. Mobile uses only the shared elevated bottom dock for primary destinations; do not duplicate those links in a sidebar or sheet. The header exposes one avatar menu containing the signed-in account, light/dark/system theme selection, and sign-out action. Protected page content reserves bottom space for the dock.
+The header surface is white in light mode. Desktop uses a compact brand row followed by pill navigation with a solid-blue active item. Mobile navigation is triggered by a 44×44 px Lucide `Menu` button in the mobile header, opening a left-side Sheet containing the Church identity, implemented admin routes, account details, appearance/theme controls, and sign-out action. The mobile sidebar closes automatically on route navigation, Escape, outside clicks, or viewport resize across the desktop breakpoint (`md: 768px`). Desktop preserves horizontal header navigation chips and avatar account utilities.
 
 Keep the routine entity edit action visible as a labeled primary control in the entity card header. Do not expose deletion on the read-only card surface or inside the routine edit surface. Church deletion lives on the dedicated `/admin/church/advanced` route, reached through the page-header More menu, and retains the explicit confirmation step. Keep dependency or deletion eligibility explanations in the card footer.
 
-When a new primary admin route is implemented, add it once to both the desktop header and mobile dock navigation definitions. Do not add placeholder destinations.
+When a new primary admin route is implemented, add it once to the shared administration navigation definitions (`ADMIN_NAVIGATION_ITEMS`) so both desktop header chips and the mobile sidebar sheet reflect it. Do not add placeholder destinations.
 
 ## Accent color policy
 

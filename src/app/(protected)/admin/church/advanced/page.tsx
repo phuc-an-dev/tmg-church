@@ -28,7 +28,6 @@ export default async function AdvancedChurchSettingsPage() {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl space-y-6">
         <AdminPageHeader
-          eyebrow="Advanced settings"
           title="Church Administration"
           description="Sensitive controls are available only when exactly one church is configured."
           action={

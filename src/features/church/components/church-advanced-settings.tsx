@@ -32,7 +32,6 @@ export function ChurchAdvancedSettings({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <AdminPageHeader
-        eyebrow="Advanced settings"
         title="Church Administration"
         description="Sensitive organization controls are separated from routine profile editing."
         action={

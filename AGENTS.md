@@ -10,57 +10,31 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # TMG Church agent instructions
 
-These instructions apply to the entire repository. User instructions take precedence. When requirements are unclear but do not change data safety or product scope, use the documented decision and continue.
+User instructions take precedence. Keep context and changes bounded.
 
-## Context routing
+## Start here
 
-- Start with `docs/NEXT_AGENT_TASK.md` and read only the files listed in its `Required reading` section.
-- Do not scan the complete `docs/` directory, queued plans, archived history, or unrelated review entries.
-- Read an additional repository document only when the active task directly references it or missing information blocks implementation.
-- Read relevant bundled Next.js documentation in `node_modules/next/dist/docs/` before using a framework API. Do not rely on remembered conventions when local documentation differs.
-- `docs/NEXT_AGENT_TASK.md` is the only source of implementation authorization. A queued plan is not authorized work.
+- Read `docs/NEXT_AGENT_TASK.md` only. It is the sole implementation authorization and names any extra context required by the active task.
+- Do not scan `docs/`, completed plans, Git history, or review history unless the active brief explicitly requires it.
+- Before changing a Next.js API, read only its relevant local guide in `node_modules/next/dist/docs/`.
 
-## Product language
+## Non-negotiable rules
 
-- Write all source code, identifiers, filenames, comments, commit messages, technical documentation, validation keys, and developer-facing logs in English.
-- Write all user-facing interface copy, navigation, headings, descriptions, forms, validation messages, empty states, errors, success messages, metadata, SEO content, accessible names, screen-reader labels, and authentication email content in English.
-- The default product brand is "TMG Church".
-- User-entered database values must be displayed verbatim and must not be automatically translated.
-- Vietnamese names must remain supported by the slug generator.
-- Do not use emoji anywhere in the product or repository documentation.
-- Use Lucide icons through `lucide-react`. Do not use Unicode symbols as interface icons.
-
-## Scope discipline
-
-- Work only on the plan named by `docs/NEXT_AGENT_TASK.md`.
-- Do not implement later-phase workflows while completing an earlier slice.
-- Do not create a separate backend, Express server, Spring Boot service, or privileged API service.
-- Do not add automated tests during the initial MVP unless a task explicitly asks for them. Verification commands are still mandatory.
-- Do not add dependencies when the existing stack can solve the requirement cleanly.
-
-## Architecture rules
-
-- Prefer Server Components for initial reads and page composition.
-- Add Client Components only for interaction, browser APIs, form state, URL state, dialogs, drawers, and theme state.
-- Use Server Actions for authenticated mutations unless a documented requirement needs a Route Handler.
-- Keep Supabase access in server-side query or mutation modules. Components must not contain repeated inline database queries.
-- Maintain two trust contexts: anonymous public access and cookie-backed authenticated access. The authenticated context may require separate browser and server factories because `@supabase/ssr` has different runtime adapters.
-- Never use a service-role key in application code.
-- Treat RLS as the authorization boundary. Hiding a control in the UI is not authorization.
-- Validate every mutation with Zod before calling Supabase.
-- Return structured mutation results. Do not expose raw database errors to users.
-
-## Data and privacy rules
-
-- Public pages may query only approved public views, never `member_profile` or another private base table.
-- Public member data is limited to approved fields and excludes phone numbers, auth user IDs, archived members, care data, and private notes.
+- Use English for code, filenames, comments, documentation, logs, UI copy, metadata, accessible labels, and authentication email content.
+- Display user-entered values verbatim and keep Vietnamese slug input supported.
+- Use the brand `TMG Church`, Lucide icons through `lucide-react`, and no emoji or Unicode interface icons.
+- Use Next.js App Router, Supabase, and `@supabase/ssr`; do not add a separate backend or service-role key.
+- Prefer Server Components for reads and Server Actions for authenticated mutations. Keep Supabase access in server query or mutation modules.
+- Treat RLS as authorization. Validate mutations with Zod and return structured errors without exposing raw database failures.
+- Public pages query approved public views only. Never expose phone, auth IDs, archived members, care data, or private notes.
 - Archive members with `archived_at`; do not hard-delete them from the UI.
-- Keep all relationship writes transactionally consistent. If Supabase client calls cannot guarantee a multi-table invariant, use a narrowly scoped Postgres function protected by RLS and explicit grants.
-- Add database constraints for uniqueness, valid date ranges, allowed status values, and relationship consistency.
+- Keep relationship writes transactionally consistent and enforce durable invariants in Postgres.
+- Do not add dependencies or automated tests unless the active brief requires them.
 
-## Quality gate
+## Delivery
 
-Before marking an implementation slice ready for review, run:
+- A coding agent implements only the active brief. A review agent reports findings without silently editing code.
+- Before handoff, run:
 
 ```bash
 pnpm lint
@@ -69,10 +43,5 @@ pnpm format:check
 pnpm build
 ```
 
-Then perform the active plan's verification matrix and append evidence to `docs/reviews/REVIEW_LOG.md`. A passing build does not replace the plan's manual review requirements.
-
-## Planning and review separation
-
-- A planning or review agent must not silently implement fixes. It documents findings, severity, evidence, and the next coding slice.
-- A coding agent implements the approved slice and records what changed and how it was verified.
-- After review, the coding agent receives only actionable findings. Repeat implementation and review until there are no blocking or high-severity findings.
+- Run the active brief's manual checks and record only a compact accepted outcome in `docs/reviews/REVIEW_LOG.md`.
+- After acceptance, move durable decisions into canonical docs, delete the completed task plan, and reset `docs/NEXT_AGENT_TASK.md` to waiting. Git history is the archive.

@@ -2,7 +2,7 @@
 
 TMG Church is a mobile-first church management application for public member information and authenticated leader administration. The production domain is `tmgchurch.website`.
 
-The foundation, database, and authentication slices are complete. The currently authorized implementation checkpoint is the administration shell and Church management defined in `docs/NEXT_AGENT_TASK.md`.
+Foundation, database, authentication, Church administration, and Ministry administration are complete. `docs/NEXT_AGENT_TASK.md` is the only source for the next authorized task.
 
 ## Stack
 
@@ -21,7 +21,7 @@ The foundation, database, and authentication slices are complete. The currently 
 
 Requirements:
 
-- Node.js 20.9 or newer
+- Node.js 22.13 or newer
 - pnpm 11 or newer
 
 Install dependencies and create the local environment file:
@@ -63,7 +63,6 @@ pnpm build
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
 - [Next coding-agent task](docs/NEXT_AGENT_TASK.md)
-- [Admin, Church, and Ministry plan](docs/plans/03-admin-church-and-ministry.md)
 - [Plan and review workflow](docs/WORKFLOW.md)
 - [Review checklist](docs/REVIEW_CHECKLIST.md)
 - [Decision log](docs/decisions/0001-foundation.md)
