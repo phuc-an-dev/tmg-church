@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireLeader } from "@/features/auth/queries";
 import { getActiveChurch } from "@/features/church/queries";
+import { isUuid } from "@/lib/slug";
 import { normalizedSearch, safePageSize } from "./search-params";
 import type {
   MinistryContext,
@@ -23,17 +24,19 @@ function range(page: number, pageSize: number) {
 }
 
 export const getMinistryContext = cache(
-  async (ministryId: string): Promise<MinistryContext | null> => {
+  async (identifier: string): Promise<MinistryContext | null> => {
     await requireLeader();
     const church = await getActiveChurch();
     if (!church) return null;
     const supabase = await createClient();
-    const { data } = await supabase
+    let query = supabase
       .from("ministry")
       .select("id, name, slug, accent_color, icon_key")
-      .eq("id", ministryId)
-      .eq("church_id", church.id)
-      .maybeSingle();
+      .eq("church_id", church.id);
+    query = isUuid(identifier)
+      ? query.eq("id", identifier)
+      : query.eq("slug", identifier);
+    const { data } = await query.maybeSingle();
     return data
       ? {
           church: { id: church.id, name: church.name },
@@ -49,16 +52,21 @@ export const getMinistryContext = cache(
   },
 );
 export const getTermContext = cache(
-  async (ministryId: string, termId: string): Promise<TermContext | null> => {
-    const context = await getMinistryContext(ministryId);
+  async (
+    ministryIdentifier: string,
+    termIdentifier: string,
+  ): Promise<TermContext | null> => {
+    const context = await getMinistryContext(ministryIdentifier);
     if (!context) return null;
     const supabase = await createClient();
-    const { data } = await supabase
+    let query = supabase
       .from("ministry_term")
       .select("id, name, slug, start_date, end_date, lifecycle")
-      .eq("id", termId)
-      .eq("ministry_id", ministryId)
-      .maybeSingle();
+      .eq("ministry_id", context.ministry.id);
+    query = isUuid(termIdentifier)
+      ? query.eq("id", termIdentifier)
+      : query.eq("slug", termIdentifier);
+    const { data } = await query.maybeSingle();
     return data
       ? {
           ...context,
@@ -149,7 +157,7 @@ export async function getTerms(
   let countQuery = supabase
     .from("ministry_term")
     .select("id", { count: "exact", head: true })
-    .eq("ministry_id", ministryId);
+    .eq("ministry_id", context.ministry.id);
   if (q) countQuery = countQuery.ilike("name", `%${q}%`);
   if (params.lifecycle !== "all")
     countQuery = countQuery.eq("lifecycle", params.lifecycle);
@@ -161,7 +169,7 @@ export async function getTerms(
   let query = supabase
     .from("ministry_term")
     .select("id, name, slug, start_date, end_date, lifecycle")
-    .eq("ministry_id", ministryId);
+    .eq("ministry_id", context.ministry.id);
   if (q) query = query.ilike("name", `%${q}%`);
   if (params.lifecycle !== "all")
     query = query.eq("lifecycle", params.lifecycle);
@@ -206,7 +214,7 @@ export async function getStructure(
   let countQuery = supabase
     .from(section === "groups" ? "term_group" : "term_department")
     .select("id", { count: "exact", head: true })
-    .eq("ministry_term_id", termId);
+    .eq("ministry_term_id", context.term.id);
   if (q) countQuery = countQuery.ilike("name", `%${q}%`);
   const { count, error: countError } = await countQuery;
   if (countError) throw new Error("Failed to fetch term structure");
@@ -216,7 +224,7 @@ export async function getStructure(
   let query = supabase
     .from(section === "groups" ? "term_group" : "term_department")
     .select("id, name, slug, accent_color, icon_key")
-    .eq("ministry_term_id", termId);
+    .eq("ministry_term_id", context.term.id);
   if (q) query = query.ilike("name", `%${q}%`);
   const { data, error } = await query.order("name").order("id").range(from, to);
   if (error) throw new Error("Failed to fetch term structure");

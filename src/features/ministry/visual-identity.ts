@@ -149,6 +149,18 @@ export function isMinistryIconKey(value: string): value is MinistryIconKey {
   return value in MINISTRY_ICON_COMPONENTS;
 }
 
+export function ministryIconLabel(value: string) {
+  const knownOption = MINISTRY_ICON_OPTIONS.find(
+    (option) => option.key === value,
+  );
+  if (knownOption) return knownOption.label;
+
+  return value
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function ministryIconFor(value: string): LucideIcon {
   return isMinistryIconKey(value)
     ? MINISTRY_ICON_COMPONENTS[value]

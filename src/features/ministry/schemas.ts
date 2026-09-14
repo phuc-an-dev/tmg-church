@@ -1,6 +1,6 @@
 import { z } from "zod";
+import dynamicIconImports from "lucide-react/dynamicIconImports";
 import { SLUG_REGEX } from "@/features/church/schemas";
-import { MINISTRY_ICON_KEYS } from "./visual-identity";
 
 const id = z.string().uuid("Invalid record identifier");
 const name = z
@@ -25,6 +25,11 @@ const date = z
 const termLifecycle = z.enum(["draft", "active", "closed"], {
   message: "Choose a valid term lifecycle",
 });
+const iconKey = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Choose a valid Lucide icon")
+  .refine((value) => value in dynamicIconImports, "Choose a valid Lucide icon");
 
 export const ministrySchema = z.object({
   id: id.optional(),
@@ -35,7 +40,7 @@ export const ministrySchema = z.object({
     .trim()
     .toLowerCase()
     .regex(/^#[0-9a-f]{6}$/, "Use a six-digit hex color"),
-  iconKey: z.enum(MINISTRY_ICON_KEYS, "Choose a ministry icon"),
+  iconKey,
 });
 export const termSchema = z
   .object({
@@ -66,7 +71,7 @@ export const structureSchema = z.object({
     .trim()
     .toLowerCase()
     .regex(/^#[0-9a-f]{6}$/, "Use a six-digit hex color"),
-  iconKey: z.enum(MINISTRY_ICON_KEYS, "Choose an icon"),
+  iconKey,
 });
 export const deleteSchema = z.object({
   id,

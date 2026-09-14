@@ -116,6 +116,7 @@ async function uniqueStructureSlug(
 function paths(ministryId?: string, termId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/ministries");
+  revalidatePath("/admin/ministries", "layout");
   if (ministryId) revalidatePath(`/admin/ministries/${ministryId}`);
   if (ministryId && termId)
     revalidatePath(`/admin/ministries/${ministryId}/terms/${termId}`);

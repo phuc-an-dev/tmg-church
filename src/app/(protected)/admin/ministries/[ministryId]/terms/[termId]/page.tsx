@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { cn } from "cn";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { Button } from "@/components/ui/button";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { getStructure, getTermContext } from "@/features/ministry/queries";
 import {
   safePageSize,
   structureSearchParamsCache,
 } from "@/features/ministry/search-params";
+import { isUuid } from "@/lib/slug";
 
 export const metadata: Metadata = { title: "Term Structure" };
 export default async function TermDetailPage({
@@ -24,37 +25,89 @@ export default async function TermDetailPage({
     structureSearchParamsCache.parse(searchParams),
   ]);
   if (!context) notFound();
+
+  if (
+    (isUuid(ministryId) || isUuid(termId)) &&
+    context.ministry.slug &&
+    context.term.slug
+  ) {
+    const search = new URLSearchParams();
+    const resolvedSearchParams = await searchParams;
+    for (const [key, value] of Object.entries(resolvedSearchParams)) {
+      if (typeof value === "string") search.set(key, value);
+      else if (Array.isArray(value)) {
+        for (const v of value) search.append(key, v);
+      }
+    }
+    const qs = search.toString();
+    redirect(
+      `/admin/ministries/${context.ministry.slug}/terms/${context.term.slug}${qs ? `?${qs}` : ""}`,
+    );
+  }
+
   const section = query.section;
-  const result = await getStructure(ministryId, termId, section, {
-    q: query.q,
-    page: Math.max(1, query.page),
-    pageSize: safePageSize(query.pageSize),
-  });
+  const result = await getStructure(
+    context.ministry.id,
+    context.term.id,
+    section,
+    {
+      q: query.q,
+      page: Math.max(1, query.page),
+      pageSize: safePageSize(query.pageSize),
+    },
+  );
   const sectionLabel = section === "groups" ? "Groups" : "Departments";
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <AdminPageHeader
         title="Term Structure"
-        description="Manage groups and departments within this term."
+        description={`Manage groups and departments for ${context.ministry.name} (${context.term.name}).`}
+        backLink={{
+          href: `/admin/ministries/${context.ministry.slug}`,
+          label: context.ministry.name,
+        }}
       />
-      <div className="flex gap-2">
-        <Button asChild variant={section === "groups" ? "default" : "outline"}>
-          <Link href={`?section=groups`}>Groups</Link>
-        </Button>
-        <Button
-          asChild
-          variant={section === "departments" ? "default" : "outline"}
+      <div
+        className="bg-muted/60 border-border/50 inline-flex items-center gap-1 rounded-xl border p-1"
+        role="tablist"
+        aria-label="Term structure sections"
+      >
+        <Link
+          href="?section=groups"
+          role="tab"
+          aria-selected={section === "groups"}
+          className={cn(
+            "inline-flex min-h-8 items-center justify-center rounded-lg px-4 text-sm font-medium transition-all select-none",
+            section === "groups"
+              ? "bg-card text-foreground font-semibold shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
         >
-          <Link href={`?section=departments`}>Departments</Link>
-        </Button>
+          Groups
+        </Link>
+        <Link
+          href="?section=departments"
+          role="tab"
+          aria-selected={section === "departments"}
+          className={cn(
+            "inline-flex min-h-8 items-center justify-center rounded-lg px-4 text-sm font-medium transition-all select-none",
+            section === "departments"
+              ? "bg-card text-foreground font-semibold shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Departments
+        </Link>
       </div>
       <MinistryManagement
         mode={section === "groups" ? "groups" : "departments"}
         title={sectionLabel}
         description={`Only ${sectionLabel.toLowerCase()} are loaded for the active section.`}
         result={result}
-        ministryId={ministryId}
-        termId={termId}
+        ministryId={context.ministry.id}
+        ministrySlug={context.ministry.slug}
+        termId={context.term.id}
+        termSlug={context.term.slug}
       />
     </div>
   );

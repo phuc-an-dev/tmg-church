@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
@@ -75,11 +76,21 @@ import {
   DEFAULT_MINISTRY_COLOR,
   DEFAULT_MINISTRY_ICON_KEY,
   MINISTRY_COLOR_OPTIONS,
-  MINISTRY_ICON_OPTIONS,
+  isMinistryIconKey,
+  ministryIconLabel,
   ministryIconFor,
   normalizeMinistryColor,
-  type MinistryIconKey,
 } from "../visual-identity";
+
+const IconBrowser = dynamic(
+  () => import("./icon-browser").then((module) => module.IconBrowser),
+  { ssr: false },
+);
+const DynamicLucideIcon = dynamic(
+  () =>
+    import("./dynamic-lucide-icon").then((module) => module.DynamicLucideIcon),
+  { ssr: false },
+);
 
 type Mode = "ministries" | "terms" | "groups" | "departments";
 type Item = MinistryItem | TermItem | StructureItem;
@@ -89,7 +100,9 @@ type Props = {
   description: string;
   result: PageResult<Item>;
   ministryId?: string;
+  ministrySlug?: string;
   termId?: string;
+  termSlug?: string;
 };
 const labelFor = (mode: Mode) =>
   mode === "ministries"
@@ -252,7 +265,6 @@ function IdentityTile({
   accentColor: string;
   iconKey: string;
 }) {
-  const Icon = ministryIconFor(iconKey);
   const color = normalizeMinistryColor(accentColor);
   return (
     <span
@@ -263,73 +275,53 @@ function IdentityTile({
         color,
       }}
     >
-      {React.createElement(Icon, { className: "size-5", "aria-hidden": true })}
+      <IdentityIcon iconKey={iconKey} className="size-5" />
     </span>
   );
+}
+
+function IdentityIcon({
+  iconKey,
+  className,
+}: {
+  iconKey: string;
+  className: string;
+}) {
+  if (!isMinistryIconKey(iconKey)) {
+    return <DynamicLucideIcon iconKey={iconKey} className={className} />;
+  }
+
+  const Icon = ministryIconFor(iconKey);
+  return React.createElement(Icon, { className, "aria-hidden": true });
 }
 
 function IdentityPicker({
   entityLabel,
   accentColor,
   iconKey,
-  iconSearch,
   customColorOpen,
   colorError,
   previewName,
   onAccentColorChange,
   onIconKeyChange,
-  onIconSearchChange,
   onCustomColorOpenChange,
 }: {
   entityLabel: string;
   accentColor: string;
-  iconKey: MinistryIconKey;
-  iconSearch: string;
+  iconKey: string;
   customColorOpen: boolean;
   colorError: string | null;
   previewName: string;
   onAccentColorChange: (value: string) => void;
-  onIconKeyChange: (value: MinistryIconKey) => void;
-  onIconSearchChange: (value: string) => void;
+  onIconKeyChange: (value: string) => void;
   onCustomColorOpenChange: (value: boolean) => void;
 }) {
   const normalizedColor = normalizeMinistryColor(accentColor);
-  const activeIcon = ministryIconFor(iconKey);
-  const activeIconLabel =
-    MINISTRY_ICON_OPTIONS.find((option) => option.key === iconKey)?.label ??
-    "Layers";
-  const iconQuery = iconSearch.trim().toLowerCase().replace(/\s+/g, " ");
+  const [iconBrowserOpen, setIconBrowserOpen] = React.useState(false);
+  const activeIconLabel = ministryIconLabel(iconKey);
   const customColorSelected = !MINISTRY_COLOR_OPTIONS.some(
     (option) => option.value === normalizedColor,
   );
-  const icons = MINISTRY_ICON_OPTIONS.filter(
-    (option) =>
-      !iconQuery ||
-      `${option.label} ${option.keywords}`.toLowerCase().includes(iconQuery),
-  );
-
-  function moveIconFocus(
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) {
-    const columns = window.matchMedia("(min-width: 640px)").matches ? 6 : 5;
-    const direction =
-      event.key === "ArrowRight"
-        ? 1
-        : event.key === "ArrowLeft"
-          ? -1
-          : event.key === "ArrowDown"
-            ? columns
-            : event.key === "ArrowUp"
-              ? -columns
-              : 0;
-    if (!direction) return;
-    event.preventDefault();
-    const next = Math.max(0, Math.min(icons.length - 1, index + direction));
-    const grid = event.currentTarget.closest("[data-icon-grid]");
-    const buttons = grid?.querySelectorAll<HTMLButtonElement>("button");
-    buttons?.[next]?.focus();
-  }
 
   function selectColor(index: number) {
     if (index === MINISTRY_COLOR_OPTIONS.length) {
@@ -450,69 +442,20 @@ function IdentityPicker({
         )}
       </div>
       <div className="space-y-3">
-        <Label htmlFor="identity-icon-search">{entityLabel} icon</Label>
-        <div className="relative">
-          <Search
-            className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
-          <Input
-            id="identity-icon-search"
-            value={iconSearch}
-            onChange={(event) => onIconSearchChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") onIconSearchChange("");
-            }}
-            placeholder="Search icons"
-            className="bg-background h-11 pl-9 text-base"
-          />
-        </div>
-        {icons.length ? (
-          <div
-            data-icon-grid
-            className="grid max-h-56 grid-cols-5 gap-2 overflow-y-auto pr-1 sm:grid-cols-6"
-            aria-label={`${entityLabel} icon options`}
-          >
-            {icons.map((option, index) => {
-              const Icon = ministryIconFor(option.key);
-              const selected = option.key === iconKey;
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  aria-label={option.label}
-                  aria-pressed={selected}
-                  title={option.label}
-                  onKeyDown={(event) => moveIconFocus(event, index)}
-                  onClick={() => onIconKeyChange(option.key)}
-                  className="bg-background focus-visible:outline-primary flex min-h-11 min-w-11 items-center justify-center rounded-xl border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-                  style={
-                    selected
-                      ? {
-                          borderColor: normalizedColor,
-                          backgroundColor: `color-mix(in srgb, ${normalizedColor} 12%, transparent)`,
-                          color: normalizedColor,
-                        }
-                      : undefined
-                  }
-                >
-                  {React.createElement(Icon, {
-                    className: "size-5",
-                    "aria-hidden": true,
-                  })}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            No icons match this search.
-          </p>
-        )}
+        <Label>{entityLabel} icon</Label>
         <p className="text-muted-foreground text-sm">
           Selected icon:{" "}
           <span className="text-foreground">{activeIconLabel}</span>
         </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-12 w-full gap-2"
+          onClick={() => setIconBrowserOpen(true)}
+        >
+          <IdentityIcon iconKey={iconKey} className="size-4" />
+          Browse Lucide icons
+        </Button>
       </div>
       <div
         className="flex items-center gap-3 rounded-xl border p-3"
@@ -526,10 +469,7 @@ function IdentityPicker({
             backgroundColor: `color-mix(in srgb, ${normalizedColor} 12%, transparent)`,
           }}
         >
-          {React.createElement(activeIcon, {
-            className: "size-5",
-            "aria-hidden": true,
-          })}
+          <IdentityIcon iconKey={iconKey} className="size-5" />
         </span>
         <span className="min-w-0">
           <span className="text-muted-foreground block text-xs font-medium">
@@ -538,6 +478,15 @@ function IdentityPicker({
           <span className="block truncate font-semibold">{previewName}</span>
         </span>
       </div>
+      {iconBrowserOpen && (
+        <IconBrowser
+          open={iconBrowserOpen}
+          entityLabel={entityLabel}
+          selectedIconKey={iconKey}
+          onOpenChange={setIconBrowserOpen}
+          onSelect={onIconKeyChange}
+        />
+      )}
     </div>
   );
 }
@@ -548,6 +497,7 @@ export function MinistryManagement({
   description,
   result,
   ministryId,
+  ministrySlug,
   termId,
 }: Props) {
   const label = labelFor(mode);
@@ -561,21 +511,18 @@ export function MinistryManagement({
   const [query, setQuery] = useQueryStates(
     parsers as typeof ministrySearchParams,
   );
+  const [searchDraft, setSearchDraft] = React.useState(query.q ?? "");
   const [editor, setEditor] = React.useState<Item | "create" | null>(null);
   const [deleting, setDeleting] = React.useState<Item | null>(null);
-  const [pending, startTransition] = React.useTransition();
+  const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
+  const [iconKey, setIconKey] = React.useState("cross");
+  const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
-  const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
-  const [iconKey, setIconKey] = React.useState<MinistryIconKey>(
-    DEFAULT_MINISTRY_ICON_KEY,
-  );
-  const [iconSearch, setIconSearch] = React.useState("");
-  const [customColorOpen, setCustomColorOpen] = React.useState(false);
-  const [searchDraft, setSearchDraft] = React.useState(query.q);
+  const [pending, startTransition] = React.useTransition();
   const [identityNameDraft, setIdentityNameDraft] = React.useState("");
-  const [termStartDate, setTermStartDate] = React.useState("");
-  const [termEndDate, setTermEndDate] = React.useState("");
+  const [termStartDate, setTermStartDate] = React.useState<string>("");
+  const [termEndDate, setTermEndDate] = React.useState<string>("");
   const [termLifecycle, setTermLifecycle] =
     React.useState<TermItem["lifecycle"]>("draft");
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
@@ -647,9 +594,9 @@ export function MinistryManagement({
   const rangeEnd = Math.min(result.page * result.pageSize, result.count);
   const detailHref = (item: Item) =>
     mode === "ministries"
-      ? `/admin/ministries/${item.id}`
+      ? `/admin/ministries/${item.slug || item.id}`
       : mode === "terms"
-        ? `/admin/ministries/${ministryId}/terms/${item.id}`
+        ? `/admin/ministries/${ministrySlug || ministryId}/terms/${item.slug || item.id}`
         : undefined;
 
   function openEditor(item: Item | "create") {
@@ -660,15 +607,7 @@ export function MinistryManagement({
         ? normalizeMinistryColor(identityItem.accentColor)
         : DEFAULT_MINISTRY_COLOR,
     );
-    setIconKey(
-      identityItem &&
-        MINISTRY_ICON_OPTIONS.some(
-          (option) => option.key === identityItem.iconKey,
-        )
-        ? (identityItem.iconKey as MinistryIconKey)
-        : DEFAULT_MINISTRY_ICON_KEY,
-    );
-    setIconSearch("");
+    setIconKey(identityItem?.iconKey ?? DEFAULT_MINISTRY_ICON_KEY);
     setCustomColorOpen(false);
     setIdentityNameDraft(identityItem ? identityItem.name : `New ${label}`);
     const term = item !== "create" && isTerm(item) ? item : null;
@@ -921,55 +860,96 @@ export function MinistryManagement({
                     >
                       <div role="cell" className="min-w-0">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex min-w-0 flex-1 items-center gap-3">
-                            {hasVisualIdentity(item) ? (
-                              <IdentityTile
-                                accentColor={item.accentColor}
-                                iconKey={item.iconKey}
-                              />
-                            ) : (
-                              <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
-                                <Layers3
-                                  className="size-5"
-                                  aria-hidden="true"
+                          {detailHref(item) ? (
+                            <Link
+                              href={detailHref(item)!}
+                              className="group/item flex min-w-0 flex-1 items-center gap-3 outline-hidden"
+                            >
+                              {hasVisualIdentity(item) ? (
+                                <IdentityTile
+                                  accentColor={item.accentColor}
+                                  iconKey={item.iconKey}
                                 />
-                              </span>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              {detailHref(item) ? (
-                                <Link
-                                  className="hover:text-primary text-base font-semibold underline-offset-4 hover:underline"
-                                  href={detailHref(item)!}
-                                >
-                                  {item.name}
-                                </Link>
                               ) : (
+                                <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
+                                  <Layers3
+                                    className="size-5"
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className="group-hover/item:text-primary text-base font-semibold underline-offset-4 group-hover/item:underline">
+                                  {item.name}
+                                </span>
+                                {isTerm(item) && (
+                                  <span className="text-muted-foreground mt-0.5 block text-xs">
+                                    {item.startDate ?? "No start date"} to{" "}
+                                    {item.endDate ?? "No end date"}
+                                  </span>
+                                )}
+                                <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs md:hidden">
+                                  <span className="font-mono">
+                                    /{item.slug}
+                                  </span>
+                                  {isMinistry(item) && (
+                                    <span>
+                                      • {item.termCount}{" "}
+                                      {item.termCount === 1 ? "term" : "terms"}
+                                    </span>
+                                  )}
+                                  {isTerm(item) && (
+                                    <span className="capitalize">
+                                      • {item.lifecycle}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          ) : (
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              {hasVisualIdentity(item) ? (
+                                <IdentityTile
+                                  accentColor={item.accentColor}
+                                  iconKey={item.iconKey}
+                                />
+                              ) : (
+                                <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
+                                  <Layers3
+                                    className="size-5"
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                              )}
+                              <div className="min-w-0 flex-1">
                                 <span className="text-base font-semibold">
                                   {item.name}
                                 </span>
-                              )}
-                              {isTerm(item) && (
-                                <span className="text-muted-foreground mt-0.5 block text-xs">
-                                  {item.startDate ?? "No start date"} to{" "}
-                                  {item.endDate ?? "No end date"}
-                                </span>
-                              )}
-                              <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs md:hidden">
-                                <span className="font-mono">/{item.slug}</span>
-                                {isMinistry(item) && (
-                                  <span>
-                                    • {item.termCount}{" "}
-                                    {item.termCount === 1 ? "term" : "terms"}
-                                  </span>
-                                )}
                                 {isTerm(item) && (
-                                  <span className="capitalize">
-                                    • {item.lifecycle}
+                                  <span className="text-muted-foreground mt-0.5 block text-xs">
+                                    {item.startDate ?? "No start date"} to{" "}
+                                    {item.endDate ?? "No end date"}
                                   </span>
                                 )}
+                                <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs md:hidden">
+                                  <span className="font-mono">
+                                    /{item.slug}
+                                  </span>
+                                  {isMinistry(item) && (
+                                    <span>
+                                      • {item.termCount}{" "}
+                                      {item.termCount === 1 ? "term" : "terms"}
+                                    </span>
+                                  )}
+                                  {isTerm(item) && (
+                                    <span className="capitalize">
+                                      • {item.lifecycle}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                           <ExpandableActionItem.Trigger className="md:hidden" />
                         </div>
                         <ExpandableActionItem.MobileActions />
@@ -1144,7 +1124,6 @@ export function MinistryManagement({
                 entityLabel={label}
                 accentColor={accentColor}
                 iconKey={iconKey}
-                iconSearch={iconSearch}
                 customColorOpen={customColorOpen}
                 colorError={
                   /^#[0-9a-f]{6}$/.test(accentColor.trim().toLowerCase())
@@ -1154,7 +1133,6 @@ export function MinistryManagement({
                 previewName={identityNameDraft || `New ${label}`}
                 onAccentColorChange={setAccentColor}
                 onIconKeyChange={setIconKey}
-                onIconSearchChange={setIconSearch}
                 onCustomColorOpenChange={setCustomColorOpen}
               />
             )}
