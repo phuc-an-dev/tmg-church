@@ -1,10 +1,10 @@
-import { Church, LayoutDashboard, Layers3 } from "lucide-react";
+import { Church, Layers3, Users } from "lucide-react";
 
 export const ADMIN_NAVIGATION_ITEMS = [
   {
     href: "/admin",
-    label: "Overview",
-    icon: LayoutDashboard,
+    label: "Members",
+    icon: Users,
     exact: true,
   },
   {
