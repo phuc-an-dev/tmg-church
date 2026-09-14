@@ -165,8 +165,15 @@ interface ExpandableItemContextValue {
   name: string;
   isOpen: boolean;
   toggleActions: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  editLabel?: string;
+  onDelete?: () => void;
+  deleteLabel?: string;
+  deleteIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
+  deleteVariant?: "destructive" | "default" | "outline";
   editDisabled?: boolean;
   editDisabledReason?: string;
   deleteDisabled?: boolean;
@@ -189,8 +196,15 @@ export function useExpandableItem(): ExpandableItemContextValue {
 export interface ExpandableActionItemProps {
   id: string;
   name: string;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  editLabel?: string;
+  onDelete?: () => void;
+  deleteLabel?: string;
+  deleteIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
+  deleteVariant?: "destructive" | "default" | "outline";
   editDisabled?: boolean;
   editDisabledReason?: string;
   deleteDisabled?: boolean;
@@ -255,7 +269,11 @@ export function ExpandableActionMobileActions({
     name,
     isOpen,
     onEdit,
+    editLabel = "Edit",
     onDelete,
+    deleteLabel = "Delete",
+    deleteIcon: DeleteIcon = Trash2,
+    deleteVariant = "destructive",
     editDisabled,
     editDisabledReason,
     deleteDisabled,
@@ -273,6 +291,8 @@ export function ExpandableActionMobileActions({
       ? `edit-disabled-reason-${id}`
       : undefined;
 
+  const hasBoth = Boolean(onEdit && onDelete);
+
   return (
     <div
       id={`actions-panel-${id}`}
@@ -283,42 +303,57 @@ export function ExpandableActionMobileActions({
         className,
       )}
     >
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      <div
+        className={cn(
+          "grid gap-2 sm:gap-3",
+          hasBoth ? "grid-cols-2" : "grid-cols-1",
+        )}
+      >
         {/* Edit Action Button */}
-        <Button
-          type="button"
-          variant="outline"
-          size="default"
-          disabled={editDisabled}
-          aria-describedby={editReasonId}
-          onClick={(event) => {
-            event.stopPropagation();
-            onEdit();
-          }}
-          className="min-h-11 w-full gap-2 text-sm font-semibold"
-          data-interactive="true"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-          <span>Edit</span>
-        </Button>
+        {onEdit && (
+          <Button
+            type="button"
+            variant="outline"
+            size="default"
+            disabled={editDisabled}
+            aria-describedby={editReasonId}
+            onClick={(event) => {
+              event.stopPropagation();
+              onEdit();
+            }}
+            className="min-h-11 w-full gap-2 text-sm font-semibold"
+            data-interactive="true"
+          >
+            <Pencil className="size-4" aria-hidden="true" />
+            <span>{editLabel}</span>
+          </Button>
+        )}
 
-        {/* Delete Action Button */}
-        <Button
-          type="button"
-          variant="destructive"
-          size="default"
-          disabled={deleteDisabled}
-          aria-describedby={deleteReasonId}
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete();
-          }}
-          className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 active:bg-destructive/25 min-h-11 w-full gap-2 border text-sm font-semibold shadow-none"
-          data-interactive="true"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-          <span>Delete</span>
-        </Button>
+        {/* Delete / Secondary Action Button */}
+        {onDelete && (
+          <Button
+            type="button"
+            variant={
+              deleteVariant === "destructive" ? "destructive" : "outline"
+            }
+            size="default"
+            disabled={deleteDisabled}
+            aria-describedby={deleteReasonId}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
+            className={cn(
+              "min-h-11 w-full gap-2 text-sm font-semibold",
+              deleteVariant === "destructive" &&
+                "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 active:bg-destructive/25 border shadow-none",
+            )}
+            data-interactive="true"
+          >
+            <DeleteIcon className="size-4" aria-hidden="true" />
+            <span>{deleteLabel}</span>
+          </Button>
+        )}
       </div>
 
       {/* Accessible visible disabled reasons */}
@@ -349,7 +384,11 @@ export function ExpandableActionDesktopMenu({
     id,
     name,
     onEdit,
+    editLabel = "Edit",
     onDelete,
+    deleteLabel = "Delete",
+    deleteIcon: DeleteIcon = Trash2,
+    deleteVariant = "destructive",
     editDisabled,
     editDisabledReason,
     deleteDisabled,
@@ -387,51 +426,57 @@ export function ExpandableActionDesktopMenu({
           <TooltipContent side="top">Actions</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="max-w-xs min-w-44">
-          <DropdownMenuItem
-            disabled={editDisabled}
-            aria-describedby={editReasonId}
-            onClick={() => {
-              closeAll();
-              onEdit();
-            }}
-            className="gap-2"
-          >
-            <Pencil className="size-4 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col gap-0.5">
-              <span>Edit</span>
-              {editDisabled && editDisabledReason && (
-                <span
-                  id={editReasonId}
-                  className="text-muted-foreground text-[11px] leading-tight"
-                >
-                  {editDisabledReason}
-                </span>
-              )}
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={deleteDisabled}
-            aria-describedby={deleteReasonId}
-            onClick={() => {
-              closeAll();
-              onDelete();
-            }}
-            variant="destructive"
-            className="gap-2"
-          >
-            <Trash2 className="size-4 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col gap-0.5">
-              <span>Delete</span>
-              {deleteDisabled && deleteDisabledReason && (
-                <span
-                  id={deleteReasonId}
-                  className="text-muted-foreground text-[11px] leading-tight"
-                >
-                  {deleteDisabledReason}
-                </span>
-              )}
-            </div>
-          </DropdownMenuItem>
+          {onEdit && (
+            <DropdownMenuItem
+              disabled={editDisabled}
+              aria-describedby={editReasonId}
+              onClick={() => {
+                closeAll();
+                onEdit();
+              }}
+              className="gap-2"
+            >
+              <Pencil className="size-4 shrink-0" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <span>{editLabel}</span>
+                {editDisabled && editDisabledReason && (
+                  <span
+                    id={editReasonId}
+                    className="text-muted-foreground text-[11px] leading-tight"
+                  >
+                    {editDisabledReason}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+          )}
+          {onDelete && (
+            <DropdownMenuItem
+              disabled={deleteDisabled}
+              aria-describedby={deleteReasonId}
+              onClick={() => {
+                closeAll();
+                onDelete();
+              }}
+              variant={
+                deleteVariant === "destructive" ? "destructive" : "default"
+              }
+              className="gap-2"
+            >
+              <DeleteIcon className="size-4 shrink-0" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <span>{deleteLabel}</span>
+                {deleteDisabled && deleteDisabledReason && (
+                  <span
+                    id={deleteReasonId}
+                    className="text-muted-foreground text-[11px] leading-tight"
+                  >
+                    {deleteDisabledReason}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -446,7 +491,11 @@ export function ExpandableActionItem({
   id,
   name,
   onEdit,
+  editLabel = "Edit",
   onDelete,
+  deleteLabel = "Delete",
+  deleteIcon = Trash2,
+  deleteVariant = "destructive",
   editDisabled = false,
   editDisabledReason,
   deleteDisabled = false,
@@ -467,12 +516,12 @@ export function ExpandableActionItem({
 
   const handleEdit = React.useCallback(() => {
     closeAll();
-    onEdit();
+    onEdit?.();
   }, [closeAll, onEdit]);
 
   const handleDelete = React.useCallback(() => {
     closeAll();
-    onDelete();
+    onDelete?.();
   }, [closeAll, onDelete]);
 
   const itemContextValue = React.useMemo(
@@ -481,8 +530,12 @@ export function ExpandableActionItem({
       name,
       isOpen,
       toggleActions,
-      onEdit: handleEdit,
-      onDelete: handleDelete,
+      onEdit: onEdit ? handleEdit : undefined,
+      editLabel,
+      onDelete: onDelete ? handleDelete : undefined,
+      deleteLabel,
+      deleteIcon,
+      deleteVariant,
       editDisabled,
       editDisabledReason,
       deleteDisabled,
@@ -493,8 +546,14 @@ export function ExpandableActionItem({
       name,
       isOpen,
       toggleActions,
+      onEdit,
       handleEdit,
+      editLabel,
+      onDelete,
       handleDelete,
+      deleteLabel,
+      deleteIcon,
+      deleteVariant,
       editDisabled,
       editDisabledReason,
       deleteDisabled,

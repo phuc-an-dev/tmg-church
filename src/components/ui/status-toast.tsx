@@ -39,7 +39,7 @@ export function StatusToast({
   }, [dismissOnce, duration]);
 
   return (
-    <div className="pointer-events-none fixed inset-x-4 top-4 z-[80] flex justify-center sm:top-5">
+    <div className="pointer-events-none fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[80] flex justify-center sm:bottom-5">
       <div
         role="status"
         aria-live="polite"
@@ -53,10 +53,10 @@ export function StatusToast({
             dismissOnce();
           }
         }}
-        className="border-border/80 bg-card text-foreground flex max-w-sm -translate-y-2 items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium opacity-0 shadow-lg transition-[opacity,transform] duration-200 data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
+        className="border-border/80 bg-card text-foreground flex max-w-md translate-y-4 items-center gap-3 rounded-xl border px-5 py-4 text-base font-medium opacity-0 shadow-lg transition-[opacity,transform] duration-200 data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
       >
         <CheckCircle2
-          className="text-primary size-4 shrink-0"
+          className="text-primary size-5 shrink-0"
           aria-hidden="true"
         />
         <span>{message}</span>

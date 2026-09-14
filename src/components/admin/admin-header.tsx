@@ -28,20 +28,6 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
       <header className="border-border/80 bg-card sticky top-0 z-40 border-b">
         <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Button
-              ref={triggerRef}
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open navigation menu"
-              aria-expanded={sidebarOpen}
-              aria-controls="mobile-admin-sidebar"
-              className="size-11 min-h-[44px] min-w-[44px] shrink-0 rounded-xl md:hidden"
-            >
-              <Menu className="size-5" aria-hidden="true" />
-            </Button>
-
             <Link
               href="/admin"
               className="text-foreground focus-visible:ring-ring flex items-center gap-2.5 transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:outline-hidden"
@@ -55,8 +41,23 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
             </Link>
           </div>
 
-          <div className="hidden items-center gap-2 sm:gap-3 md:flex">
-            <AdminAccountMenu email={userEmail} />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              ref={triggerRef}
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={sidebarOpen}
+              aria-controls="mobile-admin-sidebar"
+              className="size-11 min-h-[44px] min-w-[44px] shrink-0 rounded-xl md:hidden"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </Button>
+            <div className="hidden items-center md:flex">
+              <AdminAccountMenu email={userEmail} />
+            </div>
           </div>
         </div>
         <div className="border-border/70 hidden border-t md:block">
