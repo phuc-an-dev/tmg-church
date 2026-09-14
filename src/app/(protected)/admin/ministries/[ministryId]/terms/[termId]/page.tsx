@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,10 +5,6 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { getStructure, getTermContext } from "@/features/ministry/queries";
-import {
-  ministryIconFor,
-  normalizeMinistryColor,
-} from "@/features/ministry/visual-identity";
 import {
   safePageSize,
   structureSearchParamsCache,
@@ -29,8 +24,6 @@ export default async function TermDetailPage({
     structureSearchParamsCache.parse(searchParams),
   ]);
   if (!context) notFound();
-  const MinistryIcon = ministryIconFor(context.ministry.iconKey);
-  const accentColor = normalizeMinistryColor(context.ministry.accentColor);
   const section = query.section;
   const result = await getStructure(ministryId, termId, section, {
     q: query.q,
@@ -43,22 +36,6 @@ export default async function TermDetailPage({
       <AdminPageHeader
         title="Term Structure"
         description="Manage groups and departments within this term."
-        action={
-          <div
-            className="flex size-12 items-center justify-center rounded-xl border"
-            style={{
-              color: accentColor,
-              borderColor: `color-mix(in srgb, ${accentColor} 34%, transparent)`,
-              backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
-            }}
-            aria-label={`${context.ministry.name} ministry identity`}
-          >
-            {createElement(MinistryIcon, {
-              className: "size-6",
-              "aria-hidden": true,
-            })}
-          </div>
-        }
       />
       <div className="flex gap-2">
         <Button asChild variant={section === "groups" ? "default" : "outline"}>

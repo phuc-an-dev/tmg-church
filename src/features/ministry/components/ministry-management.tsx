@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
@@ -110,11 +111,11 @@ const MINISTRY_SORT_CHOICES = [
   { value: "name-desc", label: "Name: Z to A" },
 ];
 
-const TERM_STATUS_CHOICES = [
-  { value: "all", label: "All statuses" },
-  { value: "current", label: "Current" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "ended", label: "Ended" },
+const TERM_LIFECYCLE_CHOICES = [
+  { value: "all", label: "All lifecycles" },
+  { value: "draft", label: "Draft" },
+  { value: "active", label: "Active" },
+  { value: "closed", label: "Closed" },
 ];
 
 const TERM_SORT_CHOICES = [
@@ -169,6 +170,70 @@ function ChoiceMenu({
               className="min-h-10 px-3 text-sm"
             >
               {choice.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+const TERM_LIFECYCLE_OPTIONS: Array<{
+  value: TermItem["lifecycle"];
+  label: string;
+}> = [
+  { value: "draft", label: "Draft" },
+  { value: "active", label: "Active" },
+  { value: "closed", label: "Closed" },
+];
+
+function LifecycleDropdown({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id?: string;
+  value: TermItem["lifecycle"];
+  onChange: (value: TermItem["lifecycle"]) => void;
+  disabled?: boolean;
+}) {
+  const activeLabel =
+    TERM_LIFECYCLE_OPTIONS.find((opt) => opt.value === value)?.label ?? value;
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          className="bg-card hover:bg-card h-12 min-h-[44px] w-full justify-between px-3 text-left text-base font-normal sm:text-sm"
+          aria-label={`Lifecycle: ${activeLabel}`}
+        >
+          <span className="capitalize">{activeLabel}</span>
+          <ChevronDown
+            className="size-4 shrink-0 opacity-60"
+            aria-hidden="true"
+          />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        className="z-[60] w-(--radix-dropdown-menu-trigger-width) min-w-48 p-1.5"
+      >
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(val) => onChange(val as TermItem["lifecycle"])}
+        >
+          {TERM_LIFECYCLE_OPTIONS.map((opt) => (
+            <DropdownMenuRadioItem
+              key={opt.value}
+              value={opt.value}
+              className="min-h-10 cursor-pointer px-3 text-sm"
+            >
+              {opt.label}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
@@ -502,8 +567,12 @@ export function MinistryManagement({
   const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [searchDraft, setSearchDraft] = React.useState(query.q);
   const [ministryNameDraft, setMinistryNameDraft] = React.useState("");
+  const [termStartDate, setTermStartDate] = React.useState("");
+  const [termEndDate, setTermEndDate] = React.useState("");
+  const [termLifecycle, setTermLifecycle] =
+    React.useState<TermItem["lifecycle"]>("draft");
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
-  const [draftStatus, setDraftStatus] = React.useState<string>("all");
+  const [draftLifecycle, setDraftLifecycle] = React.useState<string>("all");
   const [draftSort, setDraftSort] = React.useState<string>("name-asc");
   const filterButtonRef = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
@@ -518,7 +587,9 @@ export function MinistryManagement({
 
   function openFilterSheet() {
     if (mode === "terms") {
-      setDraftStatus((query as unknown as { status?: string }).status ?? "all");
+      setDraftLifecycle(
+        (query as unknown as { lifecycle?: string }).lifecycle ?? "all",
+      );
       setDraftSort(query.sort ?? "start-desc");
     } else if (mode === "ministries") {
       setDraftSort(query.sort ?? "name-asc");
@@ -528,7 +599,7 @@ export function MinistryManagement({
 
   function applyFilters() {
     if (mode === "terms") {
-      update({ status: draftStatus, sort: draftSort });
+      update({ lifecycle: draftLifecycle, sort: draftSort });
     } else if (mode === "ministries") {
       update({ sort: draftSort });
     }
@@ -537,7 +608,7 @@ export function MinistryManagement({
 
   function resetDraftFilters() {
     if (mode === "terms") {
-      setDraftStatus("all");
+      setDraftLifecycle("all");
       setDraftSort("start-desc");
     } else if (mode === "ministries") {
       setDraftSort("name-asc");
@@ -546,8 +617,8 @@ export function MinistryManagement({
 
   const activeFilterCount =
     mode === "terms"
-      ? ((query as unknown as { status?: string }).status &&
-        (query as unknown as { status?: string }).status !== "all"
+      ? ((query as unknown as { lifecycle?: string }).lifecycle &&
+        (query as unknown as { lifecycle?: string }).lifecycle !== "all"
           ? 1
           : 0) + (query.sort && (query.sort as string) !== "start-desc" ? 1 : 0)
       : mode === "ministries"
@@ -558,7 +629,7 @@ export function MinistryManagement({
 
   const hasDraftFilterChanges =
     mode === "terms"
-      ? draftStatus !== "all" || draftSort !== "start-desc"
+      ? draftLifecycle !== "all" || draftSort !== "start-desc"
       : mode === "ministries"
         ? draftSort !== "name-asc"
         : false;
@@ -591,6 +662,10 @@ export function MinistryManagement({
     setIconSearch("");
     setCustomColorOpen(false);
     setMinistryNameDraft(ministry ? ministry.name : "New Ministry");
+    const term = item !== "create" && isTerm(item) ? item : null;
+    setTermStartDate(term?.startDate ?? "");
+    setTermEndDate(term?.endDate ?? "");
+    setTermLifecycle(term?.lifecycle ?? "draft");
     setFormError(null);
     setEditor(item);
   }
@@ -619,6 +694,7 @@ export function MinistryManagement({
         ministryId,
         startDate: form.get("startDate") || null,
         endDate: form.get("endDate") || null,
+        lifecycle: termLifecycle,
       });
     else
       action = saveStructureAction(
@@ -736,11 +812,13 @@ export function MinistryManagement({
                 {mode === "terms" && (
                   <>
                     <ChoiceMenu
-                      label="Filter terms"
-                      value={(query as unknown as { status: string }).status}
-                      onChange={(value) => update({ status: value })}
+                      label="Filter lifecycle"
+                      value={
+                        (query as unknown as { lifecycle: string }).lifecycle
+                      }
+                      onChange={(value) => update({ lifecycle: value })}
                       icon="filter"
-                      choices={TERM_STATUS_CHOICES}
+                      choices={TERM_LIFECYCLE_CHOICES}
                     />
                     <ChoiceMenu
                       label="Sort terms"
@@ -796,7 +874,7 @@ export function MinistryManagement({
                   {mode === "ministries" && (
                     <div role="columnheader">Terms</div>
                   )}
-                  {mode === "terms" && <div role="columnheader">Status</div>}
+                  {mode === "terms" && <div role="columnheader">Lifecycle</div>}
                   <div role="columnheader" className="text-right">
                     Actions
                   </div>
@@ -883,7 +961,7 @@ export function MinistryManagement({
                                 )}
                                 {isTerm(item) && (
                                   <span className="capitalize">
-                                    • {item.status}
+                                    • {item.lifecycle}
                                   </span>
                                 )}
                               </div>
@@ -915,7 +993,7 @@ export function MinistryManagement({
                           role="cell"
                           className="hidden text-sm capitalize md:block"
                         >
-                          {item.status}
+                          {item.lifecycle}
                         </div>
                       )}
                       <div role="cell" className="hidden justify-end md:flex">
@@ -1104,37 +1182,38 @@ export function MinistryManagement({
             )}
             {mode === "terms" && (
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="lifecycle">Lifecycle</Label>
+                  <input type="hidden" name="lifecycle" value={termLifecycle} />
+                  <LifecycleDropdown
+                    id="lifecycle"
+                    value={termLifecycle}
+                    onChange={setTermLifecycle}
+                    disabled={pending}
+                  />
+                  <p className="text-muted-foreground text-xs">
+                    Only one term in a ministry can be active at a time.
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Start date</Label>
-                  <Input
+                  <DatePicker
                     id="startDate"
                     name="startDate"
-                    type="date"
-                    defaultValue={
-                      editor !== "create" && isTerm(editor)
-                        ? (editor.startDate ?? "")
-                        : ""
-                    }
-                    className="h-12"
+                    value={termStartDate}
+                    onChange={setTermStartDate}
+                    placeholder="Select start date"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">End date</Label>
-                  <Input
+                  <DatePicker
                     id="endDate"
                     name="endDate"
-                    type="date"
-                    min={
-                      editor !== "create" && isTerm(editor)
-                        ? (editor.startDate ?? undefined)
-                        : undefined
-                    }
-                    defaultValue={
-                      editor !== "create" && isTerm(editor)
-                        ? (editor.endDate ?? "")
-                        : ""
-                    }
-                    className="h-12"
+                    value={termEndDate}
+                    onChange={setTermEndDate}
+                    min={termStartDate || undefined}
+                    placeholder="Select end date"
                   />
                 </div>
               </div>
@@ -1183,7 +1262,7 @@ export function MinistryManagement({
                 </div>
                 <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
                   {mode === "terms"
-                    ? "Filter by status and adjust sort order."
+                    ? "Filter by lifecycle and adjust sort order."
                     : "Adjust ministry sort order."}
                 </SheetDescription>
               </SheetHeader>
@@ -1203,22 +1282,22 @@ export function MinistryManagement({
               {mode === "terms" && (
                 <div className="space-y-2">
                   <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
-                    Status
+                    Lifecycle
                   </span>
                   <RadixRadioGroup.Root
-                    className="divide-border/60 border-border/60 bg-muted/20 divide-y rounded-xl border"
-                    aria-label="Status filter"
-                    value={draftStatus}
-                    onValueChange={setDraftStatus}
+                    className="divide-border/60 border-border/60 bg-muted/20 divide-y overflow-hidden rounded-xl border"
+                    aria-label="Lifecycle filter"
+                    value={draftLifecycle}
+                    onValueChange={setDraftLifecycle}
                   >
-                    {TERM_STATUS_CHOICES.map((choice) => {
-                      const selected = draftStatus === choice.value;
+                    {TERM_LIFECYCLE_CHOICES.map((choice) => {
+                      const selected = draftLifecycle === choice.value;
                       return (
                         <RadixRadioGroup.Item
                           key={choice.value}
                           value={choice.value}
                           className={cn(
-                            "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-hidden",
+                            "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors first:rounded-t-[11px] last:rounded-b-[11px] focus-visible:ring-2 focus-visible:outline-hidden",
                             selected
                               ? "bg-primary/10 text-primary font-medium"
                               : "hover:bg-muted/50 text-foreground",
@@ -1243,7 +1322,7 @@ export function MinistryManagement({
                   Sort by
                 </span>
                 <RadixRadioGroup.Root
-                  className="divide-border/60 border-border/60 bg-muted/20 divide-y rounded-xl border"
+                  className="divide-border/60 border-border/60 bg-muted/20 divide-y overflow-hidden rounded-xl border"
                   aria-label="Sort order"
                   value={draftSort}
                   onValueChange={setDraftSort}
@@ -1258,7 +1337,7 @@ export function MinistryManagement({
                         key={choice.value}
                         value={choice.value}
                         className={cn(
-                          "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-hidden",
+                          "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors first:rounded-t-[11px] last:rounded-b-[11px] focus-visible:ring-2 focus-visible:outline-hidden",
                           selected
                             ? "bg-primary/10 text-primary font-medium"
                             : "hover:bg-muted/50 text-foreground",

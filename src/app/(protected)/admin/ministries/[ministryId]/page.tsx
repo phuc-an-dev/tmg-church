@@ -1,13 +1,8 @@
-import { createElement } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { getMinistryContext, getTerms } from "@/features/ministry/queries";
-import {
-  ministryIconFor,
-  normalizeMinistryColor,
-} from "@/features/ministry/visual-identity";
 import {
   safePageSize,
   termSearchParamsCache,
@@ -27,8 +22,6 @@ export default async function MinistryDetailPage({
     termSearchParamsCache.parse(searchParams),
   ]);
   if (!context) notFound();
-  const MinistryIcon = ministryIconFor(context.ministry.iconKey);
-  const accentColor = normalizeMinistryColor(context.ministry.accentColor);
   const result = await getTerms(ministryId, {
     ...query,
     page: Math.max(1, query.page),
@@ -39,22 +32,6 @@ export default async function MinistryDetailPage({
       <AdminPageHeader
         title="Terms"
         description={`Manage terms for ${context.ministry.name}.`}
-        action={
-          <div
-            className="flex size-12 items-center justify-center rounded-xl border"
-            style={{
-              color: accentColor,
-              borderColor: `color-mix(in srgb, ${accentColor} 34%, transparent)`,
-              backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)`,
-            }}
-            aria-label={`${context.ministry.name} ministry identity`}
-          >
-            {createElement(MinistryIcon, {
-              className: "size-6",
-              "aria-hidden": true,
-            })}
-          </div>
-        }
       />
       <MinistryManagement
         mode="terms"

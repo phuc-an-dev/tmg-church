@@ -197,14 +197,12 @@ export function MinistryDetailPageSkeleton() {
     >
       <span className="sr-only">Loading ministry terms, please wait...</span>
 
-      {/* Header Skeleton with Identity Tile */}
+      {/* Header Skeleton */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <Skeleton className="h-3.5 w-44 rounded-md" />
           <Skeleton className="h-9 w-32 rounded-lg sm:h-10 sm:w-48" />
           <Skeleton className="h-5 w-64 max-w-full rounded-md sm:w-80" />
         </div>
-        <Skeleton className="size-12 shrink-0 rounded-xl" />
       </div>
 
       {/* Management Collection Skeleton for Terms */}
@@ -225,11 +223,9 @@ export function TermDetailPageSkeleton() {
       {/* Header Skeleton */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <Skeleton className="h-3.5 w-56 rounded-md" />
           <Skeleton className="h-9 w-40 rounded-lg sm:h-10 sm:w-52" />
           <Skeleton className="h-5 w-72 max-w-full rounded-md sm:w-80" />
         </div>
-        <Skeleton className="h-7 w-20 shrink-0 rounded-full" />
       </div>
 
       {/* Subnavigation Tabs Skeleton */}

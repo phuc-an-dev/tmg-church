@@ -28,7 +28,7 @@ export type TermItem = {
   slug: string;
   startDate: string | null;
   endDate: string | null;
-  status: "current" | "upcoming" | "ended" | "unscheduled";
+  lifecycle: "draft" | "active" | "closed";
 };
 export type StructureItem = { id: string; name: string };
 export type MinistryContext = {
@@ -48,5 +48,6 @@ export type TermContext = MinistryContext & {
     slug: string;
     startDate: string | null;
     endDate: string | null;
+    lifecycle: "draft" | "active" | "closed";
   };
 };

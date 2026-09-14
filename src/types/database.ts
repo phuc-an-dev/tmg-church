@@ -579,6 +579,7 @@ export type Database = {
           created_at: string;
           end_date: string | null;
           id: string;
+          lifecycle: "draft" | "active" | "closed";
           ministry_id: string;
           name: string;
           slug: string;
@@ -589,6 +590,7 @@ export type Database = {
           created_at?: string;
           end_date?: string | null;
           id?: string;
+          lifecycle?: "draft" | "active" | "closed";
           ministry_id: string;
           name: string;
           slug: string;
@@ -599,6 +601,7 @@ export type Database = {
           created_at?: string;
           end_date?: string | null;
           id?: string;
+          lifecycle?: "draft" | "active" | "closed";
           ministry_id?: string;
           name?: string;
           slug?: string;

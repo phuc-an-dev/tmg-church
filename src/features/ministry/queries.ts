@@ -13,26 +13,6 @@ import type {
   TermItem,
 } from "./types";
 
-function todayInHoChiMinh() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  })
-    .format(new Date())
-    .replace(/\//g, "-");
-}
-function termStatus(
-  startDate: string | null,
-  endDate: string | null,
-): TermItem["status"] {
-  const today = todayInHoChiMinh();
-  if (!startDate && !endDate) return "unscheduled";
-  if (startDate && startDate > today) return "upcoming";
-  if (endDate && endDate < today) return "ended";
-  return "current";
-}
 function range(page: number, pageSize: number) {
   const current = Math.max(1, page);
   return {
@@ -75,7 +55,7 @@ export const getTermContext = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("ministry_term")
-      .select("id, name, slug, start_date, end_date")
+      .select("id, name, slug, start_date, end_date, lifecycle")
       .eq("id", termId)
       .eq("ministry_id", ministryId)
       .maybeSingle();
@@ -88,6 +68,7 @@ export const getTermContext = cache(
             slug: data.slug,
             startDate: data.start_date,
             endDate: data.end_date,
+            lifecycle: data.lifecycle,
           },
         }
       : null;
@@ -154,7 +135,7 @@ export async function getTerms(
     q: string;
     page: number;
     pageSize: number;
-    status: "all" | "current" | "upcoming" | "ended";
+    lifecycle: "all" | "draft" | "active" | "closed";
     sort: "start-desc" | "start-asc" | "name-asc";
   },
 ): Promise<PageResult<TermItem>> {
@@ -170,14 +151,8 @@ export async function getTerms(
     .select("id", { count: "exact", head: true })
     .eq("ministry_id", ministryId);
   if (q) countQuery = countQuery.ilike("name", `%${q}%`);
-  const today = todayInHoChiMinh();
-  if (params.status === "upcoming")
-    countQuery = countQuery.gt("start_date", today);
-  if (params.status === "ended") countQuery = countQuery.lt("end_date", today);
-  if (params.status === "current")
-    countQuery = countQuery.or(
-      `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.is.null,end_date.gte.${today}),and(start_date.lte.${today},end_date.is.null)`,
-    );
+  if (params.lifecycle !== "all")
+    countQuery = countQuery.eq("lifecycle", params.lifecycle);
   const { count, error: countError } = await countQuery;
   if (countError) throw new Error("Failed to fetch terms");
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize));
@@ -185,17 +160,11 @@ export async function getTerms(
   const { from, to } = range(page, pageSize);
   let query = supabase
     .from("ministry_term")
-    .select("id, name, slug, start_date, end_date")
+    .select("id, name, slug, start_date, end_date, lifecycle")
     .eq("ministry_id", ministryId);
   if (q) query = query.ilike("name", `%${q}%`);
-  if (params.status !== "all") {
-    if (params.status === "upcoming") query = query.gt("start_date", today);
-    if (params.status === "ended") query = query.lt("end_date", today);
-    if (params.status === "current")
-      query = query.or(
-        `and(start_date.lte.${today},end_date.gte.${today}),and(start_date.is.null,end_date.gte.${today}),and(start_date.lte.${today},end_date.is.null)`,
-      );
-  }
+  if (params.lifecycle !== "all")
+    query = query.eq("lifecycle", params.lifecycle);
   if (params.sort === "name-asc")
     query = query.order("name", { ascending: true }).order("id");
   else
@@ -214,7 +183,7 @@ export async function getTerms(
       slug: r.slug,
       startDate: r.start_date,
       endDate: r.end_date,
-      status: termStatus(r.start_date, r.end_date),
+      lifecycle: r.lifecycle,
     })),
     count: count ?? 0,
     page,

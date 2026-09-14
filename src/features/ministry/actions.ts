@@ -30,9 +30,17 @@ function resultError(code: string, error: string): ActionResult<never> {
   return { success: false, code, error };
 }
 function dbError(
-  error: { code?: string } | null,
+  error: { code?: string; message?: string } | null,
   fallback: string,
 ): ActionResult<never> {
+  if (
+    error?.code === "23505" &&
+    error.message?.includes("ministry_term_one_active_per_ministry_idx")
+  )
+    return resultError(
+      "ACTIVE_TERM_EXISTS",
+      "Close or change the current active term before activating another term.",
+    );
   if (error?.code === "23505")
     return resultError(
       "CONFLICT",
@@ -231,6 +239,7 @@ export async function saveTermAction(
       name: parsed.data.name,
       start_date: parsed.data.startDate ?? null,
       end_date: parsed.data.endDate ?? null,
+      lifecycle: parsed.data.lifecycle,
     };
     if (parsed.data.id) {
       const { data: existing } = await supabase

@@ -19,11 +19,11 @@ export const termSearchParams = {
   q: parseAsString.withDefault(""),
   page,
   pageSize,
-  status: parseAsStringLiteral([
+  lifecycle: parseAsStringLiteral([
     "all",
-    "current",
-    "upcoming",
-    "ended",
+    "draft",
+    "active",
+    "closed",
   ] as const).withDefault("all"),
   sort: parseAsStringLiteral([
     "start-desc",

@@ -22,6 +22,9 @@ const date = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date")
   .nullable()
   .optional();
+const termLifecycle = z.enum(["draft", "active", "closed"], {
+  message: "Choose a valid term lifecycle",
+});
 
 export const ministrySchema = z.object({
   id: id.optional(),
@@ -42,6 +45,7 @@ export const termSchema = z
     slug: optionalSlug,
     startDate: date,
     endDate: date,
+    lifecycle: termLifecycle.default("draft"),
   })
   .superRefine((value, ctx) => {
     if (value.startDate && value.endDate && value.endDate < value.startDate)
