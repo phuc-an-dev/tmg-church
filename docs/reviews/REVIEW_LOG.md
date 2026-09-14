@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-15: Member Segments
+
+Result: accepted after implementation review. Added church-scoped Vietnamese-compatible slugs; protected slug routes; leader-validated CRUD, per-member assignments, and persisted AND/OR condition-based bulk adds; shared responsive editor/confirmation contracts; and segment filtering with visual identity on Members. Source review confirmed URLs expose no database IDs and mutations scope records to the active church. Lint, typecheck, format check, and production build passed.
+
 ## 2026-09-14: Member Management slice (Detail, Ministry Memberships, Segments)
 
 Result: accepted after independent review.

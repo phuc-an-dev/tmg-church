@@ -23,6 +23,7 @@ export const memberSearchParams = {
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(DEFAULT_MEMBER_PAGE_SIZE),
   edit: parseAsString.withDefault(""),
+  segment: parseAsString.withDefault(""),
 };
 
 export const memberSearchParamsCache =

@@ -19,21 +19,14 @@ import {
   Rows3,
   Search,
   SlidersHorizontal,
+  Tags,
   Users,
   X,
 } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
 import { RadioGroup as RadixRadioGroup } from "radix-ui";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +37,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GenderDropdown } from "./gender-dropdown";
 import {
   Sheet,
   SheetClose,
@@ -58,21 +52,25 @@ import {
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { IdentityTile } from "@/features/ministry/components/ministry-management";
 import {
   archiveMemberAction,
   createMemberAction,
   restoreMemberAction,
+  setMemberSegmentsAction,
   updateMemberAction,
 } from "../actions";
 
 import { MEMBER_PAGE_SIZES, memberSearchParams } from "../search-params";
 import type { MemberItem, MemberPageResult } from "../types";
+import type { SegmentItem } from "@/features/segment/types";
 
 interface MemberManagementProps {
   result: MemberPageResult;
   editedMember: MemberItem | null;
   requestedEditId: string;
   invalidEdit: boolean;
+  segments: SegmentItem[];
 }
 
 type SortColumn = "full_name" | "birth_year";
@@ -90,35 +88,42 @@ const MEMBER_SORT_CHOICES = [
   { value: "birth_year-desc", label: "Birth year: youngest" },
 ];
 
+const ALL_SEGMENTS_VALUE = "all-segments";
+
 interface ChoiceMenuProps {
+  id?: string;
   label: string;
   value: string;
   choices: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
   compact?: boolean;
   icon?: "filter" | "rows";
+  fullWidth?: boolean;
 }
 
 function ChoiceMenu({
+  id,
   label,
   value,
   choices,
   onChange,
   compact = false,
   icon,
+  fullWidth = false,
 }: ChoiceMenuProps) {
   const activeLabel = choices.find((choice) => choice.value === value)?.label;
   const Icon = icon === "filter" ? SlidersHorizontal : Rows3;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           className={
             compact
-              ? "bg-card hover:bg-card min-h-11 gap-2 px-3"
-              : "bg-card hover:bg-card min-h-11 gap-2 px-4"
+              ? `bg-card hover:bg-card h-12 gap-2 px-3 ${fullWidth ? "w-full" : ""}`
+              : `bg-card hover:bg-card h-12 gap-2 px-4 ${fullWidth ? "w-full" : ""}`
           }
           aria-label={`${label}: ${activeLabel}`}
         >
@@ -127,7 +132,14 @@ function ChoiceMenu({
           <ChevronDown className="size-4 opacity-60" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48 p-1.5">
+      <DropdownMenuContent
+        align={fullWidth ? "start" : "end"}
+        className={
+          fullWidth
+            ? "z-[70] min-w-[var(--radix-dropdown-menu-trigger-width)] p-1.5"
+            : "z-[70] min-w-48 p-1.5"
+        }
+      >
         <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
           {choices.map((choice) => (
             <DropdownMenuRadioItem
@@ -141,6 +153,159 @@ function ChoiceMenu({
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function SegmentFilterMenu({
+  id,
+  value,
+  segments,
+  onChange,
+  fullWidth = false,
+}: {
+  id?: string;
+  value: string;
+  segments: SegmentItem[];
+  onChange: (value: string) => void;
+  fullWidth?: boolean;
+}) {
+  const selectedSegment = segments.find((segment) => segment.slug === value);
+  const activeLabel = selectedSegment?.name ?? "All segments";
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          aria-label={`Filter by segment: ${activeLabel}`}
+          className={`bg-card hover:bg-card h-12 justify-between px-3 text-left text-sm font-normal ${fullWidth ? "w-full" : ""}`}
+        >
+          <SegmentFilterLabel
+            selectedSegment={selectedSegment}
+            label={activeLabel}
+          />
+          <ChevronDown
+            className="text-muted-foreground size-4 shrink-0"
+            aria-hidden="true"
+          />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={fullWidth ? "start" : "end"}
+        className={
+          fullWidth
+            ? "z-[70] min-w-[var(--radix-dropdown-menu-trigger-width)] p-1.5"
+            : "z-[70] min-w-60 p-1.5"
+        }
+      >
+        <DropdownMenuRadioGroup
+          value={value || ALL_SEGMENTS_VALUE}
+          onValueChange={(nextValue) =>
+            onChange(nextValue === ALL_SEGMENTS_VALUE ? "" : nextValue)
+          }
+        >
+          <DropdownMenuRadioItem
+            value={ALL_SEGMENTS_VALUE}
+            className="min-h-12 gap-3 px-3 text-left text-sm"
+          >
+            <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+              <Tags className="size-4" aria-hidden="true" />
+            </span>
+            <span>All segments</span>
+          </DropdownMenuRadioItem>
+          {segments.map((segment) => (
+            <DropdownMenuRadioItem
+              key={segment.id}
+              value={segment.slug}
+              className="min-h-12 gap-3 px-3 text-left text-sm"
+            >
+              <IdentityTile
+                accentColor={segment.accentColor}
+                iconKey={segment.iconKey}
+              />
+              <span className="truncate">{segment.name}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function SegmentFilterLabel({
+  selectedSegment,
+  label,
+  compact = false,
+  labelClassName,
+}: {
+  selectedSegment?: SegmentItem;
+  label: string;
+  compact?: boolean;
+  labelClassName?: string;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-2.5">
+      {selectedSegment ? (
+        <IdentityTile
+          accentColor={selectedSegment.accentColor}
+          iconKey={selectedSegment.iconKey}
+          className={compact ? "size-8 rounded-lg" : undefined}
+          iconClassName={compact ? "size-4" : undefined}
+        />
+      ) : (
+        <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+          <Tags className="size-4" aria-hidden="true" />
+        </span>
+      )}
+      <span className={cn("truncate", labelClassName)}>{label}</span>
+    </span>
+  );
+}
+
+function SegmentSelectionItem({
+  segment,
+  label,
+  selected,
+  disabled = false,
+  onClick,
+}: {
+  segment?: SegmentItem;
+  label: string;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={selected}
+      onClick={onClick}
+      className={cn(
+        "hover:bg-muted/60 flex min-h-14 w-full items-center justify-between rounded-xl border p-3 text-left transition-colors disabled:pointer-events-none disabled:opacity-60",
+        selected
+          ? "border-primary bg-primary/5 font-semibold"
+          : "border-border/70 bg-card",
+      )}
+    >
+      <SegmentFilterLabel
+        selectedSegment={segment}
+        label={label}
+        labelClassName="text-sm font-semibold sm:text-base"
+      />
+      <div
+        className={cn(
+          "ml-2 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+          selected
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-muted-foreground/40 bg-transparent",
+        )}
+      >
+        {selected && <Check className="size-3.5" aria-hidden="true" />}
+      </div>
+    </button>
   );
 }
 
@@ -173,11 +338,13 @@ function MemberCreator({
   const [fullName, setFullName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [birthYear, setBirthYear] = React.useState("");
+  const [gender, setGender] = React.useState("");
 
   const resetForm = () => {
     setFullName("");
     setPhone("");
     setBirthYear("");
+    setGender("");
     setErrorMessage(null);
     setFieldErrors({});
   };
@@ -195,6 +362,7 @@ function MemberCreator({
       fullName,
       phone,
       birthYear: normalizedBirthYear,
+      gender: gender || null,
     });
 
     if (!result.success) {
@@ -355,6 +523,16 @@ function MemberCreator({
             </p>
           )}
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="create-member-gender">Gender</Label>
+          <GenderDropdown
+            id="create-member-gender"
+            value={gender}
+            onChange={setGender}
+            disabled={isSaving}
+          />
+        </div>
       </form>
     </ResponsiveEditor>
   );
@@ -381,6 +559,7 @@ function MemberEditor({
   const [birthYear, setBirthYear] = React.useState(
     member.birthYear === null ? "" : String(member.birthYear),
   );
+  const [gender, setGender] = React.useState(member.gender ?? "");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -396,6 +575,7 @@ function MemberEditor({
       fullName,
       phone,
       birthYear: normalizedBirthYear,
+      gender: gender || null,
     });
 
     if (!result.success) {
@@ -531,6 +711,16 @@ function MemberEditor({
             </p>
           )}
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="member-gender">Gender</Label>
+          <GenderDropdown
+            id="member-gender"
+            value={gender}
+            onChange={setGender}
+            disabled={isSaving}
+          />
+        </div>
       </form>
     </ResponsiveEditor>
   );
@@ -566,50 +756,32 @@ function ArchiveConfirmDialog({
   }
 
   return (
-    <AlertDialog
+    <ConfirmationSheet
       open={open}
       onOpenChange={(next) => !next && !isPending && onClose()}
+      title="Archive member"
+      description={
+        <>
+          Are you sure you want to archive <strong>{member.fullName}</strong>?
+          Archived members are hidden from active ministry rosters, but can be
+          restored at any time.
+        </>
+      }
+      confirmLabel="Archive member"
+      pending={isPending}
+      pendingLabel="Archiving..."
+      confirmIcon={<Archive className="size-4" aria-hidden="true" />}
+      onConfirm={handleArchive}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Archive member</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to archive <strong>{member.fullName}</strong>?
-            Archived members are hidden from active ministry rosters, but can be
-            restored at any time.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && (
-          <div
-            role="alert"
-            className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-          >
-            {error}
-          </div>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending} onClick={onClose}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            variant="destructive"
-            disabled={isPending}
-            onClick={handleArchive}
-            className="gap-2"
-          >
-            {isPending ? (
-              <Loader2
-                className="size-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Archive className="size-4" aria-hidden="true" />
-            )}
-            <span>{isPending ? "Archiving..." : "Archive member"}</span>
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {error && (
+        <div
+          role="alert"
+          className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+        >
+          {error}
+        </div>
+      )}
+    </ConfirmationSheet>
   );
 }
 
@@ -643,49 +815,33 @@ function RestoreConfirmDialog({
   }
 
   return (
-    <AlertDialog
+    <ConfirmationSheet
       open={open}
       onOpenChange={(next) => !next && !isPending && onClose()}
+      title="Restore member"
+      description={
+        <>
+          Restore <strong>{member.fullName}</strong> back to active status? They
+          will reappear in the active directory and can be assigned to ministry
+          terms.
+        </>
+      }
+      confirmLabel="Restore member"
+      pending={isPending}
+      pendingLabel="Restoring..."
+      variant="default"
+      confirmIcon={<RotateCcw className="size-4" aria-hidden="true" />}
+      onConfirm={handleRestore}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Restore member</AlertDialogTitle>
-          <AlertDialogDescription>
-            Restore <strong>{member.fullName}</strong> back to active status?
-            They will reappear in the active directory and can be assigned to
-            ministry terms.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && (
-          <div
-            role="alert"
-            className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-          >
-            {error}
-          </div>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending} onClick={onClose}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            disabled={isPending}
-            onClick={handleRestore}
-            className="gap-2"
-          >
-            {isPending ? (
-              <Loader2
-                className="size-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <RotateCcw className="size-4" aria-hidden="true" />
-            )}
-            <span>{isPending ? "Restoring..." : "Restore member"}</span>
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {error && (
+        <div
+          role="alert"
+          className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+        >
+          {error}
+        </div>
+      )}
+    </ConfirmationSheet>
   );
 }
 
@@ -694,6 +850,7 @@ export function MemberManagement({
   editedMember,
   requestedEditId,
   invalidEdit,
+  segments,
 }: MemberManagementProps) {
   const [pending, startTransition] = React.useTransition();
   const [query, setQuery] = useQueryStates(memberSearchParams, {
@@ -706,6 +863,8 @@ export function MemberManagement({
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
   const [isCreating, setIsCreating] = React.useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
+  const [segmentFilterSheetOpen, setSegmentFilterSheetOpen] =
+    React.useState(false);
 
   const filterButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -713,11 +872,23 @@ export function MemberManagement({
   const [draftSort, setDraftSort] = React.useState(
     `${query.sort}-${query.order}`,
   );
+  const [draftSegment, setDraftSegment] = React.useState(query.segment);
+  const [segmentFilterDraft, setSegmentFilterDraft] = React.useState(
+    query.segment,
+  );
 
   const [memberToArchive, setMemberToArchive] =
     React.useState<MemberItem | null>(null);
   const [memberToRestore, setMemberToRestore] =
     React.useState<MemberItem | null>(null);
+  const [segmentMember, setSegmentMember] = React.useState<MemberItem | null>(
+    null,
+  );
+  const [selectedSegmentIds, setSelectedSegmentIds] = React.useState<string[]>(
+    [],
+  );
+  const [segmentError, setSegmentError] = React.useState<string | null>(null);
+  const [segmentPending, setSegmentPending] = React.useState(false);
   const canonicalizedUrlRef = React.useRef<string | null>(null);
 
   const selectedMember = query.edit
@@ -832,7 +1003,18 @@ export function MemberManagement({
   function openFilterSheet() {
     setDraftStatus(query.status);
     setDraftSort(`${query.sort}-${query.order}`);
+    setDraftSegment(query.segment);
     setFilterSheetOpen(true);
+  }
+
+  function openSegmentFilterSheet() {
+    setSegmentFilterDraft(draftSegment);
+    setSegmentFilterSheetOpen(true);
+  }
+
+  function applySegmentFilterDraft() {
+    setDraftSegment(segmentFilterDraft);
+    setSegmentFilterSheetOpen(false);
   }
 
   function applyFilters() {
@@ -845,27 +1027,66 @@ export function MemberManagement({
         status: draftStatus as "active" | "archived" | "all",
         sort: column,
         order,
+        segment: draftSegment || null,
         page: 1,
       },
       { history: "replace", shallow: false },
     );
+    setSegmentFilterSheetOpen(false);
     setFilterSheetOpen(false);
   }
 
   function resetDraftFilters() {
     setDraftStatus("active");
     setDraftSort("full_name-asc");
+    setDraftSegment("");
+  }
+
+  function openSegmentSheet(member: MemberItem) {
+    setSelectedSegmentIds(member.segmentIds ?? []);
+    setSegmentError(null);
+    setSegmentMember(member);
+  }
+
+  function toggleSegment(segmentId: string) {
+    setSelectedSegmentIds((previous) =>
+      previous.includes(segmentId)
+        ? previous.filter((id) => id !== segmentId)
+        : [...previous, segmentId],
+    );
+  }
+
+  async function saveMemberSegments() {
+    if (!segmentMember) return;
+    setSegmentPending(true);
+    setSegmentError(null);
+    const result = await setMemberSegmentsAction({
+      memberId: segmentMember.id,
+      segmentIds: selectedSegmentIds,
+    });
+    setSegmentPending(false);
+    if (!result.success) {
+      setSegmentError(result.error);
+      return;
+    }
+    setSegmentMember(null);
+    setToastMessage(result.message);
   }
 
   const activeFilterCount =
     (query.status !== "active" ? 1 : 0) +
+    (query.segment ? 1 : 0) +
     (query.sort !== "full_name" || query.order !== "asc" ? 1 : 0);
 
   const hasDraftFilterChanges =
     draftStatus !== query.status ||
-    draftSort !== `${query.sort}-${query.order}`;
+    draftSort !== `${query.sort}-${query.order}` ||
+    draftSegment !== query.segment;
 
   const resetKey = `${query.q}-${query.page}-${query.pageSize}-${query.sort}-${query.order}-${query.status}-${Boolean(query.edit)}-${Boolean(isCreating)}`;
+  const activeDraftSegment = segments.find(
+    (segment) => segment.slug === draftSegment,
+  );
 
   return (
     <ExpandableCoordinatorProvider resetKey={resetKey}>
@@ -935,6 +1156,13 @@ export function MemberManagement({
 
           {/* Desktop Filter & Sort Controls */}
           <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <SegmentFilterMenu
+              value={query.segment ?? ""}
+              onChange={(value) =>
+                void setQuery({ segment: value || null, page: 1 })
+              }
+              segments={segments}
+            />
             <ChoiceMenu
               label="Filter status"
               value={query.status}
@@ -1043,6 +1271,11 @@ export function MemberManagement({
                           setMemberToArchive(member);
                         }
                       }}
+                      onAdditionalAction={() => openSegmentSheet(member)}
+                      additionalActionLabel="Add segments"
+                      additionalActionSectionLabel="Segments"
+                      primaryActionsSectionLabel="Member"
+                      additionalActionIcon={Tags}
                       deleteLabel={member.archivedAt ? "Restore" : "Archive"}
                       deleteIcon={member.archivedAt ? RotateCcw : Archive}
                       deleteVariant={
@@ -1205,7 +1438,94 @@ export function MemberManagement({
       </Button>
 
       {/* Mobile Filter & Sort Sheet */}
-      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+      <Sheet
+        open={Boolean(segmentMember)}
+        onOpenChange={(open) => {
+          if (!open && !segmentPending) setSegmentMember(null);
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-hidden"
+        >
+          <div
+            className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
+            aria-hidden="true"
+          />
+          <div className="border-border/60 flex shrink-0 items-start justify-between border-b px-5 pt-3 pb-3">
+            <SheetHeader className="p-0 text-left">
+              <SheetTitle className="text-foreground text-lg font-bold">
+                Add segments
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
+                {segmentMember
+                  ? `Select one or more segments for ${segmentMember.fullName}.`
+                  : "Select one or more segments."}
+              </SheetDescription>
+            </SheetHeader>
+            <button
+              type="button"
+              disabled={segmentPending}
+              onClick={() => setSegmentMember(null)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 focus-visible:ring-ring flex min-h-11 min-w-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+              aria-label="Close"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          {segmentError && (
+            <div
+              role="alert"
+              className="border-destructive/20 bg-destructive/10 text-destructive mx-4 mt-4 rounded-lg border p-3 text-sm"
+            >
+              {segmentError}
+            </div>
+          )}
+          <div className="flex-1 space-y-2 overflow-y-auto p-4">
+            {segments.length === 0 ? (
+              <div className="text-muted-foreground py-8 text-center text-sm">
+                Create a segment before assigning it to members.
+              </div>
+            ) : (
+              segments.map((segment) => {
+                const isSelected = selectedSegmentIds.includes(segment.id);
+                return (
+                  <SegmentSelectionItem
+                    key={segment.id}
+                    disabled={segmentPending}
+                    segment={segment}
+                    label={segment.name}
+                    selected={isSelected}
+                    onClick={() => toggleSegment(segment.id)}
+                  />
+                );
+              })
+            )}
+          </div>
+          <div className="border-border/70 bg-muted/30 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              disabled={segmentPending}
+              onClick={() => void saveMemberSegments()}
+              className="min-h-11 w-full font-semibold"
+            >
+              {segmentPending ? "Saving..." : "Done"}
+              {selectedSegmentIds.length > 0
+                ? ` (${selectedSegmentIds.length} selected)`
+                : ""}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={filterSheetOpen}
+        onOpenChange={(open) => {
+          setFilterSheetOpen(open);
+          if (!open) setSegmentFilterSheetOpen(false);
+        }}
+      >
         <SheetContent
           side="bottom"
           showCloseButton={false}
@@ -1256,6 +1576,26 @@ export function MemberManagement({
 
           <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
             {/* Status Filter Options */}
+            <div className="space-y-2">
+              <Label htmlFor="mobile-segment-filter">Segment</Label>
+              <Button
+                id="mobile-segment-filter"
+                type="button"
+                variant="outline"
+                onClick={openSegmentFilterSheet}
+                className="border-border bg-card hover:border-primary/35 hover:bg-primary/[0.03] text-foreground h-12 w-full justify-between px-3 text-left text-sm font-normal"
+              >
+                <SegmentFilterLabel
+                  selectedSegment={activeDraftSegment}
+                  label={activeDraftSegment?.name ?? "All segments"}
+                  compact
+                />
+                <span className="border-border text-primary ml-2 shrink-0 border-l pl-3 text-sm font-semibold">
+                  Change
+                </span>
+              </Button>
+            </div>
+
             <div className="space-y-2">
               <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
                 Status
@@ -1343,6 +1683,68 @@ export function MemberManagement({
             </Button>
             <Button type="button" className="min-h-11" onClick={applyFilters}>
               Apply
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={segmentFilterSheetOpen}
+        onOpenChange={setSegmentFilterSheetOpen}
+      >
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-hidden"
+        >
+          <div
+            className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
+            aria-hidden="true"
+          />
+          <div className="border-border/60 flex shrink-0 items-start justify-between border-b px-5 pt-3 pb-3">
+            <SheetHeader className="p-0 text-left">
+              <SheetTitle className="text-foreground text-lg font-bold">
+                Select segment
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
+                Select a segment to filter the member list.
+              </SheetDescription>
+            </SheetHeader>
+            <button
+              type="button"
+              onClick={() => setSegmentFilterSheetOpen(false)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted/40 focus-visible:ring-ring flex min-h-11 min-w-11 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
+              aria-label="Close"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex-1 space-y-2 overflow-y-auto p-4">
+            <SegmentSelectionItem
+              label="All segments"
+              selected={!segmentFilterDraft}
+              onClick={() => setSegmentFilterDraft("")}
+            />
+            {segments.map((segment) => {
+              const isSelected = segmentFilterDraft === segment.slug;
+              return (
+                <SegmentSelectionItem
+                  key={segment.id}
+                  segment={segment}
+                  label={segment.name}
+                  selected={isSelected}
+                  onClick={() => setSegmentFilterDraft(segment.slug)}
+                />
+              );
+            })}
+          </div>
+          <div className="border-border/70 bg-muted/30 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              className="min-h-12 w-full font-semibold"
+              onClick={applySegmentFilterDraft}
+            >
+              Done
             </Button>
           </div>
         </SheetContent>

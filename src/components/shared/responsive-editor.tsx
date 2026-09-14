@@ -3,6 +3,7 @@
 import * as React from "react";
 import { cn } from "cn";
 import { X } from "lucide-react";
+import { ActionFooter } from "@/components/shared/action-footer";
 import {
   Dialog,
   DialogContent,
@@ -103,13 +104,16 @@ export function ResponsiveEditor({
             )}
           </DialogHeader>
 
-          <div className="max-h-[70dvh] overflow-y-auto px-6 py-2">
+          <div
+            data-slot="responsive-editor-body"
+            className="max-h-[70dvh] overflow-y-auto px-6 py-2"
+          >
             {children}
           </div>
 
-          <div className="border-border/70 bg-muted/30 grid grid-cols-2 gap-3 border-t px-6 py-4 [&>*]:w-full">
+          <ActionFooter className="border-border/70 bg-muted/30 border-t px-6 py-4">
             {footer}
-          </div>
+          </ActionFooter>
         </DialogContent>
       </Dialog>
     );
@@ -151,12 +155,17 @@ export function ResponsiveEditor({
         </div>
 
         {/* Independently scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-8">{children}</div>
+        <div
+          data-slot="responsive-editor-body"
+          className="flex-1 overflow-y-auto px-5 pt-4 pb-8"
+        >
+          {children}
+        </div>
 
         {/* Visible sticky action footer respecting safe-area */}
-        <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">
+        <ActionFooter className="border-border/70 bg-muted/30 shrink-0 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {footer}
-        </div>
+        </ActionFooter>
       </SheetContent>
     </Sheet>
   );

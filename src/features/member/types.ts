@@ -5,7 +5,9 @@ export interface MemberItem {
   fullName: string;
   phone: string | null;
   birthYear: number | null;
+  gender: string | null;
   archivedAt: string | null;
+  segmentIds?: string[];
 }
 
 export interface MemberPageResult {

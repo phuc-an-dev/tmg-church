@@ -3,6 +3,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MemberManagement } from "@/features/member/components/member-management";
 import { getMemberForEdit, getMembers } from "@/features/member/queries";
 import { memberSearchParamsCache } from "@/features/member/search-params";
+import { getSegments } from "@/features/segment/queries";
 
 export const metadata: Metadata = {
   title: "Members",
@@ -12,9 +13,10 @@ export const metadata: Metadata = {
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const params = await memberSearchParamsCache.parse(searchParams);
   const safePage = Math.max(1, params.page);
-  const [result, editedMember] = await Promise.all([
-    getMembers({ ...params, page: safePage }),
+  const [result, editedMember, segments] = await Promise.all([
+    getMembers({ ...params, segmentSlug: params.segment, page: safePage }),
     params.edit ? getMemberForEdit(params.edit) : Promise.resolve(null),
+    getSegments(),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         editedMember={editedMember}
         requestedEditId={params.edit}
         invalidEdit={Boolean(params.edit && !editedMember)}
+        segments={segments}
       />
     </div>
   );

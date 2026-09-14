@@ -178,6 +178,14 @@ interface ExpandableItemContextValue {
   editDisabledReason?: string;
   deleteDisabled?: boolean;
   deleteDisabledReason?: string;
+  onAdditionalAction?: () => void;
+  additionalActionLabel?: string;
+  additionalActionSectionLabel?: string;
+  primaryActionsSectionLabel?: string;
+  additionalActionIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
 }
 
 const ExpandableItemContext =
@@ -209,6 +217,14 @@ export interface ExpandableActionItemProps {
   editDisabledReason?: string;
   deleteDisabled?: boolean;
   deleteDisabledReason?: string;
+  onAdditionalAction?: () => void;
+  additionalActionLabel?: string;
+  additionalActionSectionLabel?: string;
+  primaryActionsSectionLabel?: string;
+  additionalActionIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
   children: React.ReactNode;
   className?: string;
 }
@@ -278,6 +294,11 @@ export function ExpandableActionMobileActions({
     editDisabledReason,
     deleteDisabled,
     deleteDisabledReason,
+    onAdditionalAction,
+    additionalActionLabel = "Additional action",
+    additionalActionSectionLabel = "Additional actions",
+    primaryActionsSectionLabel = "Actions",
+    additionalActionIcon: AdditionalActionIcon,
   } = useExpandableItem();
 
   if (!isOpen) return null;
@@ -291,7 +312,7 @@ export function ExpandableActionMobileActions({
       ? `edit-disabled-reason-${id}`
       : undefined;
 
-  const hasBoth = Boolean(onEdit && onDelete);
+  const hasMemberActions = Boolean(onEdit || onDelete);
 
   return (
     <div
@@ -303,58 +324,88 @@ export function ExpandableActionMobileActions({
         className,
       )}
     >
-      <div
-        className={cn(
-          "grid gap-2 sm:gap-3",
-          hasBoth ? "grid-cols-2" : "grid-cols-1",
-        )}
-      >
-        {/* Edit Action Button */}
-        {onEdit && (
+      {onAdditionalAction && AdditionalActionIcon && (
+        <section className="space-y-2">
+          <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+            {additionalActionSectionLabel}
+          </p>
           <Button
             type="button"
             variant="outline"
             size="default"
-            disabled={editDisabled}
-            aria-describedby={editReasonId}
             onClick={(event) => {
               event.stopPropagation();
-              onEdit();
+              onAdditionalAction();
             }}
             className="min-h-11 w-full gap-2 text-sm font-semibold"
             data-interactive="true"
           >
-            <Pencil className="size-4" aria-hidden="true" />
-            <span>{editLabel}</span>
+            <AdditionalActionIcon className="size-4" aria-hidden="true" />
+            <span>{additionalActionLabel}</span>
           </Button>
-        )}
-
-        {/* Delete / Secondary Action Button */}
-        {onDelete && (
-          <Button
-            type="button"
-            variant={
-              deleteVariant === "destructive" ? "destructive" : "outline"
-            }
-            size="default"
-            disabled={deleteDisabled}
-            aria-describedby={deleteReasonId}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete();
-            }}
+        </section>
+      )}
+      {hasMemberActions && (
+        <section className={cn("space-y-2", onAdditionalAction && "mt-4")}>
+          {onAdditionalAction && (
+            <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+              {primaryActionsSectionLabel}
+            </p>
+          )}
+          <div
             className={cn(
-              "min-h-11 w-full gap-2 text-sm font-semibold",
-              deleteVariant === "destructive" &&
-                "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 active:bg-destructive/25 border shadow-none",
+              "grid gap-2 sm:gap-3",
+              onEdit && onDelete ? "grid-cols-2" : "grid-cols-1",
             )}
-            data-interactive="true"
           >
-            <DeleteIcon className="size-4" aria-hidden="true" />
-            <span>{deleteLabel}</span>
-          </Button>
-        )}
-      </div>
+            {/* Edit Action Button */}
+            {onEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                disabled={editDisabled}
+                aria-describedby={editReasonId}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit();
+                }}
+                className="min-h-11 w-full gap-2 text-sm font-semibold"
+                data-interactive="true"
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                <span>{editLabel}</span>
+              </Button>
+            )}
+
+            {/* Delete / Secondary Action Button */}
+            {onDelete && (
+              <Button
+                type="button"
+                variant={
+                  deleteVariant === "destructive" ? "destructive" : "outline"
+                }
+                size="default"
+                disabled={deleteDisabled}
+                aria-describedby={deleteReasonId}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete();
+                }}
+                className={cn(
+                  "min-h-11 w-full gap-2 text-sm font-semibold",
+                  deleteVariant === "destructive" &&
+                    "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 active:bg-destructive/25 border shadow-none",
+                )}
+                data-interactive="true"
+              >
+                <DeleteIcon className="size-4" aria-hidden="true" />
+                <span>{deleteLabel}</span>
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Accessible visible disabled reasons */}
       {deleteDisabled && deleteDisabledReason && (
@@ -393,6 +444,9 @@ export function ExpandableActionDesktopMenu({
     editDisabledReason,
     deleteDisabled,
     deleteDisabledReason,
+    onAdditionalAction,
+    additionalActionLabel = "Additional action",
+    additionalActionIcon: AdditionalActionIcon,
   } = useExpandableItem();
   const { closeAll } = useExpandableCoordinator();
 
@@ -426,6 +480,21 @@ export function ExpandableActionDesktopMenu({
           <TooltipContent side="top">Actions</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="max-w-xs min-w-44">
+          {onAdditionalAction && AdditionalActionIcon && (
+            <DropdownMenuItem
+              onClick={() => {
+                closeAll();
+                onAdditionalAction();
+              }}
+              className="gap-2"
+            >
+              <AdditionalActionIcon
+                className="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span>{additionalActionLabel}</span>
+            </DropdownMenuItem>
+          )}
           {onEdit && (
             <DropdownMenuItem
               disabled={editDisabled}
@@ -500,6 +569,11 @@ export function ExpandableActionItem({
   editDisabledReason,
   deleteDisabled = false,
   deleteDisabledReason,
+  onAdditionalAction,
+  additionalActionLabel = "Additional action",
+  additionalActionSectionLabel = "Additional actions",
+  primaryActionsSectionLabel = "Actions",
+  additionalActionIcon,
   children,
   className,
 }: ExpandableActionItemProps) {
@@ -523,6 +597,10 @@ export function ExpandableActionItem({
     closeAll();
     onDelete?.();
   }, [closeAll, onDelete]);
+  const handleAdditionalAction = React.useCallback(() => {
+    closeAll();
+    onAdditionalAction?.();
+  }, [closeAll, onAdditionalAction]);
 
   const itemContextValue = React.useMemo(
     () => ({
@@ -540,6 +618,13 @@ export function ExpandableActionItem({
       editDisabledReason,
       deleteDisabled,
       deleteDisabledReason,
+      onAdditionalAction: onAdditionalAction
+        ? handleAdditionalAction
+        : undefined,
+      additionalActionLabel,
+      additionalActionSectionLabel,
+      primaryActionsSectionLabel,
+      additionalActionIcon,
     }),
     [
       id,
@@ -558,6 +643,12 @@ export function ExpandableActionItem({
       editDisabledReason,
       deleteDisabled,
       deleteDisabledReason,
+      onAdditionalAction,
+      handleAdditionalAction,
+      additionalActionLabel,
+      additionalActionSectionLabel,
+      primaryActionsSectionLabel,
+      additionalActionIcon,
     ],
   );
 

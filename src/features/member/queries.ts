@@ -36,6 +36,7 @@ function toMemberItem(row: {
   full_name: string;
   phone: string | null;
   birth_year: number | null;
+  gender: string | null;
   archived_at: string | null;
 }): MemberItem {
   return {
@@ -43,7 +44,9 @@ function toMemberItem(row: {
     fullName: row.full_name,
     phone: row.phone,
     birthYear: row.birth_year,
+    gender: row.gender,
     archivedAt: row.archived_at,
+    segmentIds: [],
   };
 }
 
@@ -52,6 +55,7 @@ export async function getMembers(params: {
   sort: "full_name" | "birth_year";
   order: "asc" | "desc";
   status?: "active" | "archived" | "all";
+  segmentSlug?: string;
   page: number;
   pageSize?: number;
 }): Promise<MemberPageResult> {
@@ -76,6 +80,24 @@ export async function getMembers(params: {
   const supabase = await createClient();
   const q = normalizeMemberSearch(params.q);
   const status = params.status ?? "active";
+  let segmentMemberIds: string[] | null = null;
+  if (params.segmentSlug) {
+    const { data: segment } = await supabase
+      .from("member_segment")
+      .select("id")
+      .eq("church_id", church.id)
+      .eq("slug", params.segmentSlug)
+      .maybeSingle();
+    if (!segment) return { items: [], count: 0, page: 1, pageSize };
+    const { data: memberships, error: membershipError } = await supabase
+      .from("member_segment_membership")
+      .select("member_profile_id")
+      .eq("member_segment_id", segment.id);
+    if (membershipError) throw new Error("Failed to fetch members");
+    segmentMemberIds = (memberships ?? []).map(
+      (membership) => membership.member_profile_id,
+    );
+  }
 
   let countQuery = supabase
     .from("member_profile")
@@ -91,6 +113,7 @@ export async function getMembers(params: {
   if (q) {
     countQuery = countQuery.ilike("full_name", `%${q}%`);
   }
+  if (segmentMemberIds) countQuery = countQuery.in("id", segmentMemberIds);
 
   const { count, error: countError } = await countQuery;
   if (countError) {
@@ -104,7 +127,7 @@ export async function getMembers(params: {
 
   let query = supabase
     .from("member_profile")
-    .select("id, full_name, phone, birth_year, archived_at")
+    .select("id, full_name, phone, birth_year, gender, archived_at")
     .eq("church_id", church.id);
 
   if (status === "active") {
@@ -116,6 +139,7 @@ export async function getMembers(params: {
   if (q) {
     query = query.ilike("full_name", `%${q}%`);
   }
+  if (segmentMemberIds) query = query.in("id", segmentMemberIds);
 
   const { data, error } = await query
     .order(params.sort, {
@@ -129,8 +153,29 @@ export async function getMembers(params: {
     throw new Error("Failed to fetch members");
   }
 
+  const items = (data ?? []).map(toMemberItem);
+  const { data: segmentMemberships, error: segmentMembershipsError } =
+    items.length
+      ? await supabase
+          .from("member_segment_membership")
+          .select("member_profile_id, member_segment_id")
+          .in(
+            "member_profile_id",
+            items.map((member) => member.id),
+          )
+      : { data: [], error: null };
+  if (segmentMembershipsError) throw new Error("Failed to fetch members");
+  const segmentIdsByMember = new Map<string, string[]>();
+  for (const membership of segmentMemberships ?? []) {
+    const ids = segmentIdsByMember.get(membership.member_profile_id) ?? [];
+    ids.push(membership.member_segment_id);
+    segmentIdsByMember.set(membership.member_profile_id, ids);
+  }
   return {
-    items: (data ?? []).map(toMemberItem),
+    items: items.map((member) => ({
+      ...member,
+      segmentIds: segmentIdsByMember.get(member.id) ?? [],
+    })),
     count: count ?? 0,
     page,
     pageSize,
@@ -151,7 +196,7 @@ export async function getMemberForEdit(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("member_profile")
-    .select("id, full_name, phone, birth_year, archived_at")
+    .select("id, full_name, phone, birth_year, gender, archived_at")
     .eq("id", memberId)
     .eq("church_id", church.id)
     .maybeSingle();
@@ -180,7 +225,7 @@ export async function getMemberDetail(
   const { data: profileRow, error: profileError } = await supabase
     .from("member_profile")
     .select(
-      "id, full_name, phone, birth_year, archived_at, created_at, updated_at",
+      "id, full_name, phone, birth_year, gender, archived_at, created_at, updated_at",
     )
     .eq("id", memberId)
     .eq("church_id", church.id)
@@ -195,6 +240,7 @@ export async function getMemberDetail(
     fullName: profileRow.full_name,
     phone: profileRow.phone,
     birthYear: profileRow.birth_year,
+    gender: profileRow.gender,
     archivedAt: profileRow.archived_at,
     createdAt: profileRow.created_at,
     updatedAt: profileRow.updated_at,

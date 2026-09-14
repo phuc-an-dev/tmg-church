@@ -12,6 +12,7 @@ import {
   removeMinistryMembershipSchema,
   restoreMemberSchema,
   setMinistryAssignmentsSchema,
+  setMemberSegmentsSchema,
   updateMemberSchema,
 } from "./schemas";
 import { normalizePhoneNumber } from "./phone";
@@ -49,7 +50,7 @@ export async function createMemberAction(
     }
 
     const supabase = await createClient();
-    const { fullName, phone, birthYear } = parsed.data;
+    const { fullName, phone, birthYear, gender } = parsed.data;
     const { data, error } = await supabase
       .from("member_profile")
       .insert({
@@ -57,8 +58,9 @@ export async function createMemberAction(
         full_name: fullName,
         phone: normalizePhoneNumber(phone),
         birth_year: birthYear,
+        gender: gender ?? null,
       })
-      .select("id, full_name, phone, birth_year, archived_at")
+      .select("id, full_name, phone, birth_year, gender, archived_at")
       .single();
 
     if (error || !data) {
@@ -78,6 +80,7 @@ export async function createMemberAction(
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
+        gender: data.gender,
         archivedAt: data.archived_at,
       },
       message: "Member created successfully.",
@@ -123,17 +126,18 @@ export async function updateMemberAction(
     }
 
     const supabase = await createClient();
-    const { id, fullName, phone, birthYear } = parsed.data;
+    const { id, fullName, phone, birthYear, gender } = parsed.data;
     const { data, error } = await supabase
       .from("member_profile")
       .update({
         full_name: fullName,
         phone: normalizePhoneNumber(phone),
         birth_year: birthYear,
+        ...(gender === undefined ? {} : { gender }),
       })
       .eq("id", id)
       .eq("church_id", church.id)
-      .select("id, full_name, phone, birth_year, archived_at")
+      .select("id, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -162,6 +166,7 @@ export async function updateMemberAction(
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
+        gender: data.gender,
         archivedAt: data.archived_at,
       },
       message: "Member updated successfully.",
@@ -208,7 +213,7 @@ export async function archiveMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .is("archived_at", null)
-      .select("id, full_name, phone, birth_year, archived_at")
+      .select("id, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -237,6 +242,7 @@ export async function archiveMemberAction(
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
+        gender: data.gender,
         archivedAt: data.archived_at,
       },
       message: "Member archived successfully.",
@@ -283,7 +289,7 @@ export async function restoreMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .not("archived_at", "is", null)
-      .select("id, full_name, phone, birth_year, archived_at")
+      .select("id, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -312,6 +318,7 @@ export async function restoreMemberAction(
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
+        gender: data.gender,
         archivedAt: data.archived_at,
       },
       message: "Member restored successfully.",
@@ -321,6 +328,54 @@ export async function restoreMemberAction(
       success: false,
       error: "An unexpected error occurred while restoring the member.",
       code: "UNKNOWN_ERROR",
+    };
+  }
+}
+
+export async function setMemberSegmentsAction(
+  rawInput: unknown,
+): Promise<MutationActionResult> {
+  try {
+    await requireLeader();
+    const parsed = setMemberSegmentsSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      return {
+        success: false,
+        code: "VALIDATION_FAILED",
+        error: "Please correct the selected segments.",
+      };
+    }
+    const church = await getActiveChurch();
+    if (!church)
+      return { success: false, code: "NOT_FOUND", error: "Member not found." };
+    const supabase = await createClient();
+    const { data: member } = await supabase
+      .from("member_profile")
+      .select("id")
+      .eq("id", parsed.data.memberId)
+      .eq("church_id", church.id)
+      .maybeSingle();
+    if (!member)
+      return { success: false, code: "NOT_FOUND", error: "Member not found." };
+    const { error } = await supabase.rpc("set_member_segments", {
+      target_member_id: member.id,
+      target_segment_ids: parsed.data.segmentIds,
+    });
+    if (error)
+      return {
+        success: false,
+        code: "DATABASE_ERROR",
+        error: "Unable to update member segments.",
+      };
+    revalidatePath("/admin");
+    revalidatePath(`/admin/members/${member.id}`);
+    revalidatePath("/admin/segments");
+    return { success: true, message: "Member segments updated." };
+  } catch {
+    return {
+      success: false,
+      code: "DATABASE_ERROR",
+      error: "Unable to update member segments.",
     };
   }
 }

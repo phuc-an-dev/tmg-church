@@ -16,8 +16,8 @@ export default function AdminError({
   }, [error]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="admin-panel mx-auto max-w-md p-6 text-center sm:p-8">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16 lg:px-8">
+      <div className="admin-panel mx-auto max-w-md !py-6 text-center sm:!py-8">
         <div className="bg-destructive/10 text-destructive mx-auto mb-4 flex size-12 items-center justify-center rounded-xl">
           <AlertCircle className="size-6" aria-hidden="true" />
         </div>

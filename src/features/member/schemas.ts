@@ -18,6 +18,7 @@ export const createMemberSchema = z.object({
     .min(1900, "Birth year must be 1900 or later.")
     .max(2100, "Birth year must be 2100 or earlier.")
     .nullable(),
+  gender: z.enum(["female", "male"]).nullable().optional(),
 });
 
 export const updateMemberSchema = createMemberSchema.extend({
@@ -30,6 +31,17 @@ export const archiveMemberSchema = z.object({
 
 export const restoreMemberSchema = z.object({
   id: memberIdSchema,
+});
+
+export const setMemberSegmentsSchema = z.object({
+  memberId: memberIdSchema,
+  segmentIds: z
+    .array(z.string().uuid("Invalid segment ID."))
+    .max(200, "Select 200 segments or fewer.")
+    .refine(
+      (segmentIds) => new Set(segmentIds).size === segmentIds.length,
+      "Each segment can only be selected once.",
+    ),
 });
 
 export const enrollMemberWithAssignmentsSchema = z.object({

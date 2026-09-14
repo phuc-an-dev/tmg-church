@@ -31,6 +31,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
   ExpandableActionItem,
@@ -43,16 +44,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   ministrySearchParams,
   structureSearchParams,
@@ -258,24 +249,28 @@ function LifecycleDropdown({
   );
 }
 
-function IdentityTile({
+export function IdentityTile({
   accentColor,
   iconKey,
+  className = "size-10 rounded-xl",
+  iconClassName = "size-5",
 }: {
   accentColor: string;
   iconKey: string;
+  className?: string;
+  iconClassName?: string;
 }) {
   const color = normalizeMinistryColor(accentColor);
   return (
     <span
-      className="flex size-10 shrink-0 items-center justify-center rounded-xl border md:flex"
+      className={`flex shrink-0 items-center justify-center border ${className}`}
       style={{
         borderColor: `color-mix(in srgb, ${color} 34%, transparent)`,
         backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
         color,
       }}
     >
-      <IdentityIcon iconKey={iconKey} className="size-5" />
+      <IdentityIcon iconKey={iconKey} className={iconClassName} />
     </span>
   );
 }
@@ -295,7 +290,7 @@ function IdentityIcon({
   return React.createElement(Icon, { className, "aria-hidden": true });
 }
 
-function IdentityPicker({
+export function IdentityPicker({
   entityLabel,
   accentColor,
   iconKey,
@@ -1351,38 +1346,22 @@ export function MinistryManagement({
           </SheetContent>
         </Sheet>
       )}
-      <AlertDialog
+      <ConfirmationSheet
         open={Boolean(deleting)}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete ${label}?`}
+        description="This permanently deletes the record only when no protected dependent history exists. This cannot be undone."
+        confirmLabel={`Delete ${label}`}
+        pending={pending}
+        pendingLabel="Deleting..."
+        onConfirm={remove}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {label}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This permanently deletes the record only when no protected
-              dependent history exists. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {formError && (
-            <p className="text-destructive text-sm" role="alert">
-              {formError}
-            </p>
-          )}
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={pending}
-              onClick={(event) => {
-                event.preventDefault();
-                remove();
-              }}
-            >
-              {pending ? "Deleting..." : `Delete ${label}`}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {formError && (
+          <p className="text-destructive text-sm" role="alert">
+            {formError}
+          </p>
+        )}
+      </ConfirmationSheet>
     </ExpandableCoordinatorProvider>
   );
 }

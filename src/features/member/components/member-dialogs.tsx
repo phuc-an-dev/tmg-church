@@ -2,19 +2,12 @@
 
 import * as React from "react";
 import { Archive, Loader2, Pencil, RotateCcw } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { GenderDropdown } from "./gender-dropdown";
 import {
   archiveMemberAction,
   restoreMemberAction,
@@ -26,6 +19,7 @@ export interface EditableMember {
   fullName: string;
   phone?: string | null;
   birthYear?: number | null;
+  gender?: string | null;
   archivedAt?: string | null;
 }
 
@@ -74,6 +68,7 @@ function MemberEditorModal({
       ? ""
       : String(member.birthYear),
   );
+  const [gender, setGender] = React.useState(member.gender ?? "");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -89,6 +84,7 @@ function MemberEditorModal({
       fullName,
       phone,
       birthYear: normalizedBirthYear,
+      gender: gender || null,
     });
 
     if (!result.success) {
@@ -224,6 +220,16 @@ function MemberEditorModal({
             </p>
           )}
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="member-gender">Gender</Label>
+          <GenderDropdown
+            id="member-gender"
+            value={gender}
+            onChange={setGender}
+            disabled={isSaving}
+          />
+        </div>
       </form>
     </ResponsiveEditor>
   );
@@ -259,50 +265,32 @@ export function ArchiveConfirmDialog({
   }
 
   return (
-    <AlertDialog
+    <ConfirmationSheet
       open={open}
       onOpenChange={(next) => !next && !isPending && onClose()}
+      title="Archive member"
+      description={
+        <>
+          Are you sure you want to archive <strong>{member.fullName}</strong>?
+          Archived members are hidden from active ministry rosters, but can be
+          restored at any time.
+        </>
+      }
+      confirmLabel="Archive member"
+      pending={isPending}
+      pendingLabel="Archiving..."
+      confirmIcon={<Archive className="size-4" aria-hidden="true" />}
+      onConfirm={handleArchive}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Archive member</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to archive <strong>{member.fullName}</strong>?
-            Archived members are hidden from active ministry rosters, but can be
-            restored at any time.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && (
-          <div
-            role="alert"
-            className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-          >
-            {error}
-          </div>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending} onClick={onClose}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            variant="destructive"
-            disabled={isPending}
-            onClick={handleArchive}
-            className="min-h-[44px] gap-2"
-          >
-            {isPending ? (
-              <Loader2
-                className="size-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <Archive className="size-4" aria-hidden="true" />
-            )}
-            <span>{isPending ? "Archiving..." : "Archive member"}</span>
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {error && (
+        <div
+          role="alert"
+          className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+        >
+          {error}
+        </div>
+      )}
+    </ConfirmationSheet>
   );
 }
 
@@ -336,47 +324,31 @@ export function RestoreConfirmDialog({
   }
 
   return (
-    <AlertDialog
+    <ConfirmationSheet
       open={open}
       onOpenChange={(next) => !next && !isPending && onClose()}
+      title="Restore member"
+      description={
+        <>
+          Are you sure you want to restore <strong>{member.fullName}</strong>?
+          They will be restored as an active member in the church directory.
+        </>
+      }
+      confirmLabel="Restore member"
+      pending={isPending}
+      pendingLabel="Restoring..."
+      variant="default"
+      confirmIcon={<RotateCcw className="size-4" aria-hidden="true" />}
+      onConfirm={handleRestore}
     >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Restore member</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to restore <strong>{member.fullName}</strong>?
-            They will be restored as an active member in the church directory.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && (
-          <div
-            role="alert"
-            className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-          >
-            {error}
-          </div>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending} onClick={onClose}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            disabled={isPending}
-            onClick={handleRestore}
-            className="min-h-[44px] gap-2"
-          >
-            {isPending ? (
-              <Loader2
-                className="size-4 animate-spin motion-reduce:animate-none"
-                aria-hidden="true"
-              />
-            ) : (
-              <RotateCcw className="size-4" aria-hidden="true" />
-            )}
-            <span>{isPending ? "Restoring..." : "Restore member"}</span>
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      {error && (
+        <div
+          role="alert"
+          className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+        >
+          {error}
+        </div>
+      )}
+    </ConfirmationSheet>
   );
 }

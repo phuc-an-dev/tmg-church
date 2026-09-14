@@ -235,6 +235,7 @@ export type Database = {
           church_id: string;
           created_at: string;
           full_name: string;
+          gender: string | null;
           id: string;
           phone: string | null;
           updated_at: string;
@@ -246,6 +247,7 @@ export type Database = {
           church_id: string;
           created_at?: string;
           full_name: string;
+          gender?: string | null;
           id?: string;
           phone?: string | null;
           updated_at?: string;
@@ -257,6 +259,7 @@ export type Database = {
           church_id?: string;
           created_at?: string;
           full_name?: string;
+          gender?: string | null;
           id?: string;
           phone?: string | null;
           updated_at?: string;
@@ -281,24 +284,36 @@ export type Database = {
       };
       member_segment: {
         Row: {
+          accent_color: string;
           church_id: string;
+          condition_rules: Json;
           created_at: string;
           id: string;
+          icon_key: string;
           name: string;
+          slug: string;
           updated_at: string;
         };
         Insert: {
+          accent_color?: string;
           church_id: string;
+          condition_rules?: Json;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           name: string;
+          slug: string;
           updated_at?: string;
         };
         Update: {
+          accent_color?: string;
           church_id?: string;
+          condition_rules?: Json;
           created_at?: string;
           id?: string;
+          icon_key?: string;
           name?: string;
+          slug?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -1058,6 +1073,24 @@ export type Database = {
           assignment_membership_id: string;
         };
         Returns: undefined;
+      };
+      set_member_segments: {
+        Args: { target_member_id: string; target_segment_ids: string[] };
+        Returns: undefined;
+      };
+      preview_segment_members_by_rules: {
+        Args: {
+          target_conditions: Json;
+          target_segment_id: string;
+        };
+        Returns: number;
+      };
+      save_segment_rules_and_add_members: {
+        Args: {
+          target_conditions: Json;
+          target_segment_id: string;
+        };
+        Returns: number;
       };
     };
     Enums: {

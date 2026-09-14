@@ -1,4 +1,4 @@
-import { Church, Layers3, Users } from "lucide-react";
+import { Church, Layers3, Tags, Users } from "lucide-react";
 
 export const ADMIN_NAVIGATION_ITEMS = [
   {
@@ -17,6 +17,12 @@ export const ADMIN_NAVIGATION_ITEMS = [
     href: "/admin/ministries",
     label: "Ministries",
     icon: Layers3,
+    exact: false,
+  },
+  {
+    href: "/admin/segments",
+    label: "Segments",
+    icon: Tags,
     exact: false,
   },
 ] as const;

@@ -152,4 +152,19 @@
   .admin-nav-chip[data-active="true"] {
     @apply bg-primary text-primary-foreground shadow-[0_12px_24px_-14px_color-mix(in_oklch,var(--primary)_90%,transparent)];
   }
+
+  /* A single sizing contract for every responsive editor form. */
+  [data-slot="responsive-editor-body"] input:not([type]),
+  [data-slot="responsive-editor-body"] input[type="text"],
+  [data-slot="responsive-editor-body"] input[type="search"],
+  [data-slot="responsive-editor-body"] input[type="tel"],
+  [data-slot="responsive-editor-body"] input[type="email"],
+  [data-slot="responsive-editor-body"] input[type="number"],
+  [data-slot="responsive-editor-body"] input[type="password"] {
+    @apply !h-12 !text-base;
+  }
+
+  [data-slot="action-footer"] > [data-slot="button"] {
+    @apply !h-11 !min-h-11;
+  }
 }
