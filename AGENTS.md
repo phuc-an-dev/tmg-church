@@ -12,6 +12,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 User instructions take precedence. Keep context and changes bounded.
 
+## Mobile-first UI
+
+Apply these rules to every UI change before other presentation choices. Design and verify from the smallest viewport upward.
+
+- Form controls are 16 px or larger on mobile.
+- Touch targets are at least 44 by 44 px.
+- Do not use native `select`.
+- Do not use `alert()`, `confirm()`, or `prompt()`.
+- On mobile, render collections as cards. Open create, edit, detail, filters, and confirmations in a bottom drawer only. Do not use a centered modal or dialog on mobile.
+
 ## Start here
 
 - Read `docs/NEXT_AGENT_TASK.md` only. It is the sole implementation authorization and names any extra context required by the active task.

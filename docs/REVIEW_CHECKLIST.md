@@ -54,7 +54,7 @@
 
 - The flow works at 320, 375, 390, 768, 1024, and 1440 px widths.
 - Mobile collections use cards.
-- Mobile create, edit, detail, and filter flows use a bottom drawer.
+- Mobile create, edit, detail, filter, and confirmation flows use a bottom drawer only. Centered modals and dialogs are not used on mobile.
 - Desktop administration uses a readable table where appropriate.
 - Form text is at least 16 px on mobile.
 - Primary touch targets are at least 44 by 44 px.
@@ -64,6 +64,7 @@
 ## Interaction and state
 
 - Native `select` is not used.
+- Browser `alert()`, `confirm()`, and `prompt()` are not used.
 - Dropdowns with five or more items support search.
 - Server-backed search debounces by 300 ms.
 - Filters and pagination are represented by `nuqs` URL state.

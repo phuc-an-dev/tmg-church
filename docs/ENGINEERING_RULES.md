@@ -1,5 +1,15 @@
 # Engineering rules
 
+## Mobile-first UI
+
+Apply these rules to every UI change before other presentation choices. Design and verify from the smallest viewport upward.
+
+- Form controls are 16 px or larger on mobile.
+- Touch targets are at least 44 by 44 px.
+- Do not use native `select`.
+- Do not use `alert()`, `confirm()`, or `prompt()`.
+- On mobile, render collections as cards. Open create, edit, detail, filters, and confirmations in a bottom drawer only. Do not use a centered modal or dialog on mobile.
+
 ## Naming and language
 
 - Use English for code, database identifiers, types, comments, technical documentation, and logs.
@@ -58,14 +68,13 @@
 - Use shadcn/ui components as repository-owned source, not as a visual constraint.
 - Use CSS variables for semantic colors.
 - Use Lucide icons only and include accessible text or `aria-label` where meaning is not already visible.
-- Do not use emoji, native `select`, browser alerts, or icon-only destructive actions without an accessible name.
-- Keep form controls at 16 px or larger on mobile.
-- Build from the smallest viewport upward.
+- Do not use emoji or icon-only destructive actions without an accessible name.
+- Native `select`, browser dialogs, mobile form size, touch targets, and mobile overlay rules are defined in Mobile-first UI.
 
 ## Performance
 
 - Paginate queries at the database.
-- Mount only the active drawer, dialog, or menu content.
+- Mount only the active drawer, dialog, or menu content. On mobile that overlay is a bottom drawer, not a centered dialog.
 - Avoid rendering hidden copies of complete mobile and desktop collections simultaneously when the row count is material.
 - Prefer aggregate public views or focused queries over client-side joins.
 - Avoid N+1 database requests.

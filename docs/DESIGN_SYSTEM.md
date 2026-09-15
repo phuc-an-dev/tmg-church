@@ -52,7 +52,7 @@ Mobile:
 
 - Render one compact card per entity.
 - Keep the primary action reachable near the bottom edge or header.
-- Open create, edit, detail, and filters in a bottom drawer.
+- Open create, edit, detail, filters, and confirmations in a bottom drawer only. Do not use a centered modal or dialog on mobile.
 - Mount only the active drawer content.
 - Use the shared expandable action item for routine list actions. Opening an item on mobile reveals labeled Edit and Delete actions below the unchanged identity content; it never executes them automatically.
 - Every mobile item exposes an explicit 44 by 44 px Lucide `Ellipsis` action button with `aria-expanded` and `aria-controls` as the primary action path.
