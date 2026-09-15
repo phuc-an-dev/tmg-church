@@ -496,6 +496,7 @@ export function MinistryManagement({
   termId,
 }: Props) {
   const label = labelFor(mode);
+  const supportsSearchAndPagination = mode === "ministries" || mode === "terms";
   const supportsVisualIdentity = mode !== "terms";
   const parsers =
     mode === "ministries"
@@ -506,7 +507,9 @@ export function MinistryManagement({
   const [query, setQuery] = useQueryStates(
     parsers as typeof ministrySearchParams,
   );
-  const [searchDraft, setSearchDraft] = React.useState(query.q ?? "");
+  const [searchDraft, setSearchDraft] = React.useState(
+    supportsSearchAndPagination ? (query.q ?? "") : "",
+  );
   const [editor, setEditor] = React.useState<Item | "create" | null>(null);
   const [deleting, setDeleting] = React.useState<Item | null>(null);
   const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
@@ -525,12 +528,13 @@ export function MinistryManagement({
   const [draftSort, setDraftSort] = React.useState<string>("name-asc");
   const filterButtonRef = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
+    if (!supportsSearchAndPagination) return;
     if (searchDraft === query.q) return;
     const timer = window.setTimeout(() => {
       void setQuery({ q: searchDraft, page: 1 } as never);
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [query.q, searchDraft, setQuery]);
+  }, [query.q, searchDraft, setQuery, supportsSearchAndPagination]);
   const update = (value: Record<string, unknown>) =>
     void setQuery({ ...value, page: 1 } as never);
 
@@ -589,7 +593,9 @@ export function MinistryManagement({
   const rangeEnd = Math.min(result.page * result.pageSize, result.count);
   const detailHref = (item: Item) =>
     mode === "ministries"
-      ? `/admin/ministries/${item.slug || item.id}`
+      ? isMinistry(item) && item.currentTermSlug
+        ? `/admin/ministries/${item.slug}/terms/${item.currentTermSlug}`
+        : `/admin/ministries/${item.slug || item.id}?view=terms`
       : mode === "terms"
         ? `/admin/ministries/${ministrySlug || ministryId}/terms/${item.slug || item.id}`
         : undefined;
@@ -694,87 +700,89 @@ export function MinistryManagement({
         aria-label={title}
       >
         <p className="sr-only">{description}</p>
-        <div className="flex items-center gap-2 border-b pb-5">
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <Input
-              value={searchDraft}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
+        {mode !== "groups" && mode !== "departments" && (
+          <div className="flex items-center gap-2 border-b pb-5">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <Input
+                value={searchDraft}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    setSearchDraft(event.currentTarget.value);
+                    update({ q: event.currentTarget.value });
+                  }
+                }}
+                onChange={(event) => {
                   setSearchDraft(event.currentTarget.value);
-                  update({ q: event.currentTarget.value });
-                }
-              }}
-              onChange={(event) => {
-                setSearchDraft(event.currentTarget.value);
-                if (!event.currentTarget.value) update({ q: "" });
-              }}
-              className="bg-card h-12 pl-9 shadow-xs"
-              aria-label={`Search ${title.toLowerCase()}`}
-              placeholder={`Search ${title.toLowerCase()}`}
-            />
-          </div>
-          {(mode === "ministries" || mode === "terms") && (
-            <>
-              <Button
-                ref={filterButtonRef}
-                type="button"
-                variant="outline"
-                onClick={openFilterSheet}
-                className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
-                aria-label={
-                  activeFilterCount > 0
-                    ? `Filter ${title.toLowerCase()} (${activeFilterCount} active)`
-                    : `Filter ${title.toLowerCase()}`
-                }
-              >
-                <SlidersHorizontal
-                  className="text-muted-foreground size-4"
-                  aria-hidden="true"
-                />
-                <span>Filter</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-              <div className="hidden shrink-0 items-center gap-2 md:flex">
-                {mode === "ministries" && (
-                  <ChoiceMenu
-                    label="Sort ministries"
-                    value={query.sort}
-                    onChange={(value) => update({ sort: value })}
-                    icon="filter"
-                    choices={MINISTRY_SORT_CHOICES}
+                  if (!event.currentTarget.value) update({ q: "" });
+                }}
+                className="bg-card h-12 pl-9 shadow-xs"
+                aria-label={`Search ${title.toLowerCase()}`}
+                placeholder={`Search ${title.toLowerCase()}`}
+              />
+            </div>
+            {(mode === "ministries" || mode === "terms") && (
+              <>
+                <Button
+                  ref={filterButtonRef}
+                  type="button"
+                  variant="outline"
+                  onClick={openFilterSheet}
+                  className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
+                  aria-label={
+                    activeFilterCount > 0
+                      ? `Filter ${title.toLowerCase()} (${activeFilterCount} active)`
+                      : `Filter ${title.toLowerCase()}`
+                  }
+                >
+                  <SlidersHorizontal
+                    className="text-muted-foreground size-4"
+                    aria-hidden="true"
                   />
-                )}
-                {mode === "terms" && (
-                  <>
+                  <span>Filter</span>
+                  {activeFilterCount > 0 && (
+                    <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+                <div className="hidden shrink-0 items-center gap-2 md:flex">
+                  {mode === "ministries" && (
                     <ChoiceMenu
-                      label="Filter lifecycle"
-                      value={
-                        (query as unknown as { lifecycle: string }).lifecycle
-                      }
-                      onChange={(value) => update({ lifecycle: value })}
-                      icon="filter"
-                      choices={TERM_LIFECYCLE_CHOICES}
-                    />
-                    <ChoiceMenu
-                      label="Sort terms"
+                      label="Sort ministries"
                       value={query.sort}
                       onChange={(value) => update({ sort: value })}
-                      choices={TERM_SORT_CHOICES}
+                      icon="filter"
+                      choices={MINISTRY_SORT_CHOICES}
                     />
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                  )}
+                  {mode === "terms" && (
+                    <>
+                      <ChoiceMenu
+                        label="Filter lifecycle"
+                        value={
+                          (query as unknown as { lifecycle: string }).lifecycle
+                        }
+                        onChange={(value) => update({ lifecycle: value })}
+                        icon="filter"
+                        choices={TERM_LIFECYCLE_CHOICES}
+                      />
+                      <ChoiceMenu
+                        label="Sort terms"
+                        value={query.sort}
+                        onChange={(value) => update({ sort: value })}
+                        choices={TERM_SORT_CHOICES}
+                      />
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {result.items.length === 0 ? (
           <div className="admin-surface py-12 text-center">
             <p className="font-medium">
@@ -982,74 +990,80 @@ export function MinistryManagement({
             </div>
           </>
         )}
-        <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">
-          <div className="flex items-center justify-between gap-3 p-4">
-            <span className="text-muted-foreground text-sm">
-              Showing{" "}
-              <strong className="text-foreground font-medium">
-                {rangeStart}–{rangeEnd}
-              </strong>{" "}
-              of{" "}
-              <strong className="text-foreground font-medium">
-                {result.count}
-              </strong>{" "}
-              {title.toLowerCase()}
-            </span>
-            <div
-              className="border-input bg-muted/35 flex shrink-0 items-center rounded-xl border p-1"
-              aria-label="Results per page"
-            >
-              {[20, 50, 100].map((pageSize) => {
-                const active = query.pageSize === pageSize;
-                return (
-                  <button
-                    key={pageSize}
-                    type="button"
-                    aria-pressed={active}
-                    aria-label={`Show ${pageSize} results per page`}
-                    onClick={() => update({ pageSize })}
-                    className={
-                      active
-                        ? "bg-primary text-primary-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-semibold shadow-sm"
-                        : "text-muted-foreground hover:text-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-medium transition-colors"
-                    }
-                  >
-                    {pageSize}
-                  </button>
-                );
-              })}
+        {mode !== "groups" && mode !== "departments" && (
+          <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">
+            <div className="flex items-center justify-between gap-3 p-4">
+              <span className="text-muted-foreground text-sm">
+                Showing{" "}
+                <strong className="text-foreground font-medium">
+                  {rangeStart}–{rangeEnd}
+                </strong>{" "}
+                of{" "}
+                <strong className="text-foreground font-medium">
+                  {result.count}
+                </strong>{" "}
+                {title.toLowerCase()}
+              </span>
+              <div
+                className="border-input bg-muted/35 flex shrink-0 items-center rounded-xl border p-1"
+                aria-label="Results per page"
+              >
+                {[20, 50, 100].map((pageSize) => {
+                  const active = query.pageSize === pageSize;
+                  return (
+                    <button
+                      key={pageSize}
+                      type="button"
+                      aria-pressed={active}
+                      aria-label={`Show ${pageSize} results per page`}
+                      onClick={() => update({ pageSize })}
+                      className={
+                        active
+                          ? "bg-primary text-primary-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-semibold shadow-sm"
+                          : "text-muted-foreground hover:text-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-medium transition-colors"
+                      }
+                    >
+                      {pageSize}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t p-4">
+              <Button
+                variant="outline"
+                className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
+                disabled={result.page <= 1}
+                onClick={() =>
+                  void setQuery({ page: result.page - 1 } as never)
+                }
+              >
+                <ChevronLeft aria-hidden="true" />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
+              </Button>
+              <span
+                className="border-input bg-card flex min-h-12 min-w-20 items-center justify-center rounded-xl border px-3 text-base font-semibold"
+                aria-live="polite"
+              >
+                {Math.min(result.page, totalPages)}
+                <span className="text-muted-foreground px-1">/</span>
+                {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
+                disabled={result.page >= totalPages}
+                onClick={() =>
+                  void setQuery({ page: result.page + 1 } as never)
+                }
+              >
+                Next
+                <ChevronRight aria-hidden="true" />
+              </Button>
             </div>
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t p-4">
-            <Button
-              variant="outline"
-              className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-              disabled={result.page <= 1}
-              onClick={() => void setQuery({ page: result.page - 1 } as never)}
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span className="hidden sm:inline">Previous</span>
-              <span className="sm:hidden">Prev</span>
-            </Button>
-            <span
-              className="border-input bg-card flex min-h-12 min-w-20 items-center justify-center rounded-xl border px-3 text-base font-semibold"
-              aria-live="polite"
-            >
-              {Math.min(result.page, totalPages)}
-              <span className="text-muted-foreground px-1">/</span>
-              {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-              disabled={result.page >= totalPages}
-              onClick={() => void setQuery({ page: result.page + 1 } as never)}
-            >
-              Next
-              <ChevronRight aria-hidden="true" />
-            </Button>
-          </div>
-        </div>
+        )}
       </section>
       <Button
         className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"

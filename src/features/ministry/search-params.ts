@@ -32,9 +32,6 @@ export const termSearchParams = {
   ] as const).withDefault("start-desc"),
 };
 export const structureSearchParams = {
-  q: parseAsString.withDefault(""),
-  page,
-  pageSize,
   section: parseAsStringLiteral(["groups", "departments"] as const).withDefault(
     "groups",
   ),

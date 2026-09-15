@@ -5,10 +5,7 @@ import { cn } from "cn";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { getStructure, getTermContext } from "@/features/ministry/queries";
-import {
-  safePageSize,
-  structureSearchParamsCache,
-} from "@/features/ministry/search-params";
+import { structureSearchParamsCache } from "@/features/ministry/search-params";
 import { isUuid } from "@/lib/slug";
 
 export const metadata: Metadata = { title: "Term Structure" };
@@ -50,11 +47,6 @@ export default async function TermDetailPage({
     context.ministry.id,
     context.term.id,
     section,
-    {
-      q: query.q,
-      page: Math.max(1, query.page),
-      pageSize: safePageSize(query.pageSize),
-    },
   );
   const sectionLabel = section === "groups" ? "Groups" : "Departments";
   return (
@@ -63,8 +55,8 @@ export default async function TermDetailPage({
         title="Term Structure"
         description={`Manage groups and departments for ${context.ministry.name} (${context.term.name}).`}
         backLink={{
-          href: `/admin/ministries/${context.ministry.slug}`,
-          label: context.ministry.name,
+          href: "/admin/ministries",
+          label: "Ministries",
         }}
       />
       <div
@@ -102,7 +94,7 @@ export default async function TermDetailPage({
       <MinistryManagement
         mode={section === "groups" ? "groups" : "departments"}
         title={sectionLabel}
-        description={`Only ${sectionLabel.toLowerCase()} are loaded for the active section.`}
+        description={`Only ${sectionLabel.toLowerCase()} are loaded for the selected section.`}
         result={result}
         ministryId={context.ministry.id}
         ministrySlug={context.ministry.slug}

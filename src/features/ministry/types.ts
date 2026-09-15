@@ -21,6 +21,7 @@ export type MinistryItem = {
   accentColor: string;
   iconKey: string;
   termCount: number;
+  currentTermSlug: string | null;
 };
 export type TermItem = {
   id: string;

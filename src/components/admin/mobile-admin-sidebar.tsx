@@ -17,7 +17,7 @@ import {
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
-  ADMIN_NAVIGATION_ITEMS,
+  getAdminNavigationItems,
   isAdminNavigationItemActive,
 } from "@/components/admin/admin-navigation";
 
@@ -67,6 +67,7 @@ export function MobileAdminSidebar({
   }, [onOpenChange]);
 
   const initial = userEmail.trim().charAt(0).toUpperCase() || "A";
+  const navigationItems = getAdminNavigationItems(Boolean(activeChurch));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -113,7 +114,7 @@ export function MobileAdminSidebar({
 
           {/* Navigation Links */}
           <nav className="space-y-1 p-3" aria-label="Mobile navigation routes">
-            {ADMIN_NAVIGATION_ITEMS.map((item) => {
+            {navigationItems.map((item) => {
               const active = isAdminNavigationItemActive(
                 pathname,
                 item.href,

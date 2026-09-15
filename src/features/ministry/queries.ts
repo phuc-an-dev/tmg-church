@@ -23,6 +23,21 @@ function range(page: number, pageSize: number) {
   };
 }
 
+function currentChurchDate() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .formatToParts(new Date())
+    .reduce<Record<string, string>>((result, part) => {
+      if (part.type !== "literal") result[part.type] = part.value;
+      return result;
+    }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 export const getMinistryContext = cache(
   async (identifier: string): Promise<MinistryContext | null> => {
     await requireLeader();
@@ -82,6 +97,45 @@ export const getTermContext = cache(
       : null;
   },
 );
+
+/**
+ * Resolves the one term that is operational today for a ministry.
+ *
+ * A current term covers the current calendar date. The database prevents
+ * dated terms in one ministry from overlapping, so this is unambiguous.
+ */
+export const getCurrentActiveTerm = cache(
+  async (ministryIdentifier: string): Promise<TermContext | null> => {
+    const context = await getMinistryContext(ministryIdentifier);
+    if (!context) return null;
+
+    const currentDate = currentChurchDate();
+
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("ministry_term")
+      .select("id, name, slug, start_date, end_date, lifecycle")
+      .eq("ministry_id", context.ministry.id)
+      .lte("start_date", currentDate)
+      .gte("end_date", currentDate)
+      .maybeSingle();
+
+    return data
+      ? {
+          ...context,
+          term: {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            startDate: data.start_date,
+            endDate: data.end_date,
+            lifecycle: data.lifecycle,
+          },
+        }
+      : null;
+  },
+);
+
 export async function getMinistries(params: {
   q: string;
   page: number;
@@ -121,8 +175,25 @@ export async function getMinistries(params: {
     .order("id", { ascending: true })
     .range(from, to);
   if (error) throw new Error("Failed to fetch ministries");
+
+  const ministries = data ?? [];
+  const ministryIds = ministries.map((ministry) => ministry.id);
+  const currentDate = currentChurchDate();
+  const { data: currentTerms, error: currentTermsError } = ministryIds.length
+    ? await supabase
+        .from("ministry_term")
+        .select("ministry_id, slug")
+        .in("ministry_id", ministryIds)
+        .lte("start_date", currentDate)
+        .gte("end_date", currentDate)
+    : { data: [], error: null };
+  if (currentTermsError) throw new Error("Failed to fetch current terms");
+  const currentTermSlugByMinistry = new Map(
+    (currentTerms ?? []).map((term) => [term.ministry_id, term.slug]),
+  );
+
   return {
-    items: (data ?? []).map((row) => ({
+    items: ministries.map((row) => ({
       id: row.id,
       name: row.name,
       slug: row.slug,
@@ -131,6 +202,7 @@ export async function getMinistries(params: {
       termCount:
         (row as unknown as { ministry_term: { count: number }[] })
           .ministry_term?.[0]?.count ?? 0,
+      currentTermSlug: currentTermSlugByMinistry.get(row.id) ?? null,
     })),
     count: count ?? 0,
     page,
@@ -202,42 +274,29 @@ export async function getStructure(
   ministryId: string,
   termId: string,
   section: "groups" | "departments",
-  params: { q: string; page: number; pageSize: number },
 ): Promise<PageResult<StructureItem>> {
   await requireLeader();
   const context = await getTermContext(ministryId, termId);
-  const pageSize = safePageSize(params.pageSize);
-  if (!context) return { items: [], count: 0, page: 1, pageSize };
+  if (!context) return { items: [], count: 0, page: 1, pageSize: 1 };
   const supabase = await createClient();
-  const { current } = range(params.page, pageSize);
-  const q = normalizedSearch(params.q);
-  let countQuery = supabase
-    .from(section === "groups" ? "term_group" : "term_department")
-    .select("id", { count: "exact", head: true })
-    .eq("ministry_term_id", context.term.id);
-  if (q) countQuery = countQuery.ilike("name", `%${q}%`);
-  const { count, error: countError } = await countQuery;
-  if (countError) throw new Error("Failed to fetch term structure");
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize));
-  const page = Math.min(current, totalPages);
-  const { from, to } = range(page, pageSize);
-  let query = supabase
+  const { data, error } = await supabase
     .from(section === "groups" ? "term_group" : "term_department")
     .select("id, name, slug, accent_color, icon_key")
-    .eq("ministry_term_id", context.term.id);
-  if (q) query = query.ilike("name", `%${q}%`);
-  const { data, error } = await query.order("name").order("id").range(from, to);
+    .eq("ministry_term_id", context.term.id)
+    .order("name")
+    .order("id");
   if (error) throw new Error("Failed to fetch term structure");
+  const items = (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    accentColor: row.accent_color,
+    iconKey: row.icon_key,
+  }));
   return {
-    items: (data ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      accentColor: row.accent_color,
-      iconKey: row.icon_key,
-    })),
-    count: count ?? 0,
-    page,
-    pageSize,
+    items,
+    count: items.length,
+    page: 1,
+    pageSize: Math.max(1, items.length),
   };
 }

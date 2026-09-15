@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
-import { getMinistryContext, getTerms } from "@/features/ministry/queries";
+import {
+  getCurrentActiveTerm,
+  getMinistryContext,
+  getTerms,
+} from "@/features/ministry/queries";
 import {
   safePageSize,
   termSearchParamsCache,
@@ -18,15 +22,15 @@ export default async function MinistryDetailPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { ministryId } = await params;
-  const [context, query] = await Promise.all([
+  const [context, query, resolvedSearchParams] = await Promise.all([
     getMinistryContext(ministryId),
     termSearchParamsCache.parse(searchParams),
+    searchParams,
   ]);
   if (!context) notFound();
 
   if (isUuid(ministryId) && context.ministry.slug) {
     const search = new URLSearchParams();
-    const resolvedSearchParams = await searchParams;
     for (const [key, value] of Object.entries(resolvedSearchParams)) {
       if (typeof value === "string") search.set(key, value);
       else if (Array.isArray(value)) {
@@ -35,6 +39,18 @@ export default async function MinistryDetailPage({
     }
     const qs = search.toString();
     redirect(`/admin/ministries/${context.ministry.slug}${qs ? `?${qs}` : ""}`);
+  }
+
+  // A ministry link opens its currently active term. `view=terms` is the
+  // deliberate escape hatch for term administration and preserves the
+  // selected ministry in the URL without making users choose a term first.
+  if (resolvedSearchParams.view !== "terms") {
+    const activeTerm = await getCurrentActiveTerm(context.ministry.id);
+    if (activeTerm) {
+      redirect(
+        `/admin/ministries/${context.ministry.slug}/terms/${activeTerm.term.slug}`,
+      );
+    }
   }
 
   const result = await getTerms(context.ministry.id, {
@@ -55,7 +71,7 @@ export default async function MinistryDetailPage({
       <MinistryManagement
         mode="terms"
         title="Terms"
-        description="Date-aware terms are organized within this ministry."
+        description="Set one dated active term to open its groups and departments directly."
         result={result}
         ministryId={context.ministry.id}
         ministrySlug={context.ministry.slug}

@@ -9,7 +9,7 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
 import { MobileAdminSidebar } from "@/components/admin/mobile-admin-sidebar";
 import {
-  ADMIN_NAVIGATION_ITEMS,
+  getAdminNavigationItems,
   isAdminNavigationItemActive,
 } from "@/components/admin/admin-navigation";
 
@@ -20,6 +20,7 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
   const pathname = usePathname();
+  const navigationItems = getAdminNavigationItems(Boolean(activeChurch));
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
@@ -65,7 +66,7 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
             className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8"
             aria-label="Primary navigation"
           >
-            {ADMIN_NAVIGATION_ITEMS.map((item) => {
+            {navigationItems.map((item) => {
               const active = isAdminNavigationItemActive(
                 pathname,
                 item.href,
