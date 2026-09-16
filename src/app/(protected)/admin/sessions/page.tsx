@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { SessionManagement } from "@/features/session/components/session-management";
 import { getSessions, getSessionTerms } from "@/features/session/queries";
@@ -18,12 +19,12 @@ export default async function SessionsPage({
     getSessionTerms(),
   ]);
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <AdminPageContainer>
       <AdminPageHeader
         title="Sessions"
         description="Create one-off ministry term sessions and record attendance."
       />
       <SessionManagement result={result} terms={terms} />
-    </div>
+    </AdminPageContainer>
   );
 }

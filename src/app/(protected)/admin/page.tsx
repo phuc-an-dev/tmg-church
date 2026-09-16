@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MemberManagement } from "@/features/member/components/member-management";
 import { getMemberForEdit, getMembers } from "@/features/member/queries";
@@ -20,7 +21,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   ]);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <AdminPageContainer>
       <AdminPageHeader
         title="Members"
         description="Manage member profiles and directory for TMG Church."
@@ -32,6 +33,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         invalidEdit={Boolean(params.edit && !editedMember)}
         segments={segments}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

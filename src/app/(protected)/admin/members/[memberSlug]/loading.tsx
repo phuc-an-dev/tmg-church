@@ -1,8 +1,9 @@
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function MemberDetailLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <AdminPageContainer>
       {/* Header Skeleton */}
       <div className="space-y-2">
         <Skeleton className="h-4 w-24" />
@@ -42,6 +43,6 @@ export default function MemberDetailLoading() {
           <Skeleton className="h-40 w-full rounded-xl" />
         </div>
       </div>
-    </div>
+    </AdminPageContainer>
   );
 }

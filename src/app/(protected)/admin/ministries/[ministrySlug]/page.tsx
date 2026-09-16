@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { requireMinistryContext } from "@/features/context/queries";
@@ -43,7 +44,7 @@ export default async function MinistryDetailPage({
     pageSize: safePageSize(query.pageSize),
   });
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+    <AdminPageContainer>
       <AdminPageHeader
         title="Terms"
         description={`Manage terms for ${context.ministry.name}.`}
@@ -60,6 +61,6 @@ export default async function MinistryDetailPage({
         ministryId={context.ministry.id}
         ministrySlug={context.ministry.slug}
       />
-    </div>
+    </AdminPageContainer>
   );
 }

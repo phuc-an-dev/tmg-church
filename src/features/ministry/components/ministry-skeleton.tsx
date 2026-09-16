@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface MinistryManagementSkeletonProps {
@@ -167,11 +168,7 @@ export function MinistryManagementSkeleton({
 
 export function MinistriesPageSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading ministries"
-      className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8"
-    >
+    <AdminPageContainer role="status" aria-label="Loading ministries">
       <span className="sr-only">Loading ministries, please wait...</span>
 
       {/* Header Skeleton matching AdminPageHeader */}
@@ -184,17 +181,13 @@ export function MinistriesPageSkeleton() {
 
       {/* Management Collection Skeleton */}
       <MinistryManagementSkeleton mode="ministries" rowCount={3} />
-    </div>
+    </AdminPageContainer>
   );
 }
 
 export function MinistryDetailPageSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading ministry terms"
-      className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8"
-    >
+    <AdminPageContainer role="status" aria-label="Loading ministry terms">
       <span className="sr-only">Loading ministry terms, please wait...</span>
 
       {/* Header Skeleton */}
@@ -207,17 +200,13 @@ export function MinistryDetailPageSkeleton() {
 
       {/* Management Collection Skeleton for Terms */}
       <MinistryManagementSkeleton mode="terms" rowCount={3} />
-    </div>
+    </AdminPageContainer>
   );
 }
 
 export function TermDetailPageSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Loading term details"
-      className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8"
-    >
+    <AdminPageContainer role="status" aria-label="Loading term details">
       <span className="sr-only">Loading term details, please wait...</span>
 
       {/* Header Skeleton */}
@@ -233,6 +222,6 @@ export function TermDetailPageSkeleton() {
 
       {/* Management Collection Skeleton for Groups / Departments */}
       <MinistryManagementSkeleton mode="groups" rowCount={3} />
-    </div>
+    </AdminPageContainer>
   );
 }

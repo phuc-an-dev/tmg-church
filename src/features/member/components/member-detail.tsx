@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "cn";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -404,7 +405,7 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
 
   return (
     <ExpandableCoordinatorProvider>
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <AdminPageContainer>
         {/* Header & Back Link */}
         <AdminPageHeader
           title="Member Details"
@@ -1394,7 +1395,7 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
             onDismiss={() => setToastMessage(null)}
           />
         )}
-      </div>
+      </AdminPageContainer>
     </ExpandableCoordinatorProvider>
   );
 }
