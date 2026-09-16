@@ -8,11 +8,13 @@ type FloatingCreateButtonProps = Omit<
   "children" | "type"
 > & {
   children: React.ReactNode;
+  icon?: React.ReactNode;
 };
 
 /** Shared primary create action for mobile-first admin collections. */
 export function FloatingCreateButton({
   children,
+  icon,
   className,
   ...props
 }: FloatingCreateButtonProps) {
@@ -25,7 +27,7 @@ export function FloatingCreateButton({
       )}
       {...props}
     >
-      <Plus aria-hidden="true" className="size-5" />
+      {icon ?? <Plus aria-hidden="true" className="size-5" />}
       {children}
     </Button>
   );

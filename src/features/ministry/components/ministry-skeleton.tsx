@@ -225,3 +225,27 @@ export function TermDetailPageSkeleton() {
     </AdminPageContainer>
   );
 }
+
+export function DepartmentDetailPageSkeleton() {
+  return (
+    <AdminPageContainer role="status" aria-label="Loading department details">
+      <span className="sr-only">
+        Loading department details, please wait...
+      </span>
+
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <Skeleton className="h-9 w-40 rounded-lg sm:h-10 sm:w-52" />
+          <Skeleton className="h-5 w-72 max-w-full rounded-md sm:w-80" />
+        </div>
+      </div>
+
+      {/* Subnavigation Tabs Skeleton */}
+      <Skeleton className="h-11 w-64 rounded-xl" />
+
+      {/* Management Collection Skeleton */}
+      <MinistryManagementSkeleton mode="departments" rowCount={3} />
+    </AdminPageContainer>
+  );
+}

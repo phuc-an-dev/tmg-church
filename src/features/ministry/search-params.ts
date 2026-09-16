@@ -36,11 +36,19 @@ export const structureSearchParams = {
     "groups",
   ),
 };
+export const departmentDetailSearchParams = {
+  section: parseAsStringLiteral(["members", "roles"] as const).withDefault(
+    "members",
+  ),
+};
 export const ministrySearchParamsCache =
   createSearchParamsCache(ministrySearchParams);
 export const termSearchParamsCache = createSearchParamsCache(termSearchParams);
 export const structureSearchParamsCache = createSearchParamsCache(
   structureSearchParams,
+);
+export const departmentDetailSearchParamsCache = createSearchParamsCache(
+  departmentDetailSearchParams,
 );
 
 export function safePageSize(value: number) {

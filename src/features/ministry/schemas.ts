@@ -89,3 +89,17 @@ export const deleteServiceStructureSchema = z.object({
   id,
   termDepartmentId: id,
 });
+
+export const assignDepartmentMembersSchema = z.object({
+  termDepartmentId: id,
+  membershipIds: z
+    .array(id)
+    .min(1, "Select at least one member to assign to this department"),
+});
+
+export const unassignDepartmentMembersSchema = z.object({
+  termDepartmentId: id,
+  membershipIds: z
+    .array(id)
+    .min(1, "Select at least one member to remove from this department"),
+});

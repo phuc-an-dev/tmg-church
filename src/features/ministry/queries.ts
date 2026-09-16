@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
+  requireDepartmentContext,
   requireMinistryContext,
   requireOperationalContext,
   requireTermContext,
@@ -9,6 +10,9 @@ import {
 import type { TermOperationalContext } from "@/features/context/queries";
 import { normalizedSearch, safePageSize } from "./search-params";
 import type {
+  DepartmentDetailData,
+  DepartmentDetailMember,
+  DepartmentServiceRole,
   DepartmentServiceStructure,
   MinistryItem,
   PageResult,
@@ -216,7 +220,7 @@ export async function getStructure(
     const { data, error } = await supabase
       .from("term_department")
       .select(
-        "id, name, slug, accent_color, icon_key, department_service_role(count)",
+        "id, name, slug, accent_color, icon_key, department_service_role(count), ministry_assignment(count)",
       )
       .eq("ministry_term_id", context.term.id)
       .order("name")
@@ -234,6 +238,12 @@ export async function getStructure(
             department_service_role: { count: number }[];
           }
         ).department_service_role?.[0]?.count ?? 0,
+      memberCount:
+        (
+          row as unknown as {
+            ministry_assignment: { count: number }[];
+          }
+        ).ministry_assignment?.[0]?.count ?? 0,
     }));
     return {
       items,
@@ -310,5 +320,87 @@ export async function getDepartmentServiceStructure(
         (r as unknown as { service_assignment: { count: number }[] })
           .service_assignment?.[0]?.count ?? 0,
     })),
+  };
+}
+
+export async function getDepartmentDetailData(
+  ministrySlug: string,
+  termSlug: string,
+  departmentSlug: string,
+): Promise<DepartmentDetailData | null> {
+  const context = await requireDepartmentContext(
+    ministrySlug,
+    termSlug,
+    departmentSlug,
+  );
+  if (!context) return null;
+  const supabase = await createClient();
+
+  const [membershipsRes, assignmentsRes, rolesRes] = await Promise.all([
+    supabase
+      .from("ministry_membership")
+      .select("id, member_profile!inner(id, full_name, slug, archived_at)")
+      .eq("ministry_term_id", context.term.id)
+      .is("member_profile.archived_at", null),
+    supabase
+      .from("ministry_assignment")
+      .select("id, ministry_membership_id")
+      .eq("term_department_id", context.department.id),
+    supabase
+      .from("department_service_role")
+      .select("id, term_department_id, name, service_assignment(count)")
+      .eq("term_department_id", context.department.id)
+      .order("name"),
+  ]);
+
+  if (membershipsRes.error || assignmentsRes.error || rolesRes.error) {
+    throw new Error("Failed to fetch department detail data");
+  }
+
+  const assignmentMap = new Map<string, string>();
+  for (const a of assignmentsRes.data ?? []) {
+    assignmentMap.set(a.ministry_membership_id, a.id);
+  }
+
+  const members: DepartmentDetailMember[] = (membershipsRes.data ?? [])
+    .map((m) => {
+      const profile = m.member_profile as unknown as {
+        id: string;
+        full_name: string;
+        slug: string;
+      };
+      const assignmentId = assignmentMap.get(m.id) ?? null;
+      return {
+        membershipId: m.id,
+        memberId: profile.id,
+        memberName: profile.full_name,
+        memberSlug: profile.slug,
+        isAssigned: Boolean(assignmentId),
+        assignmentId,
+      };
+    })
+    .sort((a, b) => a.memberName.localeCompare(b.memberName));
+
+  const roles: DepartmentServiceRole[] = (rolesRes.data ?? []).map((r) => ({
+    id: r.id,
+    termDepartmentId: r.term_department_id,
+    name: r.name,
+    assignmentCount:
+      (r as unknown as { service_assignment: { count: number }[] })
+        .service_assignment?.[0]?.count ?? 0,
+  }));
+
+  return {
+    department: {
+      id: context.department.id,
+      name: context.department.name,
+      slug: context.department.slug,
+      accentColor: context.department.accentColor,
+      iconKey: context.department.iconKey,
+      memberCount: assignmentMap.size,
+      roleCount: roles.length,
+    },
+    members,
+    roles,
   };
 }

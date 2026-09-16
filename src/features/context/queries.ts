@@ -35,6 +35,16 @@ export type TermOperationalContext = MinistryOperationalContext & {
   };
 };
 
+export type DepartmentOperationalContext = TermOperationalContext & {
+  department: {
+    id: string;
+    name: string;
+    slug: string;
+    accentColor: string;
+    iconKey: string;
+  };
+};
+
 /**
  * Resolves the authenticated leader and single active church.
  *
@@ -159,6 +169,54 @@ export const requireTermContext = cache(
             startDate: data.start_date,
             endDate: data.end_date,
             lifecycle: data.lifecycle,
+          },
+        }
+      : null;
+  },
+);
+
+/**
+ * Resolves operational context with a specific ministry, term, and department.
+ *
+ * @param ministrySlug - Ministry's immutable Church-scoped slug.
+ * @param termSlug - Term's immutable ministry-scoped slug.
+ * @param departmentSlug - Department's immutable term-scoped slug.
+ * @returns The full department context, or `null` if ministry, term, or department is not found.
+ */
+export const requireDepartmentContext = cache(
+  async (
+    ministrySlug: string,
+    termSlug: string,
+    departmentSlug: string,
+  ): Promise<DepartmentOperationalContext | null> => {
+    if (isUuid(ministrySlug) || isUuid(termSlug) || isUuid(departmentSlug)) {
+      return null;
+    }
+    const termCtx = await requireTermContext(ministrySlug, termSlug);
+    if (!termCtx) return null;
+
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("term_department")
+      .select("id, name, slug, accent_color, icon_key")
+      .eq("ministry_term_id", termCtx.term.id)
+      .eq("slug", departmentSlug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("Failed to fetch department context");
+    }
+
+    return data
+      ? {
+          ...termCtx,
+          department: {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            accentColor: data.accent_color,
+            iconKey: data.icon_key,
           },
         }
       : null;

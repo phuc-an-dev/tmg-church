@@ -5,12 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
+  assignDepartmentMembersSchema,
   deleteSchema,
   deleteServiceStructureSchema,
   ministrySchema,
   serviceRoleSchema,
   structureSchema,
   termSchema,
+  unassignDepartmentMembersSchema,
 } from "./schemas";
 import { getDepartmentServiceStructure } from "./queries";
 import type { ActionResult, DepartmentServiceStructure } from "./types";
@@ -116,7 +118,11 @@ async function uniqueStructureSlug(
   }
   throw new Error("structure slug limit reached");
 }
-async function paths(ministryId?: string, termId?: string) {
+async function paths(
+  ministryId?: string,
+  termId?: string,
+  departmentSlug?: string,
+) {
   revalidatePath("/admin");
   revalidatePath("/admin/ministries");
   revalidatePath("/admin/ministries", "layout");
@@ -136,8 +142,14 @@ async function paths(ministryId?: string, termId?: string) {
     .eq("id", termId)
     .eq("ministry_id", ministryId)
     .maybeSingle();
-  if (term)
+  if (term) {
     revalidatePath(`/admin/ministries/${ministry.slug}/terms/${term.slug}`);
+    if (departmentSlug) {
+      revalidatePath(
+        `/admin/ministries/${ministry.slug}/terms/${term.slug}/departments/${departmentSlug}`,
+      );
+    }
+  }
 }
 
 export async function saveMinistryAction(
@@ -519,7 +531,7 @@ export async function saveDepartmentServiceRoleAction(
     const { data: dept } = await supabase
       .from("term_department")
       .select(
-        "id, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
+        "id, slug, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
       )
       .eq("id", parsed.data.termDepartmentId)
       .maybeSingle();
@@ -548,7 +560,11 @@ export async function saveDepartmentServiceRoleAction(
         return dbError(error, "Unable to update this service role.");
       }
 
-      await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+      await paths(
+        dept.ministry_term.ministry_id,
+        dept.ministry_term_id,
+        dept.slug,
+      );
       return {
         success: true,
         data: { id: parsed.data.id },
@@ -569,7 +585,11 @@ export async function saveDepartmentServiceRoleAction(
       return dbError(error, "Unable to create this service role.");
     }
 
-    await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+    await paths(
+      dept.ministry_term.ministry_id,
+      dept.ministry_term_id,
+      dept.slug,
+    );
     return {
       success: true,
       data: { id: data.id },
@@ -595,7 +615,7 @@ export async function deleteDepartmentServiceRoleAction(
     const { data: dept } = await supabase
       .from("term_department")
       .select(
-        "id, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
+        "id, slug, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
       )
       .eq("id", parsed.data.termDepartmentId)
       .maybeSingle();
@@ -636,7 +656,11 @@ export async function deleteDepartmentServiceRoleAction(
       return dbError(error, "Unable to delete this service role.");
     }
 
-    await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+    await paths(
+      dept.ministry_term.ministry_id,
+      dept.ministry_term_id,
+      dept.slug,
+    );
     return {
       success: true,
       data: { id: parsed.data.id },
@@ -670,6 +694,147 @@ export async function getDepartmentServiceStructureAction(
     return resultError(
       "DATABASE_ERROR",
       "Unable to fetch department service structure.",
+    );
+  }
+}
+
+export async function assignDepartmentMembersAction(
+  rawInput: unknown,
+): Promise<ActionResult<{ assignedCount: number }>> {
+  const ctx = await requireOperationalContext();
+  try {
+    const parsed = assignDepartmentMembersSchema.safeParse(rawInput);
+    if (!parsed.success) return invalid(parsed.error);
+
+    const supabase = await createClient();
+
+    const { data: dept } = await supabase
+      .from("term_department")
+      .select(
+        "id, slug, ministry_term_id, ministry_term!inner(id, slug, ministry_id, ministry!inner(church_id, slug))",
+      )
+      .eq("id", parsed.data.termDepartmentId)
+      .maybeSingle();
+
+    const churchId = (
+      dept?.ministry_term as unknown as {
+        ministry: { church_id: string; slug: string };
+      }
+    )?.ministry?.church_id;
+
+    if (!dept || churchId !== ctx.church.id) {
+      return resultError("NOT_FOUND", "Department was not found.");
+    }
+
+    const { data: validMemberships, error: membershipError } = await supabase
+      .from("ministry_membership")
+      .select("id")
+      .eq("ministry_term_id", dept.ministry_term_id)
+      .in("id", parsed.data.membershipIds);
+
+    if (membershipError) {
+      return dbError(membershipError, "Failed to validate term memberships.");
+    }
+
+    const validIds = new Set((validMemberships ?? []).map((m) => m.id));
+    const invalidFound = parsed.data.membershipIds.some(
+      (mId) => !validIds.has(mId),
+    );
+    if (invalidFound) {
+      return resultError(
+        "VALIDATION_FAILED",
+        "Only members already enrolled in this term can be assigned to the department.",
+      );
+    }
+
+    const rowsToInsert = parsed.data.membershipIds.map((membershipId) => ({
+      ministry_membership_id: membershipId,
+      term_department_id: dept.id,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("ministry_assignment")
+      .upsert(rowsToInsert, {
+        onConflict: "ministry_membership_id,term_department_id",
+        ignoreDuplicates: true,
+      });
+
+    if (insertError) {
+      return dbError(insertError, "Failed to assign members to department.");
+    }
+
+    const ministryId = (
+      dept.ministry_term as unknown as { ministry_id: string }
+    ).ministry_id;
+    await paths(ministryId, dept.ministry_term_id, dept.slug);
+
+    const assignedCount = rowsToInsert.length;
+    return {
+      success: true,
+      data: { assignedCount },
+      message: `Assigned ${assignedCount} member${assignedCount === 1 ? "" : "s"} to department.`,
+    };
+  } catch {
+    return resultError(
+      "DATABASE_ERROR",
+      "Unable to assign members to department.",
+    );
+  }
+}
+
+export async function unassignDepartmentMembersAction(
+  rawInput: unknown,
+): Promise<ActionResult<{ unassignedCount: number }>> {
+  const ctx = await requireOperationalContext();
+  try {
+    const parsed = unassignDepartmentMembersSchema.safeParse(rawInput);
+    if (!parsed.success) return invalid(parsed.error);
+
+    const supabase = await createClient();
+
+    const { data: dept } = await supabase
+      .from("term_department")
+      .select(
+        "id, slug, ministry_term_id, ministry_term!inner(id, slug, ministry_id, ministry!inner(church_id, slug))",
+      )
+      .eq("id", parsed.data.termDepartmentId)
+      .maybeSingle();
+
+    const churchId = (
+      dept?.ministry_term as unknown as {
+        ministry: { church_id: string; slug: string };
+      }
+    )?.ministry?.church_id;
+
+    if (!dept || churchId !== ctx.church.id) {
+      return resultError("NOT_FOUND", "Department was not found.");
+    }
+
+    const { error: deleteError } = await supabase
+      .from("ministry_assignment")
+      .delete()
+      .eq("term_department_id", dept.id)
+      .in("ministry_membership_id", parsed.data.membershipIds);
+
+    if (deleteError) {
+      return dbError(deleteError, "Failed to remove department assignment.");
+    }
+
+    const ministryId = (
+      dept.ministry_term as unknown as { ministry_id: string }
+    ).ministry_id;
+    await paths(ministryId, dept.ministry_term_id, dept.slug);
+
+    const count = parsed.data.membershipIds.length;
+    return {
+      success: true,
+      data: { unassignedCount: count },
+      message: `Removed ${count} member${count === 1 ? "" : "s"} from department.`,
+    };
+  } catch {
+    return resultError(
+      "DATABASE_ERROR",
+      "Unable to remove department assignment.",
     );
   }
 }

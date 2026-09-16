@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-16: Department Detail Administration
+
+Result: accepted after implementation review. Added slug-routed Department Detail administration at `/admin/ministries/[ministrySlug]/terms/[termSlug]/departments/[departmentSlug]?section=members|roles` with hierarchy and single-church validation. Supported direct member assignment and unassignment scoped to term-enrolled members, clean card presentation, and batch assignment drawer. Supported department service role CRUD with session assignment deletion protection. Reused shared ResponsiveEditor, ConfirmationSheet, FloatingCreateButton, and NavigationTabs without technical debt. Lint, typecheck, format check, smoke tests, and production build passed.
+
 ## 2026-09-16: Operations Phase 2 — Operational Context Resolver
 
 Result: accepted. Centralized cached server-only Church, Ministry, and Term resolution for protected reads and mutations. Authenticated routes and member mutations passed, including ministry-term enrollment; unauthenticated `/admin` redirected to `/admin/login`. Zero- and multiple-Church branches were accepted by source review because the available database was not disposable. Lint, typecheck, format check, and production build passed.

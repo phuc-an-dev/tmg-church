@@ -38,6 +38,16 @@ export type StructureItem = {
   accentColor: string;
   iconKey: string;
   roleCount?: number;
+  memberCount?: number;
+};
+
+export type DepartmentDetailMember = {
+  membershipId: string;
+  memberId: string;
+  memberName: string;
+  memberSlug: string;
+  isAssigned: boolean;
+  assignmentId: string | null;
 };
 
 export type DepartmentServiceRole = {
@@ -49,5 +59,11 @@ export type DepartmentServiceRole = {
 
 export type DepartmentServiceStructure = {
   department: StructureItem;
+  roles: DepartmentServiceRole[];
+};
+
+export type DepartmentDetailData = {
+  department: StructureItem;
+  members: DepartmentDetailMember[];
   roles: DepartmentServiceRole[];
 };
