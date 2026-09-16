@@ -15,7 +15,7 @@ interface CreateChurchDialogProps {
 
 export function CreateChurchDialog({ onSuccess }: CreateChurchDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
+  const [name, setName] = React.useState("Chi Hội ");
   const [customSlug, setCustomSlug] = React.useState("");
   const [showAdvancedSlug, setShowAdvancedSlug] = React.useState(false);
   const [isPending, setIsPending] = React.useState(false);
@@ -27,7 +27,7 @@ export function CreateChurchDialog({ onSuccess }: CreateChurchDialogProps) {
   const previewSlug = customSlug.trim() || generateVietnameseSlug(name);
 
   const resetForm = () => {
-    setName("");
+    setName("Chi Hội ");
     setCustomSlug("");
     setShowAdvancedSlug(false);
     setErrorMessage(null);
@@ -149,7 +149,7 @@ export function CreateChurchDialog({ onSuccess }: CreateChurchDialogProps) {
             </Label>
             <Input
               id="create-church-name"
-              placeholder="e.g. TMG Church"
+              placeholder="e.g. Chi Hội Tin Lành Tuy Hòa"
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isPending}
@@ -158,7 +158,6 @@ export function CreateChurchDialog({ onSuccess }: CreateChurchDialogProps) {
               aria-describedby={
                 fieldErrors.name?.[0] ? "create-church-name-error" : undefined
               }
-              autoFocus
               required
             />
             {fieldErrors.name?.[0] && (

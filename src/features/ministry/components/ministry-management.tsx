@@ -103,6 +103,18 @@ const labelFor = (mode: Mode) =>
       : mode === "groups"
         ? "Group"
         : "Department";
+const getInitialDraft = (mode: Mode) => {
+  switch (mode) {
+    case "ministries":
+      return "Ban ";
+    case "terms":
+      return "Nhiệm kỳ ";
+    case "groups":
+      return "Nhóm ";
+    case "departments":
+      return "Ban ";
+  }
+};
 function isTerm(item: Item): item is TermItem {
   return "startDate" in item;
 }
@@ -610,7 +622,7 @@ export function MinistryManagement({
     );
     setIconKey(identityItem?.iconKey ?? DEFAULT_MINISTRY_ICON_KEY);
     setCustomColorOpen(false);
-    setIdentityNameDraft(identityItem ? identityItem.name : `New ${label}`);
+    setIdentityNameDraft(item !== "create" ? item.name : getInitialDraft(mode));
     const term = item !== "create" && isTerm(item) ? item : null;
     setTermStartDate(term?.startDate ?? "");
     setTermEndDate(term?.endDate ?? "");
@@ -1112,19 +1124,8 @@ export function MinistryManagement({
                 id="name"
                 name="name"
                 required
-                defaultValue={
-                  supportsVisualIdentity
-                    ? undefined
-                    : editor === "create"
-                      ? ""
-                      : editor.name
-                }
-                value={supportsVisualIdentity ? identityNameDraft : undefined}
-                onChange={
-                  supportsVisualIdentity
-                    ? (event) => setIdentityNameDraft(event.target.value)
-                    : undefined
-                }
+                value={identityNameDraft}
+                onChange={(event) => setIdentityNameDraft(event.target.value)}
                 className="h-12 text-base"
               />
             </div>
@@ -1139,7 +1140,7 @@ export function MinistryManagement({
                     ? null
                     : "Use a six-digit hex color."
                 }
-                previewName={identityNameDraft || `New ${label}`}
+                previewName={identityNameDraft || getInitialDraft(mode)}
                 onAccentColorChange={setAccentColor}
                 onIconKeyChange={setIconKey}
                 onCustomColorOpenChange={setCustomColorOpen}

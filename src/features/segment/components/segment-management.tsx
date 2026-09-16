@@ -162,7 +162,7 @@ function SegmentDialog({
   item?: SegmentItem;
 }) {
   const router = useRouter();
-  const [name, setName] = React.useState(item?.name ?? "");
+  const [name, setName] = React.useState(item ? item.name : "Nhóm ");
   const [accentColor, setAccentColor] = React.useState(
     item?.accentColor ?? DEFAULT_MINISTRY_COLOR,
   );
@@ -233,7 +233,6 @@ function SegmentDialog({
               setNameError(null);
               setFormError(null);
             }}
-            autoFocus
             aria-invalid={Boolean(nameError)}
           />
           {nameError && (
@@ -252,7 +251,7 @@ function SegmentDialog({
               ? null
               : "Use a six-digit hex color."
           }
-          previewName={name || "New Segment"}
+          previewName={name || "Nhóm "}
           onAccentColorChange={(value) => {
             setAccentColor(value);
             setFormError(null);

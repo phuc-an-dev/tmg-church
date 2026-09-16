@@ -453,7 +453,6 @@ function MemberCreator({
             }
             className="h-11"
             required
-            autoFocus
           />
           {fieldErrors.fullName?.[0] && (
             <p
