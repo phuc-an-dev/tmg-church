@@ -7,8 +7,6 @@ import {
   ArrowLeft,
   Check,
   CheckSquare,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   Loader2,
   MoreVertical,
@@ -34,6 +32,7 @@ import {
 } from "@/components/ui/sheet";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { PaginationCard } from "@/components/shared/pagination-card";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
   deleteSessionAction,
@@ -331,7 +330,6 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(session.count / session.pageSize));
   const activeStatus = (query.status as SessionFilterStatus) || "pending";
 
   return (
@@ -829,44 +827,13 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
       )}
 
       {/* 5. Pagination Bar */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <p className="text-muted-foreground text-xs sm:text-sm">
-            Showing {(session.page - 1) * session.pageSize + 1}–
-            {Math.min(session.page * session.pageSize, session.count)} of{" "}
-            {session.count}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="size-11 p-0 sm:h-9 sm:w-auto sm:px-3"
-              disabled={session.page <= 1}
-              onClick={() => void setQuery({ page: session.page - 1 })}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="size-4 sm:mr-1" />
-              <span className="hidden sm:inline">Previous</span>
-            </Button>
-            <span className="px-1 text-xs font-medium sm:text-sm">
-              {session.page} / {totalPages}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="size-11 p-0 sm:h-9 sm:w-auto sm:px-3"
-              disabled={session.page >= totalPages}
-              onClick={() => void setQuery({ page: session.page + 1 })}
-              aria-label="Next page"
-            >
-              <span className="hidden sm:inline">Next</span>
-              <ChevronRight className="size-4 sm:ml-1" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <PaginationCard
+        variant="bar"
+        page={session.page}
+        pageSize={session.pageSize}
+        count={session.count}
+        onPageChange={(page) => void setQuery({ page })}
+      />
 
       {/* 6. Fixed Bottom Action Bar for Multi-select */}
       {isSelectionMode && selectedMemberIds.length > 0 && (

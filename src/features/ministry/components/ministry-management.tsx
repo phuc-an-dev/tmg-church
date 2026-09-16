@@ -6,8 +6,6 @@ import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Layers3,
   Plus,
@@ -31,6 +29,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { PaginationCard } from "@/components/shared/pagination-card";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
@@ -599,10 +598,6 @@ export function MinistryManagement({
         ? draftSort !== "name-asc"
         : false;
 
-  const totalPages = Math.max(1, Math.ceil(result.count / result.pageSize));
-  const rangeStart =
-    result.count === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
-  const rangeEnd = Math.min(result.page * result.pageSize, result.count);
   const detailHref = (item: Item) =>
     mode === "ministries"
       ? isMinistry(item) && item.currentTermSlug
@@ -1003,78 +998,14 @@ export function MinistryManagement({
           </>
         )}
         {mode !== "groups" && mode !== "departments" && (
-          <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">
-            <div className="flex items-center justify-between gap-3 p-4">
-              <span className="text-muted-foreground text-sm">
-                Showing{" "}
-                <strong className="text-foreground font-medium">
-                  {rangeStart}–{rangeEnd}
-                </strong>{" "}
-                of{" "}
-                <strong className="text-foreground font-medium">
-                  {result.count}
-                </strong>{" "}
-                {title.toLowerCase()}
-              </span>
-              <div
-                className="border-input bg-muted/35 flex shrink-0 items-center rounded-xl border p-1"
-                aria-label="Results per page"
-              >
-                {[20, 50, 100].map((pageSize) => {
-                  const active = query.pageSize === pageSize;
-                  return (
-                    <button
-                      key={pageSize}
-                      type="button"
-                      aria-pressed={active}
-                      aria-label={`Show ${pageSize} results per page`}
-                      onClick={() => update({ pageSize })}
-                      className={
-                        active
-                          ? "bg-primary text-primary-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-semibold shadow-sm"
-                          : "text-muted-foreground hover:text-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-medium transition-colors"
-                      }
-                    >
-                      {pageSize}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t p-4">
-              <Button
-                variant="outline"
-                className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-                disabled={result.page <= 1}
-                onClick={() =>
-                  void setQuery({ page: result.page - 1 } as never)
-                }
-              >
-                <ChevronLeft aria-hidden="true" />
-                <span className="hidden sm:inline">Previous</span>
-                <span className="sm:hidden">Prev</span>
-              </Button>
-              <span
-                className="border-input bg-card flex min-h-12 min-w-20 items-center justify-center rounded-xl border px-3 text-base font-semibold"
-                aria-live="polite"
-              >
-                {Math.min(result.page, totalPages)}
-                <span className="text-muted-foreground px-1">/</span>
-                {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-                disabled={result.page >= totalPages}
-                onClick={() =>
-                  void setQuery({ page: result.page + 1 } as never)
-                }
-              >
-                Next
-                <ChevronRight aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
+          <PaginationCard
+            page={result.page}
+            pageSize={query.pageSize}
+            count={result.count}
+            itemLabel={title.toLowerCase()}
+            onPageChange={(page) => void setQuery({ page } as never)}
+            onPageSizeChange={(pageSize) => update({ pageSize })}
+          />
         )}
       </section>
       <Button

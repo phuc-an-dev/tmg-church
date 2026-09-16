@@ -4,8 +4,6 @@ import Link from "next/link";
 import {
   CalendarDays,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   Search,
   SlidersHorizontal,
@@ -28,6 +26,7 @@ import {
 } from "@/components/ui/sheet";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { PaginationCard } from "@/components/shared/pagination-card";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
   ExpandableActionItem,
@@ -93,10 +92,6 @@ export function SessionManagement({
     setFilterOpen(false);
   }
   const hasActiveFilter = Boolean(query.term);
-  const totalPages = Math.max(1, Math.ceil(result.count / result.pageSize));
-  const rangeStart =
-    result.count === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
-  const rangeEnd = Math.min(result.page * result.pageSize, result.count);
   return (
     <section className="space-y-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <div className="flex items-center gap-2 border-b pb-5">
@@ -231,74 +226,14 @@ export function SessionManagement({
           </div>
         </>
       )}
-      <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">
-        <div className="flex items-center justify-between gap-3 p-4">
-          <span className="text-muted-foreground text-sm">
-            Showing{" "}
-            <strong className="text-foreground font-medium">
-              {rangeStart}–{rangeEnd}
-            </strong>{" "}
-            of{" "}
-            <strong className="text-foreground font-medium">
-              {result.count}
-            </strong>{" "}
-            sessions
-          </span>
-          <div
-            className="border-input bg-muted/35 flex shrink-0 items-center rounded-xl border p-1"
-            aria-label="Results per page"
-          >
-            {[20, 50, 100].map((pageSize) => {
-              const active = query.pageSize === pageSize;
-              return (
-                <button
-                  key={pageSize}
-                  type="button"
-                  aria-pressed={active}
-                  aria-label={`Show ${pageSize} sessions per page`}
-                  onClick={() => void setQuery({ pageSize, page: 1 })}
-                  className={
-                    active
-                      ? "bg-primary text-primary-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-semibold shadow-sm"
-                      : "text-muted-foreground hover:text-foreground min-h-9 min-w-10 rounded-lg px-2 text-sm font-medium transition-colors"
-                  }
-                >
-                  {pageSize}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t p-4">
-          <Button
-            variant="outline"
-            className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-            disabled={result.page <= 1}
-            onClick={() => void setQuery({ page: result.page - 1 })}
-          >
-            <ChevronLeft aria-hidden="true" />
-            <span className="hidden sm:inline">Previous</span>
-            <span className="sm:hidden">Prev</span>
-          </Button>
-          <span
-            className="border-input bg-card flex min-h-12 min-w-20 items-center justify-center rounded-xl border px-3 text-base font-semibold"
-            aria-live="polite"
-          >
-            {Math.min(result.page, totalPages)}
-            <span className="text-muted-foreground px-1">/</span>
-            {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
-            disabled={result.page >= totalPages}
-            onClick={() => void setQuery({ page: result.page + 1 })}
-          >
-            Next
-            <ChevronRight aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
+      <PaginationCard
+        page={result.page}
+        pageSize={query.pageSize}
+        count={result.count}
+        itemLabel="sessions"
+        onPageChange={(page) => void setQuery({ page })}
+        onPageSizeChange={(pageSize) => void setQuery({ pageSize, page: 1 })}
+      />
       <ResponsiveEditor
         open={Boolean(edit)}
         onOpenChange={(v) => !v && setEdit(null)}
