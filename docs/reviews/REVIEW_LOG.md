@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-16: Operations Phase 2 — Operational Context Resolver
+
+Result: accepted. Centralized cached server-only Church, Ministry, and Term resolution for protected reads and mutations. Authenticated routes and member mutations passed, including ministry-term enrollment; unauthenticated `/admin` redirected to `/admin/login`. Zero- and multiple-Church branches were accepted by source review because the available database was not disposable. Lint, typecheck, format check, and production build passed.
+
 ## 2026-09-15: Single-church navigation and active ministry term resolver
 
 Result: accepted after implementation review. Church setup now appears only before the singleton church is configured; operational navigation automatically uses that one church. Ministry cards link directly to the date-current term with ministry/term slugs in the URL; dated terms in one ministry cannot overlap. Lint, typecheck, format check, production build, and authenticated local route checks passed.

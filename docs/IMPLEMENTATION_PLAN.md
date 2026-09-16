@@ -9,11 +9,13 @@ This file records sequence only. It never authorizes implementation; use `docs/N
 - Supabase SSR authentication, Magic Link, leader authorization, and sign-out
 - Mobile-first administration shell and single-Church management
 - Ministry, term, group, and department management with URL state, pagination, responsive actions, and visual identity
+- Member management: create, edit, archive, restore, private phone access, memberships, groups, departments, and segments
+- Member segments: church-scoped slugs, visual identity, CRUD, per-member assignments, condition-based bulk adds
+- Operational context resolver: centralized Church/Ministry/Term resolution for all protected queries and mutations
 
 ## Next
 
-1. Member management: create, edit, archive, restore, private phone access, memberships, groups, departments, and segments.
-2. Public directory: approved public fields, friendly Ministry and Term routes, search, filters, pagination, and metadata.
+1. Public directory: approved public fields, friendly Ministry and Term routes, search, filters, pagination, and metadata.
 
 ## Later
 

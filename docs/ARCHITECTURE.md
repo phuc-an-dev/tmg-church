@@ -105,6 +105,7 @@ Administration URLs may use immutable UUIDs because they are private operational
 ## Reads and mutations
 
 - Initial collection reads occur in Server Components using parsed URL state.
+- Protected reads and mutations resolve their authenticated single-Church scope through the cached, server-only operational-context resolver. It resolves Church first, then Ministry and Term only when needed; missing Ministry or Term context returns `null`, while zero-Church redirects to setup and multiple-Church state is treated as data corruption.
 - Interactive controls update URL state through `nuqs`.
 - Server-backed search uses `shallow: false` with a 300 ms debounce.
 - Authenticated mutations use Server Actions and server-side Zod validation.
