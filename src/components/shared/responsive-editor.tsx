@@ -27,6 +27,7 @@ export interface ResponsiveEditorProps {
   children: React.ReactNode;
   footer: React.ReactNode;
   maxWidthClass?: string;
+  mobileMinHeightClass?: string;
 }
 
 function subscribe(callback: () => void) {
@@ -76,6 +77,7 @@ export function ResponsiveEditor({
   children,
   footer,
   maxWidthClass = "sm:max-w-lg",
+  mobileMinHeightClass,
 }: ResponsiveEditorProps) {
   const isDesktop = useIsDesktop();
 
@@ -124,7 +126,10 @@ export function ResponsiveEditor({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-none"
+        className={cn(
+          "border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-none",
+          mobileMinHeightClass,
+        )}
       >
         {/* Mobile visual drag handle */}
         <div

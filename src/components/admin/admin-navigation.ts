@@ -1,4 +1,4 @@
-import { Church, Layers3, Tags, Users } from "lucide-react";
+import { CalendarDays, Church, Layers3, Tags, Users } from "lucide-react";
 
 const CORE_ADMIN_NAVIGATION_ITEMS = [
   {
@@ -17,6 +17,12 @@ const CORE_ADMIN_NAVIGATION_ITEMS = [
     href: "/admin/segments",
     label: "Segments",
     icon: Tags,
+    exact: false,
+  },
+  {
+    href: "/admin/sessions",
+    label: "Sessions",
+    icon: CalendarDays,
     exact: false,
   },
 ] as const;
