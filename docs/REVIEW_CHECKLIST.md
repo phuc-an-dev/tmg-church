@@ -4,7 +4,7 @@
 
 - The change implements only the approved plan slice.
 - Source code and developer-facing text are English.
-- User-facing text and metadata are Vietnamese.
+- User-facing text and metadata are English.
 - No emoji or non-Lucide interface icons were introduced.
 - No unrelated dependency or architecture was added.
 - Environment secrets are not committed.
@@ -79,8 +79,8 @@
 - Heading order is semantic.
 - Controls have visible labels or accessible names.
 - Keyboard focus is visible and logical.
-- Icon-only controls have Vietnamese accessible names.
+- Icon-only controls have English accessible names.
 - State is not communicated by color alone.
 - Reduced motion is respected.
-- Public pages have Vietnamese title, description, canonical URL, and useful social metadata.
+- Public pages have English title, description, canonical URL, and useful social metadata.
 - Friendly slug routes return a localized 404 when invalid.
