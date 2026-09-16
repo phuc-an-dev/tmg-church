@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-16: Admin Icon Management
+
+Result: accepted after implementation review. Added admin Icon Management area at `/admin/icons` with a persistent shared `frequent_icon` list, on-demand catalog search (no icons loaded until search query is explicitly submitted), keyboard-accessible drag-and-drop ordering through a dedicated 44px grip, raised drag overlay, optimistic persistence on drop, selection detail panel, and mobile bottom drawers for details and deletion confirmation. Applied local migration `20260916000004_frequent_icon.sql` with RLS and initial icon seed. Lint, typecheck, format check, smoke tests, production build, and live keyboard reorder/restore passed.
+
 ## 2026-09-16: Department Detail Administration
 
 Result: accepted after implementation review. Added slug-routed Department Detail administration at `/admin/ministries/[ministrySlug]/terms/[termSlug]/departments/[departmentSlug]?section=members|roles` with hierarchy and single-church validation. Supported direct member assignment and unassignment scoped to term-enrolled members, clean card presentation, and batch assignment drawer. Supported department service role CRUD with session assignment deletion protection. Reused shared ResponsiveEditor, ConfirmationSheet, FloatingCreateButton, and NavigationTabs without technical debt. Lint, typecheck, format check, smoke tests, and production build passed.

@@ -1,4 +1,11 @@
-import { CalendarDays, Church, Layers3, Tags, Users } from "lucide-react";
+import {
+  CalendarDays,
+  Church,
+  Layers3,
+  Sparkles,
+  Tags,
+  Users,
+} from "lucide-react";
 
 const CORE_ADMIN_NAVIGATION_ITEMS = [
   {
@@ -23,6 +30,12 @@ const CORE_ADMIN_NAVIGATION_ITEMS = [
     href: "/admin/sessions",
     label: "Sessions",
     icon: CalendarDays,
+    exact: false,
+  },
+  {
+    href: "/admin/icons",
+    label: "Icons",
+    icon: Sparkles,
     exact: false,
   },
 ] as const;
