@@ -8,7 +8,6 @@ import {
   Clock,
   Loader2,
   Phone,
-  Plus,
   RotateCcw,
   Users,
 } from "lucide-react";
@@ -27,6 +26,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { StatusToast } from "@/components/ui/status-toast";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { DynamicLucideIcon } from "@/features/ministry/components/dynamic-lucide-icon";
 import { normalizeMinistryColor } from "@/features/ministry/visual-identity";
 import {
@@ -1378,17 +1378,14 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
         />
 
         {/* Floating Action Button for Ministry Enrollment */}
-        <Button
-          type="button"
+        <FloatingCreateButton
           onClick={() => {
             resetEnrollmentDialog();
             setIsEnrollmentSheetOpen(true);
           }}
-          className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
         >
-          <Plus aria-hidden="true" className="size-5" />
           <span>Ministry Enrollments</span>
-        </Button>
+        </FloatingCreateButton>
 
         {/* Toast */}
         {toastMessage && (

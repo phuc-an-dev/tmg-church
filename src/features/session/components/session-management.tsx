@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   CalendarDays,
   Check,
-  Plus,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -27,6 +26,7 @@ import {
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { PaginationCard } from "@/components/shared/pagination-card";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
   ExpandableActionItem,
@@ -395,13 +395,9 @@ export function SessionManagement({
         confirmIcon={<Trash2 className="size-4" />}
       />
       {toast && <StatusToast message={toast} onDismiss={() => setToast("")} />}
-      <Button
-        className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
-        onClick={() => open("new")}
-      >
-        <Plus aria-hidden="true" className="size-5" />
+      <FloatingCreateButton onClick={() => open("new")}>
         Add session
-      </Button>
+      </FloatingCreateButton>
     </section>
   );
 }

@@ -51,6 +51,7 @@ import {
 } from "@/components/shared/expandable-action-item";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { PaginationCard } from "@/components/shared/pagination-card";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { IdentityTile } from "@/features/ministry/components/ministry-management";
 import {
   archiveMemberAction,
@@ -1362,13 +1363,9 @@ export function MemberManagement({
       </section>
 
       {/* Floating Add Member Button */}
-      <Button
-        className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
-        onClick={() => setIsCreating(true)}
-      >
-        <Plus aria-hidden="true" className="size-5" />
+      <FloatingCreateButton onClick={() => setIsCreating(true)}>
         Add Member
-      </Button>
+      </FloatingCreateButton>
 
       {/* Mobile Filter & Sort Sheet */}
       <Sheet

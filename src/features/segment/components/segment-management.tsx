@@ -15,6 +15,7 @@ import {
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import {
   IdentityPicker,
@@ -398,16 +399,14 @@ export function SegmentManagement({ segments }: { segments: SegmentItem[] }) {
             </div>
           </div>
         )}
-        <Button
-          className="fixed right-5 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 min-h-12 rounded-full px-5 shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--primary)_70%,transparent)] md:right-8 md:bottom-8"
+        <FloatingCreateButton
           onClick={() => {
             setEditing(undefined);
             setDialog(true);
           }}
         >
-          <Plus aria-hidden="true" className="size-5" />
           Add Segment
-        </Button>
+        </FloatingCreateButton>
         <SegmentDialog
           key={`${dialog}-${editing?.id ?? "new"}`}
           open={dialog}
