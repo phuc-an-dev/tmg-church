@@ -595,9 +595,9 @@ export function MinistryManagement({
     mode === "ministries"
       ? isMinistry(item) && item.currentTermSlug
         ? `/admin/ministries/${item.slug}/terms/${item.currentTermSlug}`
-        : `/admin/ministries/${item.slug || item.id}?view=terms`
+        : `/admin/ministries/${item.slug}?view=terms`
       : mode === "terms"
-        ? `/admin/ministries/${ministrySlug || ministryId}/terms/${item.slug || item.id}`
+        ? `/admin/ministries/${ministrySlug}/terms/${item.slug}`
         : undefined;
 
   function openEditor(item: Item | "create") {
@@ -1145,28 +1145,31 @@ export function MinistryManagement({
                 onCustomColorOpenChange={setCustomColorOpen}
               />
             )}
-            <details className="admin-surface p-3">
-              <summary className="cursor-pointer text-sm font-medium">
-                Advanced link settings
-              </summary>
-              <p className="text-muted-foreground mt-2 text-xs">
-                Leave the slug blank when creating a record to generate one from
-                the name.
-              </p>
-              <div className="mt-3 space-y-2">
-                <Label htmlFor="slug">Slug</Label>
-                <Input
-                  id="slug"
-                  name="slug"
-                  defaultValue={
-                    editor === "create"
-                      ? ""
-                      : (editor as MinistryItem | TermItem | StructureItem).slug
-                  }
-                  className="h-12 font-mono text-base"
-                />
-              </div>
-            </details>
+            {(mode === "groups" || mode === "departments") && (
+              <details className="admin-surface p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Advanced link settings
+                </summary>
+                <p className="text-muted-foreground mt-2 text-xs">
+                  Leave the slug blank when creating a record to generate one
+                  from the name.
+                </p>
+                <div className="mt-3 space-y-2">
+                  <Label htmlFor="slug">Slug</Label>
+                  <Input
+                    id="slug"
+                    name="slug"
+                    defaultValue={
+                      editor === "create"
+                        ? ""
+                        : (editor as MinistryItem | TermItem | StructureItem)
+                            .slug
+                    }
+                    className="h-12 font-mono text-base"
+                  />
+                </div>
+              </details>
+            )}
             {mode === "terms" && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">

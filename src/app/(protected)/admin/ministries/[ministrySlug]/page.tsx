@@ -8,41 +8,28 @@ import {
   safePageSize,
   termSearchParamsCache,
 } from "@/features/ministry/search-params";
-import { isUuid } from "@/lib/slug";
 
 export const metadata: Metadata = { title: "Ministry Terms" };
 export default async function MinistryDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ ministryId: string }>;
+  params: Promise<{ ministrySlug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { ministryId } = await params;
+  const { ministrySlug } = await params;
   const [context, query, resolvedSearchParams] = await Promise.all([
-    requireMinistryContext(ministryId),
+    requireMinistryContext(ministrySlug),
     termSearchParamsCache.parse(searchParams),
     searchParams,
   ]);
   if (!context) notFound();
 
-  if (isUuid(ministryId) && context.ministry.slug) {
-    const search = new URLSearchParams();
-    for (const [key, value] of Object.entries(resolvedSearchParams)) {
-      if (typeof value === "string") search.set(key, value);
-      else if (Array.isArray(value)) {
-        for (const v of value) search.append(key, v);
-      }
-    }
-    const qs = search.toString();
-    redirect(`/admin/ministries/${context.ministry.slug}${qs ? `?${qs}` : ""}`);
-  }
-
   // A ministry link opens its currently active term. `view=terms` is the
   // deliberate escape hatch for term administration and preserves the
   // selected ministry in the URL without making users choose a term first.
   if (resolvedSearchParams.view !== "terms") {
-    const activeTerm = await getCurrentActiveTerm(context.ministry.id);
+    const activeTerm = await getCurrentActiveTerm(context.ministry.slug);
     if (activeTerm) {
       redirect(
         `/admin/ministries/${context.ministry.slug}/terms/${activeTerm.term.slug}`,
@@ -50,7 +37,7 @@ export default async function MinistryDetailPage({
     }
   }
 
-  const result = await getTerms(context.ministry.id, {
+  const result = await getTerms(context.ministry.slug, {
     ...query,
     page: Math.max(1, query.page),
     pageSize: safePageSize(query.pageSize),

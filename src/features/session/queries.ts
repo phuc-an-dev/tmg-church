@@ -11,15 +11,21 @@ export async function getSessionTerms(): Promise<SessionTermOption[]> {
   const s = await createClient();
   const { data, error } = await s
     .from("ministry_term")
-    .select("id,name,ministry!inner(church_id,name)")
+    .select("id,name,slug,ministry!inner(church_id,name,slug)")
     .eq("ministry.church_id", ctx.church.id)
     .order("name");
   if (error) throw new Error("Failed to fetch session terms");
-  return (data ?? []).map((x) => ({
-    id: x.id,
-    name: x.name,
-    ministryName: (x.ministry as unknown as { name: string }).name,
-  }));
+  return (data ?? []).map((x) => {
+    const ministry = x.ministry as unknown as { name: string; slug: string };
+    return {
+      id: x.id,
+      slug: x.slug,
+      ministrySlug: ministry.slug,
+      routeKey: `${ministry.slug}/${x.slug}`,
+      name: x.name,
+      ministryName: ministry.name,
+    };
+  });
 }
 export async function getSessions(p: {
   q: string;
@@ -27,18 +33,29 @@ export async function getSessions(p: {
   page: number;
   pageSize: number;
 }): Promise<SessionPage> {
-  const terms = await getSessionTerms();
-  const ids = terms.map((x) => x.id);
+  const [ctx, terms] = await Promise.all([
+    requireOperationalContext(),
+    getSessionTerms(),
+  ]);
+  const selectedTerm = p.term
+    ? terms.find((term) => term.routeKey === p.term)
+    : null;
+  const ids = p.term
+    ? selectedTerm
+      ? [selectedTerm.id]
+      : []
+    : terms.map((x) => x.id);
   const pageSize = safePageSize(p.pageSize);
   if (!ids.length) return { items: [], count: 0, page: 1, pageSize };
   const s = await createClient();
   let q = s
     .from("ministry_session")
     .select(
-      "id,title,session_date,ministry_term_id,session_participant(count)",
+      "id,slug,title,session_date,ministry_term_id,session_participant(count),session_assignment(count),service_assignment(count)",
       { count: "exact" },
     )
-    .in("ministry_term_id", p.term ? [p.term] : ids)
+    .in("ministry_term_id", ids)
+    .eq("church_id", ctx.church.id)
     .order("session_date", { ascending: false })
     .order("id");
   if (p.q.trim()) q = q.ilike("title", `%${p.q.trim()}%`);
@@ -55,15 +72,23 @@ export async function getSessions(p: {
       const participants =
         (x.session_participant as unknown as { count: number }[])?.[0]?.count ??
         0;
+      const assignments =
+        (x.session_assignment as unknown as { count: number }[])?.[0]?.count ??
+        0;
+      const serviceAssignments =
+        (x.service_assignment as unknown as { count: number }[])?.[0]?.count ??
+        0;
       return {
         id: x.id,
+        slug: x.slug,
         title: x.title,
         sessionDate: x.session_date,
         termId: x.ministry_term_id,
         termName: t.name,
         ministryName: t.ministryName,
         participantCount: participants,
-        canDelete: participants === 0,
+        canDelete:
+          participants === 0 && assignments === 0 && serviceAssignments === 0,
       };
     }),
     count: count ?? 0,
@@ -72,17 +97,18 @@ export async function getSessions(p: {
   };
 }
 export async function getSessionDetail(
-  id: string,
+  slug: string,
 ): Promise<SessionDetail | null> {
-  if (!isUuid(id)) return null;
+  if (isUuid(slug)) return null;
   const ctx = await requireOperationalContext();
   const s = await createClient();
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,title,session_date,ministry_term_id,ministry_term!inner(name,ministry!inner(church_id,name)),session_participant(count)",
+      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(name,ministry!inner(church_id,name)),session_participant(count),session_assignment(count),service_assignment(count)",
     )
-    .eq("id", id)
+    .eq("slug", slug)
+    .eq("church_id", ctx.church.id)
     .eq("ministry_term.ministry.church_id", ctx.church.id)
     .maybeSingle();
   if (sessionError) throw new Error("Failed to fetch session");
@@ -94,15 +120,23 @@ export async function getSessionDetail(
   const participantCount =
     (raw.session_participant as unknown as { count: number }[])?.[0]?.count ??
     0;
+  const assignmentCount =
+    (raw.session_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
+  const serviceAssignmentCount =
+    (raw.service_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
   const item = {
     id: raw.id,
+    slug: raw.slug,
     title: raw.title,
     sessionDate: raw.session_date,
     termId: raw.ministry_term_id,
     termName: relation.name,
     ministryName: relation.ministry.name,
     participantCount,
-    canDelete: participantCount === 0,
+    canDelete:
+      participantCount === 0 &&
+      assignmentCount === 0 &&
+      serviceAssignmentCount === 0,
   };
   const [{ data, error }, { data: attendanceRows, error: attendanceError }] =
     await Promise.all([
@@ -115,7 +149,7 @@ export async function getSessionDetail(
       s
         .from("session_participant")
         .select("member_profile_id,attendance_record(status)")
-        .eq("ministry_session_id", id),
+        .eq("ministry_session_id", raw.id),
     ]);
   if (error || attendanceError)
     throw new Error("Failed to fetch session participants");

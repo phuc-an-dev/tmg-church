@@ -46,10 +46,8 @@ function currentChurchDate() {
  * dated terms in one ministry from overlapping, so this is unambiguous.
  */
 export const getCurrentActiveTerm = cache(
-  async (
-    ministryIdentifier: string,
-  ): Promise<TermOperationalContext | null> => {
-    const context = await requireMinistryContext(ministryIdentifier);
+  async (ministrySlug: string): Promise<TermOperationalContext | null> => {
+    const context = await requireMinistryContext(ministrySlug);
     if (!context) return null;
 
     const currentDate = currentChurchDate();
@@ -145,7 +143,7 @@ export async function getMinistries(params: {
   };
 }
 export async function getTerms(
-  ministryId: string,
+  ministrySlug: string,
   params: {
     q: string;
     page: number;
@@ -154,7 +152,7 @@ export async function getTerms(
     sort: "start-desc" | "start-asc" | "name-asc";
   },
 ): Promise<PageResult<TermItem>> {
-  const context = await requireMinistryContext(ministryId);
+  const context = await requireMinistryContext(ministrySlug);
   const pageSize = safePageSize(params.pageSize);
   if (!context) return { items: [], count: 0, page: 1, pageSize };
   const supabase = await createClient();
@@ -205,11 +203,11 @@ export async function getTerms(
   };
 }
 export async function getStructure(
-  ministryId: string,
-  termId: string,
+  ministrySlug: string,
+  termSlug: string,
   section: "groups" | "departments",
 ): Promise<PageResult<StructureItem>> {
-  const context = await requireTermContext(ministryId, termId);
+  const context = await requireTermContext(ministrySlug, termSlug);
   if (!context) return { items: [], count: 0, page: 1, pageSize: 1 };
   const supabase = await createClient();
   const { data, error } = await supabase

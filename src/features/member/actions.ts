@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
+import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   archiveMemberSchema,
   assignTermGroupSchema,
@@ -16,6 +17,68 @@ import {
 } from "./schemas";
 import { normalizePhoneNumber } from "./phone";
 import type { MemberActionResult, MutationActionResult } from "./types";
+
+async function uniqueMemberSlug(churchId: string, fullName: string) {
+  const supabase = await createClient();
+  const rawBase = generateVietnameseSlug(fullName) || "member";
+  const base = isUuid(rawBase) ? `${rawBase}-member` : rawBase;
+  for (let n = 1; n < 100; n += 1) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const { data, error } = await supabase
+      .from("member_profile")
+      .select("id")
+      .eq("church_id", churchId)
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error) throw new Error("Member slug lookup failed");
+    if (!data) return slug;
+  }
+  throw new Error("Member slug limit reached");
+}
+
+async function revalidateMemberPaths(churchId: string, memberId: string) {
+  revalidatePath("/admin");
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("member_profile")
+    .select("slug")
+    .eq("id", memberId)
+    .eq("church_id", churchId)
+    .maybeSingle();
+  if (data) revalidatePath(`/admin/members/${data.slug}`);
+}
+
+async function createMemberWithUniqueSlug(input: {
+  churchId: string;
+  fullName: string;
+  phone: string | null;
+  birthYear: number | null;
+  gender: "female" | "male" | null;
+}) {
+  const supabase = await createClient();
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const slug = await uniqueMemberSlug(input.churchId, input.fullName);
+    const result = await supabase
+      .from("member_profile")
+      .insert({
+        church_id: input.churchId,
+        slug,
+        full_name: input.fullName,
+        phone: input.phone,
+        birth_year: input.birthYear,
+        gender: input.gender,
+      })
+      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+      .single();
+    if (
+      !result.error ||
+      result.error.code !== "23505" ||
+      !result.error.message.includes("member_profile_church_id_slug_key")
+    )
+      return result;
+  }
+  return { data: null, error: null };
+}
 
 export async function createMemberAction(
   rawInput: unknown,
@@ -39,19 +102,14 @@ export async function createMemberAction(
       };
     }
 
-    const supabase = await createClient();
     const { fullName, phone, birthYear, gender } = parsed.data;
-    const { data, error } = await supabase
-      .from("member_profile")
-      .insert({
-        church_id: church.id,
-        full_name: fullName,
-        phone: normalizePhoneNumber(phone),
-        birth_year: birthYear,
-        gender: gender ?? null,
-      })
-      .select("id, full_name, phone, birth_year, gender, archived_at")
-      .single();
+    const { data, error } = await createMemberWithUniqueSlug({
+      churchId: church.id,
+      fullName,
+      phone: normalizePhoneNumber(phone),
+      birthYear,
+      gender: gender ?? null,
+    });
 
     if (error || !data) {
       return {
@@ -61,12 +119,13 @@ export async function createMemberAction(
       };
     }
 
-    revalidatePath("/admin");
+    await revalidateMemberPaths(church.id, data.id);
 
     return {
       success: true,
       data: {
         id: data.id,
+        slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
@@ -118,7 +177,7 @@ export async function updateMemberAction(
       })
       .eq("id", id)
       .eq("church_id", church.id)
-      .select("id, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -137,13 +196,13 @@ export async function updateMemberAction(
       };
     }
 
-    revalidatePath("/admin");
-    revalidatePath(`/admin/members/${id}`);
+    await revalidateMemberPaths(church.id, id);
 
     return {
       success: true,
       data: {
         id: data.id,
+        slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
@@ -185,7 +244,7 @@ export async function archiveMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .is("archived_at", null)
-      .select("id, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -204,13 +263,13 @@ export async function archiveMemberAction(
       };
     }
 
-    revalidatePath("/admin");
-    revalidatePath(`/admin/members/${parsed.data.id}`);
+    await revalidateMemberPaths(church.id, parsed.data.id);
 
     return {
       success: true,
       data: {
         id: data.id,
+        slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
@@ -252,7 +311,7 @@ export async function restoreMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .not("archived_at", "is", null)
-      .select("id, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -271,13 +330,13 @@ export async function restoreMemberAction(
       };
     }
 
-    revalidatePath("/admin");
-    revalidatePath(`/admin/members/${parsed.data.id}`);
+    await revalidateMemberPaths(church.id, parsed.data.id);
 
     return {
       success: true,
       data: {
         id: data.id,
+        slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
         birthYear: data.birth_year,
@@ -328,8 +387,7 @@ export async function setMemberSegmentsAction(
         code: "DATABASE_ERROR",
         error: "Unable to update member segments.",
       };
-    revalidatePath("/admin");
-    revalidatePath(`/admin/members/${member.id}`);
+    await revalidateMemberPaths(church.id, member.id);
     revalidatePath("/admin/segments");
     return { success: true, message: "Member segments updated." };
   } catch {
@@ -420,7 +478,7 @@ export async function enrollMemberWithAssignmentsAction(
       };
     }
 
-    revalidatePath(`/admin/members/${memberId}`);
+    await revalidateMemberPaths(church.id, memberId);
     return {
       success: true,
       message: "Member enrolled successfully in ministry term.",
@@ -494,7 +552,7 @@ export async function removeMinistryMembershipAction(
       };
     }
 
-    revalidatePath(`/admin/members/${memberId}`);
+    await revalidateMemberPaths(church.id, memberId);
     return {
       success: true,
       message: "Membership removed successfully.",
@@ -564,7 +622,7 @@ export async function assignTermGroupAction(
         };
       }
 
-      revalidatePath(`/admin/members/${memberId}`);
+      await revalidateMemberPaths(church.id, memberId);
       return {
         success: true,
         message: "Group assignment removed.",
@@ -606,7 +664,7 @@ export async function assignTermGroupAction(
       };
     }
 
-    revalidatePath(`/admin/members/${memberId}`);
+    await revalidateMemberPaths(church.id, memberId);
     return {
       success: true,
       message: "Group assigned successfully.",
@@ -678,7 +736,7 @@ export async function setMinistryAssignmentsAction(
       };
     }
 
-    revalidatePath(`/admin/members/${memberId}`);
+    await revalidateMemberPaths(church.id, memberId);
     return {
       success: true,
       message:

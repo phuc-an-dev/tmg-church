@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
-import { generateVietnameseSlug } from "@/lib/slug";
+import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   deleteSegmentSchema,
   segmentConditionsSchema,
@@ -39,17 +39,17 @@ function refresh(slug?: string) {
   revalidatePath("/admin/segments");
   if (slug) revalidatePath(`/admin/segments/${slug}`);
 }
-async function uniqueSlug(churchId: string, name: string, excludeId?: string) {
+async function uniqueSlug(churchId: string, name: string) {
   const supabase = await createClient();
-  const base = generateVietnameseSlug(name) || "segment";
+  const rawBase = generateVietnameseSlug(name) || "segment";
+  const base = isUuid(rawBase) ? `${rawBase}-segment` : rawBase;
   for (let n = 1; n < 100; n += 1) {
     const slug = n === 1 ? base : `${base}-${n}`;
-    let query = supabase
+    const query = supabase
       .from("member_segment")
       .select("id")
       .eq("church_id", churchId)
       .eq("slug", slug);
-    if (excludeId) query = query.neq("id", excludeId);
     const { data, error } = await query.maybeSingle();
     if (error) throw error;
     if (!data) return slug;
@@ -74,12 +74,10 @@ export async function saveSegmentAction(
         .maybeSingle();
       if (!existing)
         return fail("NOT_FOUND", "The requested segment was not found.");
-      const slug = await uniqueSlug(church.id, parsed.data.name, existing.id);
       const { error } = await supabase
         .from("member_segment")
         .update({
           name: parsed.data.name,
-          slug,
           accent_color: parsed.data.accentColor,
           icon_key: parsed.data.iconKey,
         })
@@ -87,10 +85,9 @@ export async function saveSegmentAction(
         .eq("church_id", church.id);
       if (error) return segmentWriteFailure(error.code, "update");
       refresh(existing.slug);
-      refresh(slug);
       return {
         success: true,
-        data: { slug },
+        data: { slug: existing.slug },
         message: "Segment updated successfully.",
       };
     }

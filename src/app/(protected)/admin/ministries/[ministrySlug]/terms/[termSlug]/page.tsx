@@ -1,52 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { cn } from "cn";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { requireTermContext } from "@/features/context/queries";
 import { getStructure } from "@/features/ministry/queries";
 import { structureSearchParamsCache } from "@/features/ministry/search-params";
-import { isUuid } from "@/lib/slug";
 
 export const metadata: Metadata = { title: "Term Structure" };
 export default async function TermDetailPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ ministryId: string; termId: string }>;
+  params: Promise<{ ministrySlug: string; termSlug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { ministryId, termId } = await params;
+  const { ministrySlug, termSlug } = await params;
   const [context, query] = await Promise.all([
-    requireTermContext(ministryId, termId),
+    requireTermContext(ministrySlug, termSlug),
     structureSearchParamsCache.parse(searchParams),
   ]);
   if (!context) notFound();
 
-  if (
-    (isUuid(ministryId) || isUuid(termId)) &&
-    context.ministry.slug &&
-    context.term.slug
-  ) {
-    const search = new URLSearchParams();
-    const resolvedSearchParams = await searchParams;
-    for (const [key, value] of Object.entries(resolvedSearchParams)) {
-      if (typeof value === "string") search.set(key, value);
-      else if (Array.isArray(value)) {
-        for (const v of value) search.append(key, v);
-      }
-    }
-    const qs = search.toString();
-    redirect(
-      `/admin/ministries/${context.ministry.slug}/terms/${context.term.slug}${qs ? `?${qs}` : ""}`,
-    );
-  }
-
   const section = query.section;
   const result = await getStructure(
-    context.ministry.id,
-    context.term.id,
+    context.ministry.slug,
+    context.term.slug,
     section,
   );
   const sectionLabel = section === "groups" ? "Groups" : "Departments";

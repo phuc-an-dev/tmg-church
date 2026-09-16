@@ -11,10 +11,10 @@ export const metadata: Metadata = { title: "Member Details" };
 export default async function MemberDetailPage({
   params,
 }: {
-  params: Promise<{ memberId: string }>;
+  params: Promise<{ memberSlug: string }>;
 }) {
-  const { memberId } = await params;
-  const detail = await getMemberDetail(memberId);
+  const { memberSlug } = await params;
+  const detail = await getMemberDetail(memberSlug);
   if (!detail) notFound();
 
   const activeTermIds = detail.memberships.map((m) => m.termId);

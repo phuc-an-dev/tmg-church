@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
-import { generateVietnameseSlug } from "@/lib/slug";
+import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   deleteSchema,
   ministrySchema,
@@ -60,7 +60,8 @@ async function uniqueSlug(
   excludeId?: string,
 ) {
   const supabase = await createClient();
-  const base = customSlug || generateVietnameseSlug(name) || "item";
+  const rawBase = customSlug || generateVietnameseSlug(name) || "item";
+  const base = isUuid(rawBase) ? `${rawBase}-item` : rawBase;
   for (let n = 1; n < 100; n += 1) {
     const candidate = n === 1 ? base : `${base}-${n}`;
     let query =
@@ -112,13 +113,28 @@ async function uniqueStructureSlug(
   }
   throw new Error("structure slug limit reached");
 }
-function paths(ministryId?: string, termId?: string) {
+async function paths(ministryId?: string, termId?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/ministries");
   revalidatePath("/admin/ministries", "layout");
-  if (ministryId) revalidatePath(`/admin/ministries/${ministryId}`);
-  if (ministryId && termId)
-    revalidatePath(`/admin/ministries/${ministryId}/terms/${termId}`);
+  if (!ministryId) return;
+  const supabase = await createClient();
+  const { data: ministry } = await supabase
+    .from("ministry")
+    .select("slug")
+    .eq("id", ministryId)
+    .maybeSingle();
+  if (!ministry) return;
+  revalidatePath(`/admin/ministries/${ministry.slug}`);
+  if (!termId) return;
+  const { data: term } = await supabase
+    .from("ministry_term")
+    .select("slug")
+    .eq("id", termId)
+    .eq("ministry_id", ministryId)
+    .maybeSingle();
+  if (term)
+    revalidatePath(`/admin/ministries/${ministry.slug}/terms/${term.slug}`);
 }
 
 export async function saveMinistryAction(
@@ -141,39 +157,24 @@ export async function saveMinistryAction(
           "NOT_FOUND",
           "The requested ministry was not found.",
         );
-      const slug = parsed.data.slug
-        ? await uniqueSlug(
-            "ministry",
-            ctx.church.id,
-            parsed.data.name,
-            parsed.data.slug,
-            existing.id,
-          )
-        : existing.slug;
       const { error } = await supabase
         .from("ministry")
         .update({
           name: parsed.data.name,
-          slug,
           accent_color: parsed.data.accentColor,
           icon_key: parsed.data.iconKey,
         })
         .eq("id", existing.id)
         .eq("church_id", ctx.church.id);
       if (error) return dbError(error, "Unable to update this ministry.");
-      paths(existing.id);
+      await paths(existing.id);
       return {
         success: true,
         data: { id: existing.id },
         message: "Ministry updated successfully.",
       };
     }
-    const slug = await uniqueSlug(
-      "ministry",
-      ctx.church.id,
-      parsed.data.name,
-      parsed.data.slug,
-    );
+    const slug = await uniqueSlug("ministry", ctx.church.id, parsed.data.name);
     const { data, error } = await supabase
       .from("ministry")
       .insert({
@@ -187,7 +188,7 @@ export async function saveMinistryAction(
       .single();
     if (error || !data)
       return dbError(error, "Unable to create this ministry.");
-    paths(data.id);
+    await paths(data.id);
     return {
       success: true,
       data: { id: data.id },
@@ -223,7 +224,7 @@ export async function deleteMinistryAction(
       .eq("id", record.id)
       .eq("church_id", ctx.church.id);
     if (error) return dbError(error, "Unable to delete this ministry.");
-    paths(record.id);
+    await paths(record.id);
     return {
       success: true,
       data: { id: record.id },
@@ -268,22 +269,13 @@ export async function saveTermAction(
         .maybeSingle();
       if (!existing)
         return resultError("NOT_FOUND", "The requested term was not found.");
-      const slug = parsed.data.slug
-        ? await uniqueSlug(
-            "ministry_term",
-            ministry.id,
-            parsed.data.name,
-            parsed.data.slug,
-            existing.id,
-          )
-        : existing.slug;
       const { error } = await supabase
         .from("ministry_term")
-        .update({ ...values, slug })
+        .update(values)
         .eq("id", existing.id)
         .eq("ministry_id", ministry.id);
       if (error) return dbError(error, "Unable to update this term.");
-      paths(ministry.id, existing.id);
+      await paths(ministry.id, existing.id);
       return {
         success: true,
         data: { id: existing.id },
@@ -294,7 +286,6 @@ export async function saveTermAction(
       "ministry_term",
       ministry.id,
       parsed.data.name,
-      parsed.data.slug,
     );
     const { data, error } = await supabase
       .from("ministry_term")
@@ -302,7 +293,7 @@ export async function saveTermAction(
       .select("id")
       .single();
     if (error || !data) return dbError(error, "Unable to create this term.");
-    paths(ministry.id, data.id);
+    await paths(ministry.id, data.id);
     return {
       success: true,
       data: { id: data.id },
@@ -349,7 +340,7 @@ export async function deleteTermAction(
       .eq("id", term.id)
       .eq("ministry_id", ministry.id);
     if (error) return dbError(error, "Unable to delete this term.");
-    paths(ministry.id, term.id);
+    await paths(ministry.id, term.id);
     return {
       success: true,
       data: { id: term.id },
@@ -417,7 +408,7 @@ export async function saveStructureAction(
           error,
           `Unable to update this ${section === "groups" ? "group" : "department"}.`,
         );
-      paths(term.ministry_id, term.id);
+      await paths(term.ministry_id, term.id);
       return {
         success: true,
         data: { id: existing.id },
@@ -440,7 +431,7 @@ export async function saveStructureAction(
         error,
         `Unable to create this ${section === "groups" ? "group" : "department"}.`,
       );
-    paths(term.ministry_id, term.id);
+    await paths(term.ministry_id, term.id);
     return {
       success: true,
       data: { id: data.id },
@@ -499,7 +490,7 @@ export async function deleteStructureAction(
         error,
         `Unable to delete this ${section === "groups" ? "group" : "department"}.`,
       );
-    paths(term.ministry_id, term.id);
+    await paths(term.ministry_id, term.id);
     return {
       success: true,
       data: { id: record.id },

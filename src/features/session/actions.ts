@@ -2,12 +2,70 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
+import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   attendanceSchema,
   deleteSessionSchema,
   sessionSchema,
 } from "./schemas";
 type Result = { success: boolean; message?: string; error?: string };
+
+async function uniqueSessionSlug(
+  churchId: string,
+  title: string,
+  sessionDate: string,
+) {
+  const s = await createClient();
+  const rawBase =
+    generateVietnameseSlug(`${title} ${sessionDate}`) || "session";
+  const base = isUuid(rawBase) ? `${rawBase}-session` : rawBase;
+  for (let n = 1; n < 100; n += 1) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    const { data, error } = await s
+      .from("ministry_session")
+      .select("id")
+      .eq("church_id", churchId)
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error) throw new Error("Session slug lookup failed");
+    if (!data) return slug;
+  }
+  throw new Error("Session slug limit reached");
+}
+
+async function createSessionWithUniqueSlug(input: {
+  churchId: string;
+  ministryTermId: string;
+  title: string;
+  sessionDate: string;
+}) {
+  const s = await createClient();
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const slug = await uniqueSessionSlug(
+      input.churchId,
+      input.title,
+      input.sessionDate,
+    );
+    const result = await s
+      .from("ministry_session")
+      .insert({
+        church_id: input.churchId,
+        ministry_term_id: input.ministryTermId,
+        slug,
+        title: input.title,
+        session_date: input.sessionDate,
+      })
+      .select("id,slug")
+      .maybeSingle();
+    if (
+      !result.error ||
+      result.error.code !== "23505" ||
+      !result.error.message.includes("ministry_session_church_id_slug_key")
+    )
+      return result;
+  }
+  return { data: null, error: null };
+}
 export async function saveSessionAction(raw: unknown): Promise<Result> {
   const ctx = await requireOperationalContext();
   const p = sessionSchema.safeParse(raw);
@@ -28,56 +86,90 @@ export async function saveSessionAction(raw: unknown): Promise<Result> {
         .update({ title: p.data.title, session_date: p.data.sessionDate })
         .eq("id", p.data.id)
         .eq("ministry_term_id", term.id)
-        .select("id")
+        .select("id,slug")
         .maybeSingle()
-    : await s
-        .from("ministry_session")
-        .insert({
-          ministry_term_id: term.id,
-          title: p.data.title,
-          session_date: p.data.sessionDate,
-        })
-        .select("id")
-        .maybeSingle();
+    : await createSessionWithUniqueSlug({
+        churchId: ctx.church.id,
+        ministryTermId: term.id,
+        title: p.data.title,
+        sessionDate: p.data.sessionDate,
+      });
   if (r.error || !r.data)
     return {
       success: false,
       error: "Unable to save this session. It may no longer exist.",
     };
   revalidatePath("/admin/sessions");
+  revalidatePath(`/admin/sessions/${r.data.slug}`);
   return { success: true, message: "Session saved." };
 }
 export async function deleteSessionAction(raw: unknown): Promise<Result> {
-  await requireOperationalContext();
+  const ctx = await requireOperationalContext();
   const p = deleteSessionSchema.safeParse(raw);
   if (!p.success) return { success: false, error: "Invalid session." };
   const s = await createClient();
-  const { count, error } = await s
-    .from("session_participant")
-    .select("id", { count: "exact", head: true })
-    .eq("ministry_session_id", p.data.id);
-  if (error || count)
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.id)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+  if (!session) return { success: false, error: "Invalid session." };
+  const [
+    { count: participantCount, error: participantError },
+    { count: assignmentCount, error: assignmentError },
+    { count: serviceCount, error: serviceError },
+  ] = await Promise.all([
+    s
+      .from("session_participant")
+      .select("id", { count: "exact", head: true })
+      .eq("ministry_session_id", session.id),
+    s
+      .from("session_assignment")
+      .select("id", { count: "exact", head: true })
+      .eq("ministry_session_id", session.id),
+    s
+      .from("service_assignment")
+      .select("id", { count: "exact", head: true })
+      .eq("ministry_session_id", session.id),
+  ]);
+  if (
+    participantError ||
+    assignmentError ||
+    serviceError ||
+    participantCount ||
+    assignmentCount ||
+    serviceCount
+  )
     return {
       success: false,
       error:
         "Sessions with participants or attendance history cannot be deleted.",
     };
-  const r = await s.from("ministry_session").delete().eq("id", p.data.id);
+  const r = await s.from("ministry_session").delete().eq("id", session.id);
   if (r.error) return { success: false, error: "Unable to delete session." };
   revalidatePath("/admin/sessions");
+  revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Session deleted." };
 }
 export async function saveAttendanceAction(raw: unknown): Promise<Result> {
-  await requireOperationalContext();
+  const ctx = await requireOperationalContext();
   const p = attendanceSchema.safeParse(raw);
   if (!p.success) return { success: false, error: "Invalid attendance." };
   const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+  if (!session) return { success: false, error: "Invalid attendance." };
   const { error } = await s.rpc("save_session_attendance", {
-    target_session_id: p.data.sessionId,
+    target_session_id: session.id,
     target_member_id: p.data.memberId,
     target_status: p.data.status,
   });
   if (error) return { success: false, error: "Unable to save attendance." };
-  revalidatePath(`/admin/sessions/${p.data.sessionId}`);
+  revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Attendance saved." };
 }

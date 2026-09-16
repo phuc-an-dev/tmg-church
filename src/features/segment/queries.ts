@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
+import { isUuid } from "@/lib/slug";
 import type { SegmentDetail, SegmentItem } from "./types";
 
 export async function getSegments(): Promise<SegmentItem[]> {
@@ -30,6 +31,7 @@ export async function getSegments(): Promise<SegmentItem[]> {
 
 export const getSegmentDetail = cache(
   async (slug: string): Promise<SegmentDetail | null> => {
+    if (isUuid(slug)) return null;
     const ctx = await requireOperationalContext();
     const supabase = await createClient();
     const { data: segment, error } = await supabase

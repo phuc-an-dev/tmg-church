@@ -81,11 +81,12 @@ export const requireOperationalContext = cache(
 /**
  * Resolves operational context with a specific ministry.
  *
- * @param identifier - Ministry UUID or slug.
+ * @param slug - Ministry's immutable Church-scoped slug.
  * @returns The ministry context, or `null` if the ministry is not found.
  */
 export const requireMinistryContext = cache(
-  async (identifier: string): Promise<MinistryOperationalContext | null> => {
+  async (slug: string): Promise<MinistryOperationalContext | null> => {
+    if (isUuid(slug)) return null;
     const ctx = await requireOperationalContext();
     const supabase = await createClient();
 
@@ -94,9 +95,7 @@ export const requireMinistryContext = cache(
       .select("id, name, slug, accent_color, icon_key")
       .eq("church_id", ctx.church.id);
 
-    query = isUuid(identifier)
-      ? query.eq("id", identifier)
-      : query.eq("slug", identifier);
+    query = query.eq("slug", slug);
 
     const { data, error } = await query.maybeSingle();
 
@@ -122,16 +121,17 @@ export const requireMinistryContext = cache(
 /**
  * Resolves operational context with a specific ministry and term.
  *
- * @param ministryIdentifier - Ministry UUID or slug.
- * @param termIdentifier - Term UUID or slug.
+ * @param ministrySlug - Ministry's immutable Church-scoped slug.
+ * @param termSlug - Term's immutable ministry-scoped slug.
  * @returns The full term context, or `null` if ministry or term is not found.
  */
 export const requireTermContext = cache(
   async (
-    ministryIdentifier: string,
-    termIdentifier: string,
+    ministrySlug: string,
+    termSlug: string,
   ): Promise<TermOperationalContext | null> => {
-    const ministryCtx = await requireMinistryContext(ministryIdentifier);
+    if (isUuid(ministrySlug) || isUuid(termSlug)) return null;
+    const ministryCtx = await requireMinistryContext(ministrySlug);
     if (!ministryCtx) return null;
 
     const supabase = await createClient();
@@ -141,9 +141,7 @@ export const requireTermContext = cache(
       .select("id, name, slug, start_date, end_date, lifecycle")
       .eq("ministry_id", ministryCtx.ministry.id);
 
-    query = isUuid(termIdentifier)
-      ? query.eq("id", termIdentifier)
-      : query.eq("slug", termIdentifier);
+    query = query.eq("slug", termSlug);
 
     const { data, error } = await query.maybeSingle();
 

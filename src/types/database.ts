@@ -238,6 +238,7 @@ export type Database = {
           gender: string | null;
           id: string;
           phone: string | null;
+          slug: string;
           updated_at: string;
           user_id: string | null;
         };
@@ -250,6 +251,7 @@ export type Database = {
           gender?: string | null;
           id?: string;
           phone?: string | null;
+          slug: string;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -262,6 +264,7 @@ export type Database = {
           gender?: string | null;
           id?: string;
           phone?: string | null;
+          slug?: string;
           updated_at?: string;
           user_id?: string | null;
         };
@@ -512,33 +515,39 @@ export type Database = {
       };
       ministry_session: {
         Row: {
+          church_id: string;
           created_at: string;
           id: string;
           ministry_term_id: string;
           session_date: string;
           session_recurrence_rule_id: string | null;
+          slug: string;
           term_department_id: string | null;
           term_group_id: string | null;
           title: string;
           updated_at: string;
         };
         Insert: {
+          church_id: string;
           created_at?: string;
           id?: string;
           ministry_term_id: string;
           session_date: string;
           session_recurrence_rule_id?: string | null;
+          slug: string;
           term_department_id?: string | null;
           term_group_id?: string | null;
           title: string;
           updated_at?: string;
         };
         Update: {
+          church_id?: string;
           created_at?: string;
           id?: string;
           ministry_term_id?: string;
           session_date?: string;
           session_recurrence_rule_id?: string | null;
+          slug?: string;
           term_department_id?: string | null;
           term_group_id?: string | null;
           title?: string;

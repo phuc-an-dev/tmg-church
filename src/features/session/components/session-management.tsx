@@ -145,8 +145,8 @@ export function SessionManagement({
         {terms.map((t) => (
           <Button
             key={t.id}
-            variant={query.term === t.id ? "default" : "outline"}
-            onClick={() => setQuery({ term: t.id, page: 1 })}
+            variant={query.term === t.routeKey ? "default" : "outline"}
+            onClick={() => setQuery({ term: t.routeKey, page: 1 })}
           >
             {t.ministryName}: {t.name}
           </Button>
@@ -196,7 +196,7 @@ export function SessionManagement({
                     <td className="p-3">
                       <Link
                         className="font-medium underline"
-                        href={`/admin/sessions/${item.id}`}
+                        href={`/admin/sessions/${item.slug}`}
                       >
                         {item.title}
                       </Link>
@@ -417,9 +417,9 @@ export function SessionManagement({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setDraftTerm(item.id)}
+                    onClick={() => setDraftTerm(item.routeKey)}
                     className={`flex min-h-11 w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition-colors ${
-                      draftTerm === item.id
+                      draftTerm === item.routeKey
                         ? "bg-primary/10 text-primary font-medium"
                         : "hover:bg-muted/50 text-foreground"
                     }`}
@@ -427,7 +427,7 @@ export function SessionManagement({
                     <span>
                       {item.ministryName}: {item.name}
                     </span>
-                    {draftTerm === item.id && (
+                    {draftTerm === item.routeKey && (
                       <Check className="size-4 shrink-0" aria-hidden="true" />
                     )}
                   </button>
@@ -491,7 +491,7 @@ function SessionCard({
       <div role="cell" className="min-w-0">
         <div className="flex items-start justify-between gap-3">
           <Link
-            href={`/admin/sessions/${item.id}`}
+            href={`/admin/sessions/${item.slug}`}
             className="group/item flex min-w-0 flex-1 items-center gap-3 outline-hidden"
           >
             <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">

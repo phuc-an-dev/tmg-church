@@ -2,12 +2,12 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
+import { isUuid } from "@/lib/slug";
 import {
   DEFAULT_MEMBER_PAGE_SIZE,
   MEMBER_PAGE_SIZES,
   normalizeMemberSearch,
 } from "./search-params";
-import { memberIdSchema } from "./schemas";
 import type {
   AvailableMinistryTerm,
   MemberDetailData,
@@ -32,6 +32,7 @@ function pageRange(page: number, pageSize: number) {
 
 function toMemberItem(row: {
   id: string;
+  slug: string;
   full_name: string;
   phone: string | null;
   birth_year: number | null;
@@ -40,6 +41,7 @@ function toMemberItem(row: {
 }): MemberItem {
   return {
     id: row.id,
+    slug: row.slug,
     fullName: row.full_name,
     phone: row.phone,
     birthYear: row.birth_year,
@@ -118,7 +120,7 @@ export async function getMembers(params: {
 
   let query = supabase
     .from("member_profile")
-    .select("id, full_name, phone, birth_year, gender, archived_at")
+    .select("id, slug, full_name, phone, birth_year, gender, archived_at")
     .eq("church_id", church.id);
 
   if (status === "active") {
@@ -174,19 +176,16 @@ export async function getMembers(params: {
 }
 
 export async function getMemberForEdit(
-  memberId: string,
+  memberSlug: string,
 ): Promise<MemberItem | null> {
-  if (!memberIdSchema.safeParse(memberId).success) {
-    return null;
-  }
-
+  if (isUuid(memberSlug)) return null;
   const ctx = await requireOperationalContext();
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("member_profile")
-    .select("id, full_name, phone, birth_year, gender, archived_at")
-    .eq("id", memberId)
+    .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+    .eq("slug", memberSlug)
     .eq("church_id", ctx.church.id)
     .maybeSingle();
 
@@ -198,12 +197,9 @@ export async function getMemberForEdit(
 }
 
 export async function getMemberDetail(
-  memberId: string,
+  memberSlug: string,
 ): Promise<MemberDetailData | null> {
-  if (!memberIdSchema.safeParse(memberId).success) {
-    return null;
-  }
-
+  if (isUuid(memberSlug)) return null;
   const ctx = await requireOperationalContext();
   const church = ctx.church;
 
@@ -213,9 +209,9 @@ export async function getMemberDetail(
   const { data: profileRow, error: profileError } = await supabase
     .from("member_profile")
     .select(
-      "id, full_name, phone, birth_year, gender, archived_at, created_at, updated_at",
+      "id, slug, full_name, phone, birth_year, gender, archived_at, created_at, updated_at",
     )
-    .eq("id", memberId)
+    .eq("slug", memberSlug)
     .eq("church_id", church.id)
     .maybeSingle();
 
@@ -225,6 +221,7 @@ export async function getMemberDetail(
 
   const profile: MemberProfileDetail = {
     id: profileRow.id,
+    slug: profileRow.slug,
     fullName: profileRow.full_name,
     phone: profileRow.phone,
     birthYear: profileRow.birth_year,
@@ -256,7 +253,7 @@ export async function getMemberDetail(
       )
     `,
     )
-    .eq("member_profile_id", memberId)
+    .eq("member_profile_id", profileRow.id)
     .order("created_at", { ascending: false });
 
   if (membershipError) {

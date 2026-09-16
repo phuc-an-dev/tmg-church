@@ -892,9 +892,9 @@ export function MemberManagement({
   const canonicalizedUrlRef = React.useRef<string | null>(null);
 
   const selectedMember = query.edit
-    ? editedMember?.id === query.edit
+    ? editedMember?.slug === query.edit
       ? editedMember
-      : (result.items.find((member) => member.id === query.edit) ?? null)
+      : (result.items.find((member) => member.slug === query.edit) ?? null)
     : null;
 
   React.useEffect(() => {
@@ -992,8 +992,8 @@ export function MemberManagement({
     );
   }
 
-  function openEditor(memberId: string) {
-    void setQuery({ edit: memberId }, { history: "push", shallow: false });
+  function openEditor(memberSlug: string) {
+    void setQuery({ edit: memberSlug }, { history: "push", shallow: false });
   }
 
   function closeEditor() {
@@ -1263,7 +1263,7 @@ export function MemberManagement({
                       key={member.id}
                       id={member.id}
                       name={member.fullName}
-                      onEdit={() => openEditor(member.id)}
+                      onEdit={() => openEditor(member.slug)}
                       onDelete={() => {
                         if (member.archivedAt) {
                           setMemberToRestore(member);
@@ -1287,7 +1287,7 @@ export function MemberManagement({
                       <div role="cell" className="min-w-0">
                         <div className="flex items-center justify-between gap-3">
                           <Link
-                            href={`/admin/members/${member.id}`}
+                            href={`/admin/members/${member.slug}`}
                             className="group/item flex min-w-0 flex-1 items-center gap-3 outline-hidden"
                           >
                             <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">

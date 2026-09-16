@@ -2,6 +2,7 @@ export type MemberStatusFilter = "active" | "archived" | "all";
 
 export interface MemberItem {
   id: string;
+  slug: string;
   fullName: string;
   phone: string | null;
   birthYear: number | null;

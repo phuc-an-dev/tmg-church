@@ -1,5 +1,6 @@
 export type SessionItem = {
   id: string;
+  slug: string;
   title: string;
   sessionDate: string;
   termId: string;
@@ -23,6 +24,9 @@ export type SessionDetail = SessionItem & {
 };
 export type SessionTermOption = {
   id: string;
+  slug: string;
+  ministrySlug: string;
+  routeKey: string;
   name: string;
   ministryName: string;
 };
