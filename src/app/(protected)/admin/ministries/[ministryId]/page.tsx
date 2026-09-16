@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
-import {
-  getCurrentActiveTerm,
-  getMinistryContext,
-  getTerms,
-} from "@/features/ministry/queries";
+import { requireMinistryContext } from "@/features/context/queries";
+import { getCurrentActiveTerm, getTerms } from "@/features/ministry/queries";
 import {
   safePageSize,
   termSearchParamsCache,
@@ -23,7 +20,7 @@ export default async function MinistryDetailPage({
 }) {
   const { ministryId } = await params;
   const [context, query, resolvedSearchParams] = await Promise.all([
-    getMinistryContext(ministryId),
+    requireMinistryContext(ministryId),
     termSearchParamsCache.parse(searchParams),
     searchParams,
   ]);

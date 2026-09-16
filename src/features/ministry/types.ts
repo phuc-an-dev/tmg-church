@@ -38,23 +38,3 @@ export type StructureItem = {
   accentColor: string;
   iconKey: string;
 };
-export type MinistryContext = {
-  church: { id: string; name: string };
-  ministry: {
-    id: string;
-    name: string;
-    slug: string;
-    accentColor: string;
-    iconKey: string;
-  };
-};
-export type TermContext = MinistryContext & {
-  term: {
-    id: string;
-    name: string;
-    slug: string;
-    startDate: string | null;
-    endDate: string | null;
-    lifecycle: "draft" | "active" | "closed";
-  };
-};

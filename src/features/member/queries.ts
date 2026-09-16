@@ -1,8 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
-import { getActiveChurch } from "@/features/church/queries";
+import { requireOperationalContext } from "@/features/context/queries";
 import {
   DEFAULT_MEMBER_PAGE_SIZE,
   MEMBER_PAGE_SIZES,
@@ -59,8 +58,7 @@ export async function getMembers(params: {
   page: number;
   pageSize?: number;
 }): Promise<MemberPageResult> {
-  await requireLeader();
-  const church = await getActiveChurch();
+  const ctx = await requireOperationalContext();
 
   const pageSize =
     params.pageSize &&
@@ -68,14 +66,7 @@ export async function getMembers(params: {
       ? params.pageSize
       : DEFAULT_MEMBER_PAGE_SIZE;
 
-  if (!church) {
-    return {
-      items: [],
-      count: 0,
-      page: 1,
-      pageSize,
-    };
-  }
+  const church = ctx.church;
 
   const supabase = await createClient();
   const q = normalizeMemberSearch(params.q);
@@ -189,16 +180,14 @@ export async function getMemberForEdit(
     return null;
   }
 
-  await requireLeader();
-  const church = await getActiveChurch();
-  if (!church) return null;
+  const ctx = await requireOperationalContext();
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("member_profile")
     .select("id, full_name, phone, birth_year, gender, archived_at")
     .eq("id", memberId)
-    .eq("church_id", church.id)
+    .eq("church_id", ctx.church.id)
     .maybeSingle();
 
   if (error) {
@@ -215,9 +204,8 @@ export async function getMemberDetail(
     return null;
   }
 
-  await requireLeader();
-  const church = await getActiveChurch();
-  if (!church) return null;
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
 
   const supabase = await createClient();
 
@@ -413,15 +401,8 @@ export async function getMemberDetail(
 export async function getMemberDetailOptions(
   activeTermIds: string[],
 ): Promise<MemberDetailOptions> {
-  await requireLeader();
-  const church = await getActiveChurch();
-  if (!church) {
-    return {
-      availableTerms: [],
-      termGroupsByTermId: {},
-      termDepartmentsByTermId: {},
-    };
-  }
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
 
   const supabase = await createClient();
 

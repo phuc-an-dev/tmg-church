@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
-import { getActiveChurch } from "@/features/church/queries";
+import { requireOperationalContext } from "@/features/context/queries";
 import {
   archiveMemberSchema,
   assignTermGroupSchema,
@@ -21,18 +20,9 @@ import type { MemberActionResult, MutationActionResult } from "./types";
 export async function createMemberAction(
   rawInput: unknown,
 ): Promise<MemberActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = createMemberSchema.safeParse(rawInput);
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
@@ -97,18 +87,9 @@ export async function createMemberAction(
 export async function updateMemberAction(
   rawInput: unknown,
 ): Promise<MemberActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = updateMemberSchema.safeParse(rawInput);
     if (!parsed.success) {
       const fieldErrors: Record<string, string[]> = {};
@@ -183,18 +164,9 @@ export async function updateMemberAction(
 export async function archiveMemberAction(
   rawInput: unknown,
 ): Promise<MemberActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = archiveMemberSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -259,18 +231,9 @@ export async function archiveMemberAction(
 export async function restoreMemberAction(
   rawInput: unknown,
 ): Promise<MemberActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = restoreMemberSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -335,8 +298,9 @@ export async function restoreMemberAction(
 export async function setMemberSegmentsAction(
   rawInput: unknown,
 ): Promise<MutationActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
     const parsed = setMemberSegmentsSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -345,9 +309,6 @@ export async function setMemberSegmentsAction(
         error: "Please correct the selected segments.",
       };
     }
-    const church = await getActiveChurch();
-    if (!church)
-      return { success: false, code: "NOT_FOUND", error: "Member not found." };
     const supabase = await createClient();
     const { data: member } = await supabase
       .from("member_profile")
@@ -383,17 +344,9 @@ export async function setMemberSegmentsAction(
 export async function enrollMemberWithAssignmentsAction(
   rawInput: unknown,
 ): Promise<MutationActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = enrollMemberWithAssignmentsSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -484,17 +437,9 @@ export async function enrollMemberWithAssignmentsAction(
 export async function removeMinistryMembershipAction(
   rawInput: unknown,
 ): Promise<MutationActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = removeMinistryMembershipSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -566,17 +511,9 @@ export async function removeMinistryMembershipAction(
 export async function assignTermGroupAction(
   rawInput: unknown,
 ): Promise<MutationActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = assignTermGroupSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {
@@ -686,17 +623,9 @@ export async function assignTermGroupAction(
 export async function setMinistryAssignmentsAction(
   rawInput: unknown,
 ): Promise<MutationActionResult> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
   try {
-    await requireLeader();
-    const church = await getActiveChurch();
-    if (!church) {
-      return {
-        success: false,
-        error: "No active church is available.",
-        code: "CHURCH_NOT_FOUND",
-      };
-    }
-
     const parsed = setMinistryAssignmentsSchema.safeParse(rawInput);
     if (!parsed.success) {
       return {

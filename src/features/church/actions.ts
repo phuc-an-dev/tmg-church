@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireLeader } from "@/features/auth/queries";
+import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug } from "@/lib/slug";
 import {
   createChurchSchema,
@@ -44,8 +45,8 @@ async function resolveUniqueChurchSlug(
 export async function createChurchAction(
   rawInput: unknown,
 ): Promise<ActionResult<ChurchViewModel>> {
+  await requireLeader();
   try {
-    await requireLeader();
     const supabase = await createClient();
 
     const parsed = createChurchSchema.safeParse(rawInput);
@@ -160,8 +161,8 @@ export async function createChurchAction(
 export async function updateChurchAction(
   rawInput: unknown,
 ): Promise<ActionResult<ChurchViewModel>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const supabase = await createClient();
 
     const parsed = updateChurchSchema.safeParse(rawInput);
@@ -184,36 +185,7 @@ export async function updateChurchAction(
 
     const { id, name, slug } = parsed.data;
 
-    // Check system church count: reject mutations if in invalid multiple-church state
-    const { count: totalChurches, error: countError } = await supabase
-      .from("church")
-      .select("*", { count: "exact", head: true });
-
-    if (countError) {
-      return {
-        success: false,
-        error: "Failed to verify system configuration status.",
-        code: "DATABASE_ERROR",
-      };
-    }
-
-    if ((totalChurches ?? 0) > 1) {
-      return {
-        success: false,
-        error:
-          "Direct updates are disabled while multiple churches exist in the configuration.",
-        code: "MULTIPLE_CHURCHES_ERROR",
-      };
-    }
-
-    // Check if target church exists
-    const { data: currentChurch, error: findError } = await supabase
-      .from("church")
-      .select("id, name, slug")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (findError || !currentChurch) {
+    if (id !== ctx.church.id) {
       return {
         success: false,
         error: "The requested church record was not found.",
@@ -328,8 +300,8 @@ export async function updateChurchAction(
 export async function deleteChurchAction(
   rawInput: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const supabase = await createClient();
 
     const parsed = deleteChurchSchema.safeParse(rawInput);
@@ -352,35 +324,7 @@ export async function deleteChurchAction(
 
     const { id, confirmationName } = parsed.data;
 
-    // Check system church count: reject mutations if in invalid multiple-church state
-    const { count: totalChurches, error: countError } = await supabase
-      .from("church")
-      .select("*", { count: "exact", head: true });
-
-    if (countError) {
-      return {
-        success: false,
-        error: "Failed to verify system configuration status.",
-        code: "DATABASE_ERROR",
-      };
-    }
-
-    if ((totalChurches ?? 0) > 1) {
-      return {
-        success: false,
-        error:
-          "Direct deletion is disabled while multiple churches exist in the configuration.",
-        code: "MULTIPLE_CHURCHES_ERROR",
-      };
-    }
-
-    const { data: church, error: fetchError } = await supabase
-      .from("church")
-      .select("id, name")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (fetchError || !church) {
+    if (id !== ctx.church.id) {
       return {
         success: false,
         error: "The requested church record was not found.",
@@ -389,7 +333,7 @@ export async function deleteChurchAction(
     }
 
     // Genuinely exact string match without loose trimming
-    if (confirmationName !== church.name) {
+    if (confirmationName !== ctx.church.name) {
       return {
         success: false,
         error: "Confirmation name does not match the exact church name.",

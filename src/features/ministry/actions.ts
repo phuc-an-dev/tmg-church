@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
-import { getActiveChurch } from "@/features/church/queries";
+import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug } from "@/lib/slug";
 import {
   deleteSchema,
@@ -125,23 +124,17 @@ function paths(ministryId?: string, termId?: string) {
 export async function saveMinistryAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = ministrySchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return resultError(
-        "CHURCH_NOT_READY",
-        "Configure one active church before managing ministries.",
-      );
     const supabase = await createClient();
     if (parsed.data.id) {
       const { data: existing } = await supabase
         .from("ministry")
         .select("id, slug")
         .eq("id", parsed.data.id)
-        .eq("church_id", church.id)
+        .eq("church_id", ctx.church.id)
         .maybeSingle();
       if (!existing)
         return resultError(
@@ -151,7 +144,7 @@ export async function saveMinistryAction(
       const slug = parsed.data.slug
         ? await uniqueSlug(
             "ministry",
-            church.id,
+            ctx.church.id,
             parsed.data.name,
             parsed.data.slug,
             existing.id,
@@ -166,7 +159,7 @@ export async function saveMinistryAction(
           icon_key: parsed.data.iconKey,
         })
         .eq("id", existing.id)
-        .eq("church_id", church.id);
+        .eq("church_id", ctx.church.id);
       if (error) return dbError(error, "Unable to update this ministry.");
       paths(existing.id);
       return {
@@ -177,14 +170,14 @@ export async function saveMinistryAction(
     }
     const slug = await uniqueSlug(
       "ministry",
-      church.id,
+      ctx.church.id,
       parsed.data.name,
       parsed.data.slug,
     );
     const { data, error } = await supabase
       .from("ministry")
       .insert({
-        church_id: church.id,
+        church_id: ctx.church.id,
         name: parsed.data.name,
         slug,
         accent_color: parsed.data.accentColor,
@@ -211,19 +204,16 @@ export async function saveMinistryAction(
 export async function deleteMinistryAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = deleteSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return resultError("NOT_FOUND", "The requested ministry was not found.");
     const supabase = await createClient();
     const { data: record } = await supabase
       .from("ministry")
       .select("id")
       .eq("id", parsed.data.id)
-      .eq("church_id", church.id)
+      .eq("church_id", ctx.church.id)
       .maybeSingle();
     if (!record)
       return resultError("NOT_FOUND", "The requested ministry was not found.");
@@ -231,7 +221,7 @@ export async function deleteMinistryAction(
       .from("ministry")
       .delete()
       .eq("id", record.id)
-      .eq("church_id", church.id);
+      .eq("church_id", ctx.church.id);
     if (error) return dbError(error, "Unable to delete this ministry.");
     paths(record.id);
     return {
@@ -250,19 +240,16 @@ export async function deleteMinistryAction(
 export async function saveTermAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = termSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return resultError("NOT_FOUND", "The requested ministry was not found.");
     const supabase = await createClient();
     const { data: ministry } = await supabase
       .from("ministry")
       .select("id")
       .eq("id", parsed.data.ministryId)
-      .eq("church_id", church.id)
+      .eq("church_id", ctx.church.id)
       .maybeSingle();
     if (!ministry)
       return resultError("NOT_FOUND", "The requested ministry was not found.");
@@ -332,22 +319,19 @@ export async function saveTermAction(
 export async function deleteTermAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = deleteSchema.safeParse(raw);
     if (!parsed.success || !parsed.data.parentId)
       return !parsed.success
         ? invalid(parsed.error)
         : resultError("VALIDATION_FAILED", "A parent ministry is required.");
-    const context = await getActiveChurch();
-    if (!context)
-      return resultError("NOT_FOUND", "The requested term was not found.");
     const supabase = await createClient();
     const { data: ministry } = await supabase
       .from("ministry")
       .select("id")
       .eq("id", parsed.data.parentId)
-      .eq("church_id", context.id)
+      .eq("church_id", ctx.church.id)
       .maybeSingle();
     const { data: term } = ministry
       ? await supabase
@@ -383,8 +367,8 @@ export async function saveStructureAction(
   section: "groups" | "departments",
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = structureSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
     const supabase = await createClient();
@@ -474,8 +458,8 @@ export async function deleteStructureAction(
   section: "groups" | "departments",
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = deleteSchema.safeParse(raw);
     if (!parsed.success || !parsed.data.parentId || !parsed.data.ministryId)
       return !parsed.success

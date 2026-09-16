@@ -4,7 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { cn } from "cn";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
-import { getStructure, getTermContext } from "@/features/ministry/queries";
+import { requireTermContext } from "@/features/context/queries";
+import { getStructure } from "@/features/ministry/queries";
 import { structureSearchParamsCache } from "@/features/ministry/search-params";
 import { isUuid } from "@/lib/slug";
 
@@ -18,7 +19,7 @@ export default async function TermDetailPage({
 }) {
   const { ministryId, termId } = await params;
   const [context, query] = await Promise.all([
-    getTermContext(ministryId, termId),
+    requireTermContext(ministryId, termId),
     structureSearchParamsCache.parse(searchParams),
   ]);
   if (!context) notFound();

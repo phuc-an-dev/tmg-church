@@ -1,8 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
-import { getActiveChurch } from "@/features/church/queries";
+import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug } from "@/lib/slug";
 import {
   deleteSegmentSchema,
@@ -60,16 +59,11 @@ async function uniqueSlug(churchId: string, name: string, excludeId?: string) {
 export async function saveSegmentAction(
   raw: unknown,
 ): Promise<SegmentActionResult> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = saveSegmentSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return fail(
-        "CHURCH_NOT_READY",
-        "Configure an active church before managing segments.",
-      );
+    const church = ctx.church;
     const supabase = await createClient();
     if (parsed.data.id) {
       const { data: existing } = await supabase
@@ -125,19 +119,17 @@ export async function saveSegmentAction(
 export async function deleteSegmentAction(
   raw: unknown,
 ): Promise<SegmentActionResult> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = deleteSegmentSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return fail("NOT_FOUND", "The requested segment was not found.");
+    const churchId = ctx.church.id;
     const supabase = await createClient();
     const { data: segment } = await supabase
       .from("member_segment")
       .select("id, slug")
       .eq("id", parsed.data.id)
-      .eq("church_id", church.id)
+      .eq("church_id", churchId)
       .maybeSingle();
     if (!segment)
       return fail("NOT_FOUND", "The requested segment was not found.");
@@ -164,9 +156,7 @@ export async function deleteSegmentAction(
 export async function previewSegmentMembersByConditionsAction(raw: unknown) {
   const parsed = segmentConditionsSchema.safeParse(raw);
   if (!parsed.success) return null;
-  await requireLeader();
-  const church = await getActiveChurch();
-  if (!church) return null;
+  await requireOperationalContext();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "preview_segment_members_by_rules",
@@ -181,19 +171,17 @@ export async function previewSegmentMembersByConditionsAction(raw: unknown) {
 export async function saveSegmentConditionsAction(
   raw: unknown,
 ): Promise<SegmentActionResult> {
+  const ctx = await requireOperationalContext();
   try {
-    await requireLeader();
     const parsed = segmentConditionsSchema.safeParse(raw);
     if (!parsed.success) return invalid(parsed.error);
-    const church = await getActiveChurch();
-    if (!church)
-      return fail("NOT_FOUND", "The requested segment was not found.");
+    const churchId = ctx.church.id;
     const supabase = await createClient();
     const { data: segment } = await supabase
       .from("member_segment")
       .select("id, slug")
       .eq("id", parsed.data.segmentId)
-      .eq("church_id", church.id)
+      .eq("church_id", churchId)
       .maybeSingle();
     if (!segment)
       return fail("NOT_FOUND", "The requested segment was not found.");

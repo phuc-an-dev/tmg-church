@@ -1,16 +1,17 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
-import { getActiveChurch } from "@/features/church/queries";
-import { isUuid } from "@/lib/slug";
+import {
+  requireMinistryContext,
+  requireOperationalContext,
+  requireTermContext,
+} from "@/features/context/queries";
+import type { TermOperationalContext } from "@/features/context/queries";
 import { normalizedSearch, safePageSize } from "./search-params";
 import type {
-  MinistryContext,
   MinistryItem,
   PageResult,
   StructureItem,
-  TermContext,
   TermItem,
 } from "./types";
 
@@ -38,66 +39,6 @@ function currentChurchDate() {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-export const getMinistryContext = cache(
-  async (identifier: string): Promise<MinistryContext | null> => {
-    await requireLeader();
-    const church = await getActiveChurch();
-    if (!church) return null;
-    const supabase = await createClient();
-    let query = supabase
-      .from("ministry")
-      .select("id, name, slug, accent_color, icon_key")
-      .eq("church_id", church.id);
-    query = isUuid(identifier)
-      ? query.eq("id", identifier)
-      : query.eq("slug", identifier);
-    const { data } = await query.maybeSingle();
-    return data
-      ? {
-          church: { id: church.id, name: church.name },
-          ministry: {
-            id: data.id,
-            name: data.name,
-            slug: data.slug,
-            accentColor: data.accent_color,
-            iconKey: data.icon_key,
-          },
-        }
-      : null;
-  },
-);
-export const getTermContext = cache(
-  async (
-    ministryIdentifier: string,
-    termIdentifier: string,
-  ): Promise<TermContext | null> => {
-    const context = await getMinistryContext(ministryIdentifier);
-    if (!context) return null;
-    const supabase = await createClient();
-    let query = supabase
-      .from("ministry_term")
-      .select("id, name, slug, start_date, end_date, lifecycle")
-      .eq("ministry_id", context.ministry.id);
-    query = isUuid(termIdentifier)
-      ? query.eq("id", termIdentifier)
-      : query.eq("slug", termIdentifier);
-    const { data } = await query.maybeSingle();
-    return data
-      ? {
-          ...context,
-          term: {
-            id: data.id,
-            name: data.name,
-            slug: data.slug,
-            startDate: data.start_date,
-            endDate: data.end_date,
-            lifecycle: data.lifecycle,
-          },
-        }
-      : null;
-  },
-);
-
 /**
  * Resolves the one term that is operational today for a ministry.
  *
@@ -105,8 +46,10 @@ export const getTermContext = cache(
  * dated terms in one ministry from overlapping, so this is unambiguous.
  */
 export const getCurrentActiveTerm = cache(
-  async (ministryIdentifier: string): Promise<TermContext | null> => {
-    const context = await getMinistryContext(ministryIdentifier);
+  async (
+    ministryIdentifier: string,
+  ): Promise<TermOperationalContext | null> => {
+    const context = await requireMinistryContext(ministryIdentifier);
     if (!context) return null;
 
     const currentDate = currentChurchDate();
@@ -142,15 +85,7 @@ export async function getMinistries(params: {
   pageSize: number;
   sort: "name-asc" | "name-desc";
 }): Promise<PageResult<MinistryItem>> {
-  await requireLeader();
-  const church = await getActiveChurch();
-  if (!church)
-    return {
-      items: [],
-      count: 0,
-      page: 1,
-      pageSize: safePageSize(params.pageSize),
-    };
+  const ctx = await requireOperationalContext();
   const supabase = await createClient();
   const pageSize = safePageSize(params.pageSize);
   const { current } = range(params.page, pageSize);
@@ -158,7 +93,7 @@ export async function getMinistries(params: {
   let countQuery = supabase
     .from("ministry")
     .select("id", { count: "exact", head: true })
-    .eq("church_id", church.id);
+    .eq("church_id", ctx.church.id);
   if (q) countQuery = countQuery.ilike("name", `%${q}%`);
   const { count, error: countError } = await countQuery;
   if (countError) throw new Error("Failed to fetch ministries");
@@ -168,7 +103,7 @@ export async function getMinistries(params: {
   let query = supabase
     .from("ministry")
     .select("id, name, slug, accent_color, icon_key, ministry_term(count)")
-    .eq("church_id", church.id);
+    .eq("church_id", ctx.church.id);
   if (q) query = query.ilike("name", `%${q}%`);
   const { data, error } = await query
     .order("name", { ascending: params.sort === "name-asc" })
@@ -219,8 +154,7 @@ export async function getTerms(
     sort: "start-desc" | "start-asc" | "name-asc";
   },
 ): Promise<PageResult<TermItem>> {
-  await requireLeader();
-  const context = await getMinistryContext(ministryId);
+  const context = await requireMinistryContext(ministryId);
   const pageSize = safePageSize(params.pageSize);
   if (!context) return { items: [], count: 0, page: 1, pageSize };
   const supabase = await createClient();
@@ -275,8 +209,7 @@ export async function getStructure(
   termId: string,
   section: "groups" | "departments",
 ): Promise<PageResult<StructureItem>> {
-  await requireLeader();
-  const context = await getTermContext(ministryId, termId);
+  const context = await requireTermContext(ministryId, termId);
   if (!context) return { items: [], count: 0, page: 1, pageSize: 1 };
   const supabase = await createClient();
   const { data, error } = await supabase

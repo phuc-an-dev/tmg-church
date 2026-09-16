@@ -84,14 +84,3 @@ export const getAdminChurchState = cache(async (): Promise<ChurchState> => {
     church: viewModel,
   };
 });
-
-/**
- * Returns the single active Church if exactly one exists, otherwise null.
- */
-export async function getActiveChurch(): Promise<ChurchViewModel | null> {
-  const state = await getAdminChurchState();
-  if (state.status === "one") {
-    return state.church;
-  }
-  return null;
-}
