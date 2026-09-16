@@ -656,7 +656,6 @@ export type Database = {
           id: string;
           ministry_membership_id: string;
           ministry_session_id: string;
-          service_roster_id: string;
         };
         Insert: {
           created_at?: string;
@@ -664,7 +663,6 @@ export type Database = {
           id?: string;
           ministry_membership_id: string;
           ministry_session_id: string;
-          service_roster_id: string;
         };
         Update: {
           created_at?: string;
@@ -672,7 +670,6 @@ export type Database = {
           id?: string;
           ministry_membership_id?: string;
           ministry_session_id?: string;
-          service_roster_id?: string;
         };
         Relationships: [
           {
@@ -694,45 +691,6 @@ export type Database = {
             columns: ["ministry_session_id"];
             isOneToOne: false;
             referencedRelation: "ministry_session";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "service_assignment_service_roster_id_fkey";
-            columns: ["service_roster_id"];
-            isOneToOne: false;
-            referencedRelation: "service_roster";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      service_roster: {
-        Row: {
-          created_at: string;
-          id: string;
-          name: string;
-          term_department_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          name: string;
-          term_department_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          name?: string;
-          term_department_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "service_roster_term_department_id_fkey";
-            columns: ["term_department_id"];
-            isOneToOne: false;
-            referencedRelation: "term_department";
             referencedColumns: ["id"];
           },
         ];
@@ -1114,6 +1072,28 @@ export type Database = {
           target_member_ids: string[];
           target_session_id: string;
           target_status: string;
+        };
+        Returns: undefined;
+      };
+      save_service_assignment: {
+        Args: {
+          target_membership_id: string;
+          target_role_id: string;
+          target_session_id: string;
+        };
+        Returns: string;
+      };
+      batch_save_service_assignments: {
+        Args: {
+          target_membership_ids: string[];
+          target_role_id: string;
+          target_session_id: string;
+        };
+        Returns: number;
+      };
+      remove_service_assignment: {
+        Args: {
+          target_assignment_id: string;
         };
         Returns: undefined;
       };
