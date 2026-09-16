@@ -1,13 +1,27 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AttendanceManagement } from "@/features/session/components/attendance-management";
-import { getSessionDetail } from "@/features/session/queries";
+import { ServiceAssignmentManagement } from "@/features/session/components/service-assignment-management";
+import {
+  getSessionDetail,
+  getSessionRosterData,
+} from "@/features/session/queries";
 import { sessionDetailSearchParamsCache } from "@/features/session/search-params";
 
-export const metadata: Metadata = {
-  title: "Session Attendance",
-  description: "Record and manage session attendance",
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const resolved = await searchParams;
+  const isAssignments = resolved.tab === "assignments";
+  return {
+    title: isAssignments ? "Service Assignments" : "Session Attendance",
+    description: isAssignments
+      ? "Manage service roster assignments for the session"
+      : "Record and manage session attendance",
+  };
+}
 
 export default async function SessionDetailPage({
   params,
@@ -17,8 +31,21 @@ export default async function SessionDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { sessionSlug } = await params;
-  const filterParams = await sessionDetailSearchParamsCache.parse(searchParams);
+  const resolvedParams = await searchParams;
+  const isAssignments = resolvedParams.tab === "assignments";
 
+  if (isAssignments) {
+    const rosterData = await getSessionRosterData(sessionSlug);
+    if (!rosterData) notFound();
+
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+        <ServiceAssignmentManagement rosterData={rosterData} />
+      </div>
+    );
+  }
+
+  const filterParams = await sessionDetailSearchParamsCache.parse(searchParams);
   const session = await getSessionDetail(sessionSlug, filterParams);
   if (!session) notFound();
 

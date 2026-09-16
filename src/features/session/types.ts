@@ -68,3 +68,42 @@ export type SessionTermOption = {
   name: string;
   ministryName: string;
 };
+
+export type SessionServiceAssignment = {
+  id: string;
+  departmentServiceRoleId: string;
+  departmentServiceRoleName: string;
+  termDepartmentId: string;
+  termDepartmentName: string;
+  ministryMembershipId: string;
+  memberId: string;
+  memberName: string;
+  memberSlug: string;
+};
+
+export type SessionEnrolledMember = {
+  membershipId: string;
+  memberId: string;
+  memberName: string;
+  memberSlug: string;
+  departmentIds: string[];
+  departmentNames: string[];
+};
+
+export type SessionDepartmentOption = {
+  id: string;
+  name: string;
+  slug: string;
+  accentColor: string;
+  iconKey: string;
+  roles: Array<{ id: string; name: string }>;
+};
+
+export type SessionRosterData = {
+  session: SessionItem;
+  ministrySlug: string;
+  termSlug: string;
+  departments: SessionDepartmentOption[];
+  assignments: SessionServiceAssignment[];
+  enrolledMembers: SessionEnrolledMember[];
+};

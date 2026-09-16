@@ -4,11 +4,15 @@ import { requireOperationalContext } from "@/features/context/queries";
 import { isUuid } from "@/lib/slug";
 import type {
   SessionDepartmentInfo,
+  SessionDepartmentOption,
   SessionDetail,
+  SessionEnrolledMember,
   SessionFilterStatus,
   SessionGroupInfo,
   SessionPage,
   SessionParticipantDetail,
+  SessionRosterData,
+  SessionServiceAssignment,
   SessionTermOption,
 } from "./types";
 
@@ -335,5 +339,184 @@ export async function getSessionDetail(
     page,
     pageSize,
     filteredMemberIds,
+  };
+}
+
+export async function getSessionRosterData(
+  slug: string,
+): Promise<SessionRosterData | null> {
+  if (isUuid(slug)) return null;
+  const ctx = await requireOperationalContext();
+  const s = await createClient();
+
+  const { data: raw, error: sessionError } = await s
+    .from("ministry_session")
+    .select(
+      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(slug,name,ministry!inner(slug,name)),session_participant(count),session_assignment(count),service_assignment(count)",
+    )
+    .eq("slug", slug)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+
+  if (sessionError || !raw) return null;
+
+  const termData = raw.ministry_term as unknown as
+    | {
+        slug: string;
+        name: string;
+        ministry:
+          { slug: string; name: string } | { slug: string; name: string }[];
+      }
+    | {
+        slug: string;
+        name: string;
+        ministry:
+          { slug: string; name: string } | { slug: string; name: string }[];
+      }[];
+  const singleTerm = Array.isArray(termData) ? termData[0] : termData;
+  const singleMinistry = Array.isArray(singleTerm?.ministry)
+    ? singleTerm?.ministry[0]
+    : singleTerm?.ministry;
+
+  const ministrySlug = singleMinistry?.slug ?? "";
+  const termSlug = singleTerm?.slug ?? "";
+
+  const participantCount =
+    (raw.session_participant as unknown as { count: number }[])?.[0]?.count ??
+    0;
+  const assignmentCount =
+    (raw.session_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
+  const serviceAssignmentCount =
+    (raw.service_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
+
+  const sessionItem = {
+    id: raw.id,
+    slug: raw.slug,
+    title: raw.title,
+    sessionDate: raw.session_date,
+    termId: raw.ministry_term_id,
+    termName: singleTerm?.name ?? "",
+    ministryName: singleMinistry?.name ?? "",
+    participantCount,
+    canDelete:
+      participantCount === 0 &&
+      assignmentCount === 0 &&
+      serviceAssignmentCount === 0,
+  };
+
+  const [deptRes, memberRes, assignRes] = await Promise.all([
+    s
+      .from("term_department")
+      .select(
+        "id, name, slug, accent_color, icon_key, department_service_role(id, name)",
+      )
+      .eq("ministry_term_id", sessionItem.termId)
+      .order("name"),
+    s
+      .from("ministry_membership")
+      .select(
+        "id, member_profile_id, member_profile!inner(id, full_name, slug, archived_at), ministry_assignment(term_department(id, name))",
+      )
+      .eq("ministry_term_id", sessionItem.termId)
+      .is("member_profile.archived_at", null)
+      .order("member_profile(full_name)"),
+    s
+      .from("service_assignment")
+      .select(
+        `id,
+         department_service_role_id,
+         department_service_role!inner(id, name, term_department_id, term_department!inner(id, name)),
+         ministry_membership_id,
+         ministry_membership!inner(id, member_profile!inner(id, full_name, slug))`,
+      )
+      .eq("ministry_session_id", sessionItem.id)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  if (deptRes.error || memberRes.error || assignRes.error) {
+    console.error(
+      "Failed to fetch session roster data:",
+      deptRes.error || memberRes.error || assignRes.error,
+    );
+    throw new Error("Failed to fetch session roster data");
+  }
+
+  const departments: SessionDepartmentOption[] = (deptRes.data ?? []).map(
+    (d) => ({
+      id: d.id,
+      name: d.name,
+      slug: d.slug,
+      accentColor: d.accent_color,
+      iconKey: d.icon_key,
+      roles: (
+        (d.department_service_role as unknown as {
+          id: string;
+          name: string;
+        }[]) ?? []
+      ).sort((a, b) => a.name.localeCompare(b.name)),
+    }),
+  );
+
+  const enrolledMembers: SessionEnrolledMember[] = (memberRes.data ?? []).map(
+    (m) => {
+      const profile = Array.isArray(m.member_profile)
+        ? m.member_profile[0]
+        : m.member_profile;
+      const assignments =
+        (m.ministry_assignment as unknown as {
+          term_department: { id: string; name: string };
+        }[]) ?? [];
+      const deptIds = assignments
+        .map((a) => a?.term_department?.id)
+        .filter(Boolean);
+      const deptNames = assignments
+        .map((a) => a?.term_department?.name)
+        .filter(Boolean);
+
+      return {
+        membershipId: m.id,
+        memberId: profile.id,
+        memberName: profile.full_name,
+        memberSlug: profile.slug,
+        departmentIds: deptIds,
+        departmentNames: deptNames,
+      };
+    },
+  );
+
+  const assignments: SessionServiceAssignment[] = (assignRes.data ?? []).map(
+    (a) => {
+      const role = a.department_service_role as unknown as {
+        id: string;
+        name: string;
+        term_department_id: string;
+        term_department: { id: string; name: string };
+      };
+      const membership = a.ministry_membership as unknown as {
+        id: string;
+        member_profile: { id: string; full_name: string; slug: string };
+      };
+
+      return {
+        id: a.id,
+        departmentServiceRoleId: a.department_service_role_id,
+        departmentServiceRoleName: role.name,
+        termDepartmentId: role.term_department.id,
+        termDepartmentName: role.term_department.name,
+        ministryMembershipId: a.ministry_membership_id,
+        memberId: membership.member_profile.id,
+        memberName: membership.member_profile.full_name,
+        memberSlug: membership.member_profile.slug,
+      };
+    },
+  );
+
+  return {
+    session: sessionItem,
+    ministrySlug,
+    termSlug,
+    departments,
+    assignments,
+    enrolledMembers,
   };
 }

@@ -28,3 +28,20 @@ export const bulkAttendanceSchema = z.object({
   memberIds: z.array(id).min(1, "Select at least one member"),
   status: z.enum(["present", "absent", "excused"]),
 });
+
+export const saveServiceAssignmentSchema = z.object({
+  sessionId: id,
+  roleId: id,
+  membershipId: id,
+});
+
+export const batchSaveServiceAssignmentsSchema = z.object({
+  sessionId: id,
+  roleId: id,
+  membershipIds: z.array(id).min(1, "Select at least one member"),
+});
+
+export const removeServiceAssignmentSchema = z.object({
+  sessionId: id,
+  assignmentId: id,
+});

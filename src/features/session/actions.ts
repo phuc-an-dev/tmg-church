@@ -6,8 +6,11 @@ import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   attendanceSchema,
+  batchSaveServiceAssignmentsSchema,
   bulkAttendanceSchema,
   deleteSessionSchema,
+  removeServiceAssignmentSchema,
+  saveServiceAssignmentSchema,
   sessionSchema,
 } from "./schemas";
 
@@ -213,4 +216,107 @@ export async function saveBulkAttendanceAction(raw: unknown): Promise<Result> {
     success: true,
     message: `Attendance saved for ${p.data.memberIds.length} members.`,
   };
+}
+
+export async function saveServiceAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = saveServiceAssignmentSchema.safeParse(raw);
+  if (!p.success) {
+    return { success: false, error: "Invalid service assignment request." };
+  }
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s.rpc("save_service_assignment", {
+    target_session_id: session.id,
+    target_role_id: p.data.roleId,
+    target_membership_id: p.data.membershipId,
+  });
+
+  if (error) {
+    console.error("Failed to save service assignment:", error);
+    return { success: false, error: "Unable to save service assignment." };
+  }
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return { success: true, message: "Member assigned to service role." };
+}
+
+export async function batchSaveServiceAssignmentsAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = batchSaveServiceAssignmentsSchema.safeParse(raw);
+  if (!p.success) {
+    return { success: false, error: "Invalid service assignment request." };
+  }
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s.rpc("batch_save_service_assignments", {
+    target_session_id: session.id,
+    target_role_id: p.data.roleId,
+    target_membership_ids: p.data.membershipIds,
+  });
+
+  if (error) {
+    console.error("Failed to batch save service assignments:", error);
+    return { success: false, error: "Unable to save service assignments." };
+  }
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return {
+    success: true,
+    message: `Assigned ${p.data.membershipIds.length} members to service role.`,
+  };
+}
+
+export async function removeServiceAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = removeServiceAssignmentSchema.safeParse(raw);
+  if (!p.success) {
+    return { success: false, error: "Invalid removal request." };
+  }
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s.rpc("remove_service_assignment", {
+    target_assignment_id: p.data.assignmentId,
+  });
+
+  if (error) {
+    console.error("Failed to remove service assignment:", error);
+    return { success: false, error: "Unable to remove service assignment." };
+  }
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return { success: true, message: "Service assignment removed." };
 }

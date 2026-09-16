@@ -33,6 +33,10 @@ import {
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { PaginationCard } from "@/components/shared/pagination-card";
+import {
+  NavigationTabs,
+  NavigationTabLink,
+} from "@/components/shared/navigation-tabs";
 import { StatusToast } from "@/components/ui/status-toast";
 import {
   deleteSessionAction,
@@ -369,6 +373,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
           <MoreVertical className="size-5" />
         </Button>
       </header>
+
+      {/* Navigation Tabs */}
+      <NavigationTabs aria-label="Session views">
+        <NavigationTabLink
+          href={`/admin/sessions/${session.slug}`}
+          active={true}
+        >
+          Attendance
+        </NavigationTabLink>
+        <NavigationTabLink
+          href={`/admin/sessions/${session.slug}?tab=assignments`}
+          active={false}
+        >
+          Service Assignments
+        </NavigationTabLink>
+      </NavigationTabs>
 
       {/* 2. Summary Stat Grid (2-col on mobile, 4-col on desktop) */}
       <section aria-label="Attendance summary">
@@ -987,6 +1007,16 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
               <Pencil className="text-muted-foreground size-5" />
               <span>Edit session details</span>
             </button>
+
+            {/* Service assignments action */}
+            <Link
+              href={`/admin/sessions/${session.slug}?tab=assignments`}
+              onClick={() => setMoreDrawerOpen(false)}
+              className="hover:bg-muted/50 flex min-h-[48px] w-full items-center gap-3 rounded-xl border p-3.5 text-base font-medium transition-colors"
+            >
+              <Users className="text-muted-foreground size-5" />
+              <span>Service assignments</span>
+            </Link>
 
             {/* Guarded delete behavior (Requirement #6) */}
             {session.canDelete ? (
