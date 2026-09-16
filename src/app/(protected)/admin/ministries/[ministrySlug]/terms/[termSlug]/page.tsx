@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cn } from "cn";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import {
+  NavigationTabs,
+  NavigationTabLink,
+} from "@/components/shared/navigation-tabs";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { requireTermContext } from "@/features/context/queries";
 import { getStructure } from "@/features/ministry/queries";
@@ -41,38 +43,17 @@ export default async function TermDetailPage({
           label: "Ministries",
         }}
       />
-      <div
-        className="bg-muted/60 border-border/50 inline-flex items-center gap-1 rounded-xl border p-1"
-        role="tablist"
-        aria-label="Term structure sections"
-      >
-        <Link
-          href="?section=groups"
-          role="tab"
-          aria-selected={section === "groups"}
-          className={cn(
-            "inline-flex min-h-8 items-center justify-center rounded-lg px-4 text-sm font-medium transition-all select-none",
-            section === "groups"
-              ? "bg-card text-foreground font-semibold shadow-xs"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
+      <NavigationTabs aria-label="Term structure sections">
+        <NavigationTabLink href="?section=groups" active={section === "groups"}>
           Groups
-        </Link>
-        <Link
+        </NavigationTabLink>
+        <NavigationTabLink
           href="?section=departments"
-          role="tab"
-          aria-selected={section === "departments"}
-          className={cn(
-            "inline-flex min-h-8 items-center justify-center rounded-lg px-4 text-sm font-medium transition-all select-none",
-            section === "departments"
-              ? "bg-card text-foreground font-semibold shadow-xs"
-              : "text-muted-foreground hover:text-foreground",
-          )}
+          active={section === "departments"}
         >
           Departments
-        </Link>
-      </div>
+        </NavigationTabLink>
+      </NavigationTabs>
       <MinistryManagement
         mode={section === "groups" ? "groups" : "departments"}
         title={sectionLabel}

@@ -9,6 +9,7 @@ import {
 import type { TermOperationalContext } from "@/features/context/queries";
 import { normalizedSearch, safePageSize } from "./search-params";
 import type {
+  DepartmentServiceStructure,
   MinistryItem,
   PageResult,
   StructureItem,
@@ -210,8 +211,40 @@ export async function getStructure(
   const context = await requireTermContext(ministrySlug, termSlug);
   if (!context) return { items: [], count: 0, page: 1, pageSize: 1 };
   const supabase = await createClient();
+
+  if (section === "departments") {
+    const { data, error } = await supabase
+      .from("term_department")
+      .select(
+        "id, name, slug, accent_color, icon_key, department_service_role(count)",
+      )
+      .eq("ministry_term_id", context.term.id)
+      .order("name")
+      .order("id");
+    if (error) throw new Error("Failed to fetch term structure");
+    const items = (data ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      accentColor: row.accent_color,
+      iconKey: row.icon_key,
+      roleCount:
+        (
+          row as unknown as {
+            department_service_role: { count: number }[];
+          }
+        ).department_service_role?.[0]?.count ?? 0,
+    }));
+    return {
+      items,
+      count: items.length,
+      page: 1,
+      pageSize: Math.max(1, items.length),
+    };
+  }
+
   const { data, error } = await supabase
-    .from(section === "groups" ? "term_group" : "term_department")
+    .from("term_group")
     .select("id, name, slug, accent_color, icon_key")
     .eq("ministry_term_id", context.term.id)
     .order("name")
@@ -229,5 +262,53 @@ export async function getStructure(
     count: items.length,
     page: 1,
     pageSize: Math.max(1, items.length),
+  };
+}
+
+export async function getDepartmentServiceStructure(
+  ministrySlug: string,
+  termSlug: string,
+  departmentSlug: string,
+): Promise<DepartmentServiceStructure | null> {
+  const context = await requireTermContext(ministrySlug, termSlug);
+  if (!context) return null;
+  const supabase = await createClient();
+
+  const { data: dept, error: deptError } = await supabase
+    .from("term_department")
+    .select("id, name, slug, accent_color, icon_key")
+    .eq("ministry_term_id", context.term.id)
+    .eq("slug", departmentSlug)
+    .maybeSingle();
+
+  if (deptError || !dept) return null;
+
+  const { data: roles, error: rolesError } = await supabase
+    .from("department_service_role")
+    .select("id, term_department_id, name, service_assignment(count)")
+    .eq("term_department_id", dept.id)
+    .order("name")
+    .order("id");
+
+  if (rolesError) {
+    throw new Error("Failed to fetch department service structure");
+  }
+
+  return {
+    department: {
+      id: dept.id,
+      name: dept.name,
+      slug: dept.slug,
+      accentColor: dept.accent_color,
+      iconKey: dept.icon_key,
+    },
+    roles: (roles ?? []).map((r) => ({
+      id: r.id,
+      termDepartmentId: r.term_department_id,
+      name: r.name,
+      assignmentCount:
+        (r as unknown as { service_assignment: { count: number }[] })
+          .service_assignment?.[0]?.count ?? 0,
+    })),
   };
 }

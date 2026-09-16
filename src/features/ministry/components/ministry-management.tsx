@@ -3,6 +3,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryStates } from "nuqs";
 import {
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   Rows3,
   Search,
   SlidersHorizontal,
+  Users,
   X,
 } from "lucide-react";
 import { RadioGroup as RadixRadioGroup } from "radix-ui";
@@ -48,6 +50,7 @@ import {
   structureSearchParams,
   termSearchParams,
 } from "../search-params";
+import { DepartmentServiceDrawer } from "./department-service-drawer";
 import {
   deleteMinistryAction,
   deleteStructureAction,
@@ -505,8 +508,13 @@ export function MinistryManagement({
   ministryId,
   ministrySlug,
   termId,
+  termSlug,
 }: Props) {
+  const router = useRouter();
   const label = labelFor(mode);
+  const [serviceDept, setServiceDept] = React.useState<StructureItem | null>(
+    null,
+  );
   const supportsSearchAndPagination = mode === "ministries" || mode === "terms";
   const supportsVisualIdentity = mode !== "terms";
   const parsers =
@@ -822,7 +830,9 @@ export function MinistryManagement({
                       ? "md:grid-cols-[1fr_180px_120px_180px]"
                       : mode === "terms"
                         ? "md:grid-cols-[1fr_180px_120px_180px]"
-                        : "md:grid-cols-[1fr_180px_180px]",
+                        : mode === "departments"
+                          ? "md:grid-cols-[1fr_160px_200px_120px]"
+                          : "md:grid-cols-[1fr_180px_180px]",
                   )}
                 >
                   <div role="columnheader">Name</div>
@@ -831,6 +841,9 @@ export function MinistryManagement({
                     <div role="columnheader">Terms</div>
                   )}
                   {mode === "terms" && <div role="columnheader">Lifecycle</div>}
+                  {mode === "departments" && (
+                    <div role="columnheader">Service Structure</div>
+                  )}
                   <div role="columnheader" className="text-right">
                     Actions
                   </div>
@@ -859,13 +872,29 @@ export function MinistryManagement({
                       }}
                       deleteDisabled={isDeleteDisabled}
                       deleteDisabledReason={deleteDisabledReason}
+                      onAdditionalAction={
+                        mode === "departments"
+                          ? () => setServiceDept(item as StructureItem)
+                          : undefined
+                      }
+                      additionalActionLabel={
+                        mode === "departments"
+                          ? `Service roles (${(item as StructureItem).roleCount ?? 0})`
+                          : undefined
+                      }
+                      additionalActionIcon={
+                        mode === "departments" ? Users : undefined
+                      }
+                      additionalActionSectionLabel="Roles"
                       className={cn(
                         "p-4 sm:p-5 md:grid md:items-center md:gap-4 md:p-3",
                         mode === "ministries"
                           ? "md:grid-cols-[1fr_180px_120px_180px]"
                           : mode === "terms"
                             ? "md:grid-cols-[1fr_180px_120px_180px]"
-                            : "md:grid-cols-[1fr_180px_180px]",
+                            : mode === "departments"
+                              ? "md:grid-cols-[1fr_160px_200px_120px]"
+                              : "md:grid-cols-[1fr_180px_180px]",
                       )}
                     >
                       <div role="cell" className="min-w-0">
@@ -932,9 +961,21 @@ export function MinistryManagement({
                                 </span>
                               )}
                               <div className="min-w-0 flex-1">
-                                <span className="text-base font-semibold">
-                                  {item.name}
-                                </span>
+                                {mode === "departments" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setServiceDept(item as StructureItem)
+                                    }
+                                    className="hover:text-primary cursor-pointer text-left text-base font-semibold underline-offset-4 hover:underline"
+                                  >
+                                    {item.name}
+                                  </button>
+                                ) : (
+                                  <span className="text-base font-semibold">
+                                    {item.name}
+                                  </span>
+                                )}
                                 {isTerm(item) && (
                                   <span className="text-muted-foreground mt-0.5 block text-xs">
                                     {item.startDate ?? "No start date"} to{" "}
@@ -945,6 +986,15 @@ export function MinistryManagement({
                                   <span className="font-mono">
                                     /{item.slug}
                                   </span>
+                                  {mode === "departments" && (
+                                    <span>
+                                      • {(item as StructureItem).roleCount ?? 0}{" "}
+                                      {((item as StructureItem).roleCount ??
+                                        0) === 1
+                                        ? "role"
+                                        : "roles"}
+                                    </span>
+                                  )}
                                   {isMinistry(item) && (
                                     <span>
                                       • {item.termCount}{" "}
@@ -985,6 +1035,31 @@ export function MinistryManagement({
                           className="hidden text-sm capitalize md:block"
                         >
                           {item.lifecycle}
+                        </div>
+                      )}
+                      {mode === "departments" && (
+                        <div
+                          role="cell"
+                          className="hidden items-center md:flex"
+                        >
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="min-h-9 gap-1.5 text-xs font-semibold"
+                            onClick={() =>
+                              setServiceDept(item as StructureItem)
+                            }
+                            aria-label={`Configure service roles for ${item.name}`}
+                          >
+                            <Users className="size-3.5" aria-hidden="true" />
+                            <span>
+                              {(item as StructureItem).roleCount ?? 0}{" "}
+                              {((item as StructureItem).roleCount ?? 0) === 1
+                                ? "role"
+                                : "roles"}
+                            </span>
+                          </Button>
                         </div>
                       )}
                       <div role="cell" className="hidden justify-end md:flex">
@@ -1309,6 +1384,16 @@ export function MinistryManagement({
           </p>
         )}
       </ConfirmationSheet>
+      {mode === "departments" && ministrySlug && termSlug && (
+        <DepartmentServiceDrawer
+          open={Boolean(serviceDept)}
+          onOpenChange={(open) => !open && setServiceDept(null)}
+          department={serviceDept}
+          ministrySlug={ministrySlug}
+          termSlug={termSlug}
+          onStructureChanged={() => router.refresh()}
+        />
+      )}
     </ExpandableCoordinatorProvider>
   );
 }

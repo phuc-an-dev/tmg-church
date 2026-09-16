@@ -6,11 +6,14 @@ import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   deleteSchema,
+  deleteServiceStructureSchema,
   ministrySchema,
+  serviceRoleSchema,
   structureSchema,
   termSchema,
 } from "./schemas";
-import type { ActionResult } from "./types";
+import { getDepartmentServiceStructure } from "./queries";
+import type { ActionResult, DepartmentServiceStructure } from "./types";
 
 function invalid(error: {
   flatten: () => { fieldErrors: Record<string, string[] | undefined> };
@@ -500,6 +503,173 @@ export async function deleteStructureAction(
     return resultError(
       "DATABASE_ERROR",
       "Unable to delete this structural record. Please try again.",
+    );
+  }
+}
+
+export async function saveDepartmentServiceRoleAction(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
+  try {
+    const parsed = serviceRoleSchema.safeParse(raw);
+    if (!parsed.success) return invalid(parsed.error);
+
+    const supabase = await createClient();
+    const { data: dept } = await supabase
+      .from("term_department")
+      .select(
+        "id, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
+      )
+      .eq("id", parsed.data.termDepartmentId)
+      .maybeSingle();
+
+    const churchId = (
+      dept?.ministry_term as unknown as {
+        ministry: { church_id: string };
+      }
+    )?.ministry?.church_id;
+
+    if (!dept || churchId !== ctx.church.id) {
+      return resultError(
+        "NOT_FOUND",
+        "The requested department was not found.",
+      );
+    }
+
+    if (parsed.data.id) {
+      const { error } = await supabase
+        .from("department_service_role")
+        .update({ name: parsed.data.name })
+        .eq("id", parsed.data.id)
+        .eq("term_department_id", dept.id);
+
+      if (error) {
+        return dbError(error, "Unable to update this service role.");
+      }
+
+      await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+      return {
+        success: true,
+        data: { id: parsed.data.id },
+        message: "Service role updated successfully.",
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("department_service_role")
+      .insert({
+        term_department_id: dept.id,
+        name: parsed.data.name,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return dbError(error, "Unable to create this service role.");
+    }
+
+    await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+    return {
+      success: true,
+      data: { id: data.id },
+      message: "Service role created successfully.",
+    };
+  } catch {
+    return resultError(
+      "DATABASE_ERROR",
+      "Unable to save this service role. Please try again.",
+    );
+  }
+}
+
+export async function deleteDepartmentServiceRoleAction(
+  raw: unknown,
+): Promise<ActionResult<{ id: string }>> {
+  const ctx = await requireOperationalContext();
+  try {
+    const parsed = deleteServiceStructureSchema.safeParse(raw);
+    if (!parsed.success) return invalid(parsed.error);
+
+    const supabase = await createClient();
+    const { data: dept } = await supabase
+      .from("term_department")
+      .select(
+        "id, ministry_term_id, ministry_term!inner(id, ministry_id, ministry!inner(church_id))",
+      )
+      .eq("id", parsed.data.termDepartmentId)
+      .maybeSingle();
+
+    const churchId = (
+      dept?.ministry_term as unknown as {
+        ministry: { church_id: string };
+      }
+    )?.ministry?.church_id;
+
+    if (!dept || churchId !== ctx.church.id) {
+      return resultError(
+        "NOT_FOUND",
+        "The requested department was not found.",
+      );
+    }
+
+    // Check if referenced by service_assignment
+    const { count } = await supabase
+      .from("service_assignment")
+      .select("id", { count: "exact", head: true })
+      .eq("department_service_role_id", parsed.data.id);
+
+    if (count && count > 0) {
+      return resultError(
+        "DEPENDENCY_BLOCKED",
+        "Cannot delete a service role that has session service assignments.",
+      );
+    }
+
+    const { error } = await supabase
+      .from("department_service_role")
+      .delete()
+      .eq("id", parsed.data.id)
+      .eq("term_department_id", dept.id);
+
+    if (error) {
+      return dbError(error, "Unable to delete this service role.");
+    }
+
+    await paths(dept.ministry_term.ministry_id, dept.ministry_term_id);
+    return {
+      success: true,
+      data: { id: parsed.data.id },
+      message: "Service role deleted successfully.",
+    };
+  } catch {
+    return resultError(
+      "DATABASE_ERROR",
+      "Unable to delete this service role. Please try again.",
+    );
+  }
+}
+
+export async function getDepartmentServiceStructureAction(
+  ministrySlug: string,
+  termSlug: string,
+  departmentSlug: string,
+): Promise<ActionResult<DepartmentServiceStructure>> {
+  await requireOperationalContext();
+  try {
+    const data = await getDepartmentServiceStructure(
+      ministrySlug,
+      termSlug,
+      departmentSlug,
+    );
+    if (!data) {
+      return resultError("NOT_FOUND", "Department was not found.");
+    }
+    return { success: true, data, message: "OK" };
+  } catch {
+    return resultError(
+      "DATABASE_ERROR",
+      "Unable to fetch department service structure.",
     );
   }
 }

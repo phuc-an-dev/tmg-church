@@ -37,4 +37,17 @@ export type StructureItem = {
   slug: string;
   accentColor: string;
   iconKey: string;
+  roleCount?: number;
+};
+
+export type DepartmentServiceRole = {
+  id: string;
+  termDepartmentId: string;
+  name: string;
+  assignmentCount: number;
+};
+
+export type DepartmentServiceStructure = {
+  department: StructureItem;
+  roles: DepartmentServiceRole[];
 };

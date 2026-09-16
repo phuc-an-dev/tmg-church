@@ -78,3 +78,14 @@ export const deleteSchema = z.object({
   parentId: id.optional(),
   ministryId: id.optional(),
 });
+
+export const serviceRoleSchema = z.object({
+  id: id.optional(),
+  termDepartmentId: id,
+  name,
+});
+
+export const deleteServiceStructureSchema = z.object({
+  id,
+  termDepartmentId: id,
+});
