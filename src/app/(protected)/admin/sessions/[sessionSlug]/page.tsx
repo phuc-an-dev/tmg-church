@@ -4,7 +4,7 @@ import { AttendanceManagement } from "@/features/session/components/attendance-m
 import { ServiceAssignmentManagement } from "@/features/session/components/service-assignment-management";
 import {
   getSessionDetail,
-  getSessionRosterData,
+  getSessionServiceAssignmentData,
 } from "@/features/session/queries";
 import { sessionDetailSearchParamsCache } from "@/features/session/search-params";
 
@@ -18,7 +18,7 @@ export async function generateMetadata({
   return {
     title: isAssignments ? "Service Assignments" : "Session Attendance",
     description: isAssignments
-      ? "Manage service roster assignments for the session"
+      ? "Manage service assignments for the session"
       : "Record and manage session attendance",
   };
 }
@@ -35,12 +35,12 @@ export default async function SessionDetailPage({
   const isAssignments = resolvedParams.tab === "assignments";
 
   if (isAssignments) {
-    const rosterData = await getSessionRosterData(sessionSlug);
-    if (!rosterData) notFound();
+    const assignmentData = await getSessionServiceAssignmentData(sessionSlug);
+    if (!assignmentData) notFound();
 
     return (
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <ServiceAssignmentManagement rosterData={rosterData} />
+        <ServiceAssignmentManagement assignmentData={assignmentData} />
       </div>
     );
   }

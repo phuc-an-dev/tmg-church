@@ -762,8 +762,8 @@ function ArchiveConfirmDialog({
       description={
         <>
           Are you sure you want to archive <strong>{member.fullName}</strong>?
-          Archived members are hidden from active ministry rosters, but can be
-          restored at any time.
+          Archived members are hidden from active ministry assignments, but can
+          be restored at any time.
         </>
       }
       confirmLabel="Archive member"

@@ -11,7 +11,7 @@ import type {
   SessionGroupInfo,
   SessionPage,
   SessionParticipantDetail,
-  SessionRosterData,
+  SessionServiceAssignmentData,
   SessionServiceAssignment,
   SessionTermOption,
 } from "./types";
@@ -342,9 +342,9 @@ export async function getSessionDetail(
   };
 }
 
-export async function getSessionRosterData(
+export async function getSessionServiceAssignmentData(
   slug: string,
-): Promise<SessionRosterData | null> {
+): Promise<SessionServiceAssignmentData | null> {
   if (isUuid(slug)) return null;
   const ctx = await requireOperationalContext();
   const s = await createClient();
@@ -435,10 +435,10 @@ export async function getSessionRosterData(
 
   if (deptRes.error || memberRes.error || assignRes.error) {
     console.error(
-      "Failed to fetch session roster data:",
+      "Failed to fetch session service assignment data:",
       deptRes.error || memberRes.error || assignRes.error,
     );
-    throw new Error("Failed to fetch session roster data");
+    throw new Error("Failed to fetch session service assignment data");
   }
 
   const departments: SessionDepartmentOption[] = (deptRes.data ?? []).map(

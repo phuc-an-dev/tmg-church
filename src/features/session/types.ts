@@ -99,7 +99,7 @@ export type SessionDepartmentOption = {
   roles: Array<{ id: string; name: string }>;
 };
 
-export type SessionRosterData = {
+export type SessionServiceAssignmentData = {
   session: SessionItem;
   ministrySlug: string;
   termSlug: string;

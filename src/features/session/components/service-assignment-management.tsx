@@ -23,19 +23,19 @@ import {
 } from "../actions";
 import type {
   SessionDepartmentOption,
-  SessionRosterData,
+  SessionServiceAssignmentData,
   SessionServiceAssignment,
 } from "../types";
 
 interface ServiceAssignmentManagementProps {
-  rosterData: SessionRosterData;
+  assignmentData: SessionServiceAssignmentData;
 }
 
 export function ServiceAssignmentManagement({
-  rosterData,
+  assignmentData,
 }: ServiceAssignmentManagementProps) {
   const router = useRouter();
-  const { session, departments, assignments, enrolledMembers } = rosterData;
+  const { session, departments, assignments, enrolledMembers } = assignmentData;
 
   const [feedback, setFeedback] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
@@ -255,11 +255,11 @@ export function ServiceAssignmentManagement({
             This ministry term has no departments yet. Please add departments in
             the Ministry Term Structure.
           </p>
-          {rosterData.ministrySlug && rosterData.termSlug && (
+          {assignmentData.ministrySlug && assignmentData.termSlug && (
             <div className="mt-4">
               <Button asChild variant="outline" className="min-h-11">
                 <Link
-                  href={`/admin/ministries/${rosterData.ministrySlug}/terms/${rosterData.termSlug}?section=departments`}
+                  href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=departments`}
                 >
                   Open Ministry Term Structure
                 </Link>
@@ -284,7 +284,7 @@ export function ServiceAssignmentManagement({
                   assigning volunteers for this session.
                 </p>
               </div>
-              {rosterData.ministrySlug && rosterData.termSlug && (
+              {assignmentData.ministrySlug && assignmentData.termSlug && (
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                   <Button
                     type="button"
@@ -293,7 +293,7 @@ export function ServiceAssignmentManagement({
                     className="min-h-11"
                   >
                     <Link
-                      href={`/admin/ministries/${rosterData.ministrySlug}/terms/${rosterData.termSlug}?section=departments`}
+                      href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=departments`}
                     >
                       <span>Open Department Structure</span>
                     </Link>
@@ -505,7 +505,7 @@ export function ServiceAssignmentManagement({
                     This department has no members enrolled in this term yet.
                     Please assign members in the Term Structure.
                   </p>
-                  {rosterData.ministrySlug && rosterData.termSlug && (
+                  {assignmentData.ministrySlug && assignmentData.termSlug && (
                     <Button
                       asChild
                       variant="outline"
@@ -513,7 +513,7 @@ export function ServiceAssignmentManagement({
                       className="min-h-11"
                     >
                       <Link
-                        href={`/admin/ministries/${rosterData.ministrySlug}/terms/${rosterData.termSlug}?section=departments`}
+                        href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=departments`}
                       >
                         Open Term Structure
                       </Link>
