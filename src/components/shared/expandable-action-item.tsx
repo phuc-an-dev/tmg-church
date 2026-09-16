@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "cn";
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ItemActionButtons } from "@/components/shared/item-action-buttons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -303,15 +304,6 @@ export function ExpandableActionMobileActions({
 
   if (!isOpen) return null;
 
-  const deleteReasonId =
-    deleteDisabled && deleteDisabledReason
-      ? `delete-disabled-reason-${id}`
-      : undefined;
-  const editReasonId =
-    editDisabled && editDisabledReason
-      ? `edit-disabled-reason-${id}`
-      : undefined;
-
   const hasMemberActions = Boolean(onEdit || onDelete);
 
   return (
@@ -352,71 +344,24 @@ export function ExpandableActionMobileActions({
               {primaryActionsSectionLabel}
             </p>
           )}
-          <div
-            className={cn(
-              "grid gap-2 sm:gap-3",
-              onEdit && onDelete ? "grid-cols-2" : "grid-cols-1",
-            )}
-          >
-            {/* Edit Action Button */}
-            {onEdit && (
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                disabled={editDisabled}
-                aria-describedby={editReasonId}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onEdit();
-                }}
-                className="min-h-11 w-full gap-2 text-sm font-semibold"
-                data-interactive="true"
-              >
-                <Pencil className="size-4" aria-hidden="true" />
-                <span>{editLabel}</span>
-              </Button>
-            )}
-
-            {/* Delete / Secondary Action Button */}
-            {onDelete && (
-              <Button
-                type="button"
-                variant={
-                  deleteVariant === "destructive" ? "destructive" : "outline"
-                }
-                size="default"
-                disabled={deleteDisabled}
-                aria-describedby={deleteReasonId}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete();
-                }}
-                className={cn(
-                  "min-h-11 w-full gap-2 text-sm font-semibold",
-                  deleteVariant === "destructive" &&
-                    "border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20 active:bg-destructive/25 border shadow-none",
-                )}
-                data-interactive="true"
-              >
-                <DeleteIcon className="size-4" aria-hidden="true" />
-                <span>{deleteLabel}</span>
-              </Button>
-            )}
-          </div>
+          <ItemActionButtons
+            id={id}
+            onEdit={onEdit}
+            editLabel={editLabel}
+            editDisabled={editDisabled}
+            editDisabledReason={editDisabledReason}
+            onDelete={onDelete}
+            deleteLabel={deleteLabel}
+            deleteDisabled={deleteDisabled}
+            deleteDisabledReason={deleteDisabledReason}
+            deleteIcon={DeleteIcon}
+            deleteVariant={
+              deleteVariant === "destructive"
+                ? "destructive-subtle"
+                : deleteVariant
+            }
+          />
         </section>
-      )}
-
-      {/* Accessible visible disabled reasons */}
-      {deleteDisabled && deleteDisabledReason && (
-        <p id={deleteReasonId} className="text-muted-foreground mt-2 text-xs">
-          {deleteDisabledReason}
-        </p>
-      )}
-      {editDisabled && editDisabledReason && (
-        <p id={editReasonId} className="text-muted-foreground mt-2 text-xs">
-          {editDisabledReason}
-        </p>
       )}
     </div>
   );
