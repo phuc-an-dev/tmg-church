@@ -1109,6 +1109,14 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_bulk_session_attendance: {
+        Args: {
+          target_member_ids: string[];
+          target_session_id: string;
+          target_status: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;

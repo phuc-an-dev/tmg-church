@@ -7,12 +7,17 @@ interface StatusToastProps {
   message: string;
   onDismiss: () => void;
   duration?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export function StatusToast({
   message,
   onDismiss,
   duration = 4000,
+  action,
 }: StatusToastProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const dismissedRef = React.useRef(false);
@@ -53,13 +58,27 @@ export function StatusToast({
             dismissOnce();
           }
         }}
-        className="border-border/80 bg-card text-foreground flex max-w-md translate-y-4 items-center gap-3 rounded-xl border px-5 py-4 text-base font-medium opacity-0 shadow-lg transition-[opacity,transform] duration-200 data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
+        className="border-border/80 bg-card text-foreground pointer-events-auto flex max-w-md translate-y-4 items-center gap-3 rounded-xl border px-5 py-4 text-base font-medium opacity-0 shadow-lg transition-[opacity,transform] duration-200 data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
       >
         <CheckCircle2
           className="text-primary size-5 shrink-0"
           aria-hidden="true"
         />
-        <span>{message}</span>
+        <div className="flex flex-1 items-center justify-between gap-3">
+          <span>{message}</span>
+          {action && (
+            <button
+              type="button"
+              onClick={() => {
+                action.onClick();
+                dismissOnce();
+              }}
+              className="text-primary shrink-0 cursor-pointer text-sm font-semibold hover:underline"
+            >
+              {action.label}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

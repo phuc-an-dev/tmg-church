@@ -2,10 +2,20 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
 import { isUuid } from "@/lib/slug";
-import type { SessionDetail, SessionPage, SessionTermOption } from "./types";
+import type {
+  SessionDepartmentInfo,
+  SessionDetail,
+  SessionFilterStatus,
+  SessionGroupInfo,
+  SessionPage,
+  SessionParticipantDetail,
+  SessionTermOption,
+} from "./types";
+
 function safePageSize(value: number) {
   return value === 50 || value === 100 ? value : 20;
 }
+
 export async function getSessionTerms(): Promise<SessionTermOption[]> {
   const ctx = await requireOperationalContext();
   const s = await createClient();
@@ -14,7 +24,10 @@ export async function getSessionTerms(): Promise<SessionTermOption[]> {
     .select("id,name,slug,ministry!inner(church_id,name,slug)")
     .eq("ministry.church_id", ctx.church.id)
     .order("name");
-  if (error) throw new Error("Failed to fetch session terms");
+  if (error) {
+    console.error("Failed to fetch session terms:", error);
+    throw new Error("Failed to fetch session terms");
+  }
   return (data ?? []).map((x) => {
     const ministry = x.ministry as unknown as { name: string; slug: string };
     return {
@@ -27,6 +40,7 @@ export async function getSessionTerms(): Promise<SessionTermOption[]> {
     };
   });
 }
+
 export async function getSessions(p: {
   q: string;
   term: string;
@@ -64,7 +78,10 @@ export async function getSessions(p: {
     (page - 1) * pageSize,
     page * pageSize - 1,
   );
-  if (error) throw new Error("Failed to fetch sessions");
+  if (error) {
+    console.error("Failed to fetch sessions:", error);
+    throw new Error("Failed to fetch sessions");
+  }
   const byId = new Map(terms.map((x) => [x.id, x]));
   return {
     items: (data ?? []).map((x) => {
@@ -96,8 +113,15 @@ export async function getSessions(p: {
     pageSize,
   };
 }
+
 export async function getSessionDetail(
   slug: string,
+  filterParams?: {
+    q?: string;
+    status?: SessionFilterStatus;
+    page?: number;
+    pageSize?: number;
+  },
 ): Promise<SessionDetail | null> {
   if (isUuid(slug)) return null;
   const ctx = await requireOperationalContext();
@@ -105,18 +129,27 @@ export async function getSessionDetail(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(name,ministry!inner(church_id,name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
-    .eq("ministry_term.ministry.church_id", ctx.church.id)
     .maybeSingle();
-  if (sessionError) throw new Error("Failed to fetch session");
+  if (sessionError) {
+    console.error("Failed to fetch session:", sessionError);
+    throw new Error("Failed to fetch session");
+  }
   if (!raw) return null;
-  const relation = raw.ministry_term as unknown as {
-    name: string;
-    ministry: { name: string };
-  };
+
+  const termData = raw.ministry_term as unknown as
+    | { name: string; ministry: { name: string } | { name: string }[] }
+    | { name: string; ministry: { name: string } | { name: string }[] }[];
+  const singleTerm = Array.isArray(termData) ? termData[0] : termData;
+  const singleMinistry = Array.isArray(singleTerm?.ministry)
+    ? singleTerm?.ministry[0]
+    : singleTerm?.ministry;
+  const termName = singleTerm?.name ?? "";
+  const ministryName = singleMinistry?.name ?? "";
+
   const participantCount =
     (raw.session_participant as unknown as { count: number }[])?.[0]?.count ??
     0;
@@ -130,46 +163,177 @@ export async function getSessionDetail(
     title: raw.title,
     sessionDate: raw.session_date,
     termId: raw.ministry_term_id,
-    termName: relation.name,
-    ministryName: relation.ministry.name,
+    termName,
+    ministryName,
     participantCount,
     canDelete:
       participantCount === 0 &&
       assignmentCount === 0 &&
       serviceAssignmentCount === 0,
   };
-  const [{ data, error }, { data: attendanceRows, error: attendanceError }] =
-    await Promise.all([
-      s
-        .from("ministry_membership")
-        .select("member_profile_id,member_profile!inner(full_name,archived_at)")
-        .eq("ministry_term_id", item.termId)
-        .is("member_profile.archived_at", null)
-        .order("member_profile(full_name)"),
-      s
-        .from("session_participant")
-        .select("member_profile_id,attendance_record(status)")
-        .eq("ministry_session_id", raw.id),
-    ]);
-  if (error || attendanceError)
+
+  // Fetch all active enrolled members of this term
+  const { data: memberships, error: membershipError } = await s
+    .from("ministry_membership")
+    .select(
+      "id,member_profile_id,member_profile!inner(id,full_name,archived_at)",
+    )
+    .eq("ministry_term_id", item.termId)
+    .is("member_profile.archived_at", null)
+    .order("member_profile(full_name)");
+
+  if (membershipError) {
+    console.error("Failed to fetch session participants:", membershipError);
     throw new Error("Failed to fetch session participants");
-  const statusByMember = new Map(
-    (attendanceRows ?? []).map((row) => [
-      row.member_profile_id,
-      (row.attendance_record as unknown as { status: string } | null)?.status ??
-        null,
-    ]),
+  }
+
+  const membershipIds = (memberships ?? []).map((m) => m.id);
+
+  // Concurrently fetch group memberships, department assignments, and session attendance
+  const [groupRes, assignRes, attendanceRes] = await Promise.all([
+    membershipIds.length > 0
+      ? s
+          .from("term_group_membership")
+          .select(
+            "ministry_membership_id,term_group:term_group_id(id,name,accent_color,icon_key)",
+          )
+          .in("ministry_membership_id", membershipIds)
+      : Promise.resolve({ data: [] }),
+    membershipIds.length > 0
+      ? s
+          .from("ministry_assignment")
+          .select(
+            "ministry_membership_id,term_department:term_department_id(id,name,accent_color,icon_key)",
+          )
+          .in("ministry_membership_id", membershipIds)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    s
+      .from("session_participant")
+      .select("member_profile_id,attendance_record(status)")
+      .eq("ministry_session_id", raw.id),
+  ]);
+
+  const groupByMembership = new Map<string, SessionGroupInfo>();
+  for (const row of groupRes.data ?? []) {
+    const tg = Array.isArray(row.term_group)
+      ? row.term_group[0]
+      : row.term_group;
+    if (tg) {
+      groupByMembership.set(row.ministry_membership_id, {
+        id: tg.id,
+        name: tg.name,
+        accentColor: tg.accent_color,
+        iconKey: tg.icon_key,
+      });
+    }
+  }
+
+  const deptsByMembership = new Map<string, SessionDepartmentInfo[]>();
+  for (const row of assignRes.data ?? []) {
+    const dept = Array.isArray(row.term_department)
+      ? row.term_department[0]
+      : row.term_department;
+    if (dept) {
+      const list = deptsByMembership.get(row.ministry_membership_id) ?? [];
+      list.push({
+        id: dept.id,
+        name: dept.name,
+        accentColor: dept.accent_color,
+        iconKey: dept.icon_key,
+      });
+      deptsByMembership.set(row.ministry_membership_id, list);
+    }
+  }
+
+  const statusByMember = new Map<string, "present" | "absent" | "excused">();
+  for (const row of attendanceRes.data ?? []) {
+    const rec = Array.isArray(row.attendance_record)
+      ? row.attendance_record[0]
+      : row.attendance_record;
+    if (rec?.status) {
+      statusByMember.set(
+        row.member_profile_id,
+        rec.status as "present" | "absent" | "excused",
+      );
+    }
+  }
+
+  // Calculate summary counts across all enrolled members
+  let presentCount = 0;
+  let absentCount = 0;
+  let excusedCount = 0;
+
+  const allParticipants: SessionParticipantDetail[] = (memberships ?? []).map(
+    (m) => {
+      const profile = m.member_profile as unknown as {
+        id: string;
+        full_name: string;
+      };
+      const status = statusByMember.get(m.member_profile_id) ?? null;
+      if (status === "present") presentCount += 1;
+      else if (status === "absent") absentCount += 1;
+      else if (status === "excused") excusedCount += 1;
+
+      return {
+        memberId: m.member_profile_id,
+        fullName: profile.full_name,
+        status,
+        group: groupByMembership.get(m.id) ?? null,
+        departments: deptsByMembership.get(m.id) ?? [],
+      };
+    },
   );
+
+  const enrolledCount = allParticipants.length;
+  const recordedCount = presentCount + absentCount + excusedCount;
+  const pendingCount = enrolledCount - recordedCount;
+
+  const summary = {
+    enrolledCount,
+    recordedCount,
+    presentCount,
+    absentCount,
+    excusedCount,
+    pendingCount,
+  };
+
+  // Filter according to params
+  const q = (filterParams?.q ?? "").trim().toLowerCase();
+  const statusFilter: SessionFilterStatus = filterParams?.status ?? "pending";
+
+  let filtered = allParticipants;
+
+  if (q) {
+    filtered = filtered.filter((p) => p.fullName.toLowerCase().includes(q));
+  }
+
+  if (statusFilter !== "all") {
+    filtered = filtered.filter((p) => {
+      if (statusFilter === "pending") return p.status === null;
+      return p.status === statusFilter;
+    });
+  }
+
+  const filteredMemberIds = filtered.map((p) => p.memberId);
+  const pageSize = safePageSize(filterParams?.pageSize ?? 20);
+  const totalCount = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const requestedPage = Math.max(1, filterParams?.page ?? 1);
+  const page = Math.min(requestedPage, totalPages);
+
+  const slicedParticipants = filtered.slice(
+    (page - 1) * pageSize,
+    page * pageSize,
+  );
+
   return {
     ...item,
-    participants: (data ?? []).map((x) => {
-      return {
-        memberId: x.member_profile_id,
-        fullName: (x.member_profile as unknown as { full_name: string })
-          .full_name,
-        status: (statusByMember.get(x.member_profile_id) ?? null) as
-          "present" | "absent" | "excused" | null,
-      };
-    }),
+    summary,
+    participants: slicedParticipants,
+    count: totalCount,
+    page,
+    pageSize,
+    filteredMemberIds,
   };
 }

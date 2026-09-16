@@ -1,13 +1,16 @@
 "use server";
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug, isUuid } from "@/lib/slug";
 import {
   attendanceSchema,
+  bulkAttendanceSchema,
   deleteSessionSchema,
   sessionSchema,
 } from "./schemas";
+
 type Result = { success: boolean; message?: string; error?: string };
 
 async function uniqueSessionSlug(
@@ -57,15 +60,21 @@ async function createSessionWithUniqueSlug(input: {
       })
       .select("id,slug")
       .maybeSingle();
+
     if (
       !result.error ||
       result.error.code !== "23505" ||
       !result.error.message.includes("ministry_session_church_id_slug_key")
-    )
+    ) {
       return result;
+    }
   }
-  return { data: null, error: null };
+  return {
+    data: null,
+    error: new Error("Unable to allocate unique session slug"),
+  };
 }
+
 export async function saveSessionAction(raw: unknown): Promise<Result> {
   const ctx = await requireOperationalContext();
   const p = sessionSchema.safeParse(raw);
@@ -103,6 +112,7 @@ export async function saveSessionAction(raw: unknown): Promise<Result> {
   revalidatePath(`/admin/sessions/${r.data.slug}`);
   return { success: true, message: "Session saved." };
 }
+
 export async function deleteSessionAction(raw: unknown): Promise<Result> {
   const ctx = await requireOperationalContext();
   const p = deleteSessionSchema.safeParse(raw);
@@ -152,6 +162,7 @@ export async function deleteSessionAction(raw: unknown): Promise<Result> {
   revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Session deleted." };
 }
+
 export async function saveAttendanceAction(raw: unknown): Promise<Result> {
   const ctx = await requireOperationalContext();
   const p = attendanceSchema.safeParse(raw);
@@ -172,4 +183,34 @@ export async function saveAttendanceAction(raw: unknown): Promise<Result> {
   if (error) return { success: false, error: "Unable to save attendance." };
   revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Attendance saved." };
+}
+
+export async function saveBulkAttendanceAction(raw: unknown): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = bulkAttendanceSchema.safeParse(raw);
+  if (!p.success)
+    return { success: false, error: "Invalid bulk attendance request." };
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s.rpc("save_bulk_session_attendance", {
+    target_session_id: session.id,
+    target_member_ids: p.data.memberIds,
+    target_status: p.data.status,
+  });
+
+  if (error)
+    return { success: false, error: "Unable to save bulk attendance." };
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return {
+    success: true,
+    message: `Attendance saved for ${p.data.memberIds.length} members.`,
+  };
 }

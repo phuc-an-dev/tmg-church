@@ -1,5 +1,7 @@
 import { z } from "zod";
+
 const id = z.string().uuid("Invalid record identifier");
+
 export const sessionSchema = z.object({
   id: id.optional(),
   ministryTermId: id,
@@ -12,9 +14,17 @@ export const sessionSchema = z.object({
       "Use a valid calendar date",
     ),
 });
+
 export const deleteSessionSchema = z.object({ id });
+
 export const attendanceSchema = z.object({
   sessionId: id,
   memberId: id,
+  status: z.enum(["present", "absent", "excused"]),
+});
+
+export const bulkAttendanceSchema = z.object({
+  sessionId: id,
+  memberIds: z.array(id).min(1, "Select at least one member"),
   status: z.enum(["present", "absent", "excused"]),
 });
