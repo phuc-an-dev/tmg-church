@@ -290,7 +290,7 @@ export function IdentityPicker({
             ref={iconContainerRef}
             role="radiogroup"
             aria-label={`${entityLabel} icon options`}
-            className="grid max-h-48 grid-cols-5 gap-2 overflow-y-auto rounded-xl border p-2 sm:grid-cols-6 md:grid-cols-7"
+            className="grid max-h-52 grid-cols-6 gap-2 overflow-y-auto rounded-xl border p-2.5 sm:grid-cols-7 md:grid-cols-8"
           >
             {iconList.map((icon, index) => {
               const isSelected = icon.name === iconKey;
@@ -311,10 +311,10 @@ export function IdentityPicker({
                   onClick={() => onIconKeyChange(icon.name)}
                   onKeyDown={(event) => moveIconFocus(event, index)}
                   className={cn(
-                    "focus-visible:outline-primary relative flex size-11 min-h-11 min-w-11 items-center justify-center rounded-xl border transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
+                    "focus-visible:outline-primary relative flex aspect-square min-h-11 w-full items-center justify-center rounded-xl border transition-all hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
                     isSelected
                       ? "border-primary bg-primary/10 text-primary ring-primary/30 shadow-xs ring-2"
-                      : "border-border/80 bg-muted/30 text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+                      : "border-border/70 bg-muted/20 text-muted-foreground hover:border-foreground/30 hover:bg-muted/40 hover:text-foreground",
                   )}
                 >
                   <IdentityIcon iconKey={icon.name} className="size-5" />
