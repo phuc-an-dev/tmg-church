@@ -248,11 +248,9 @@ function LifecycleDropdown({
 }
 
 import {
-  IdentityIcon,
   IdentityPicker,
   IdentityTile,
 } from "@/components/shared/identity-picker";
-export { IdentityIcon, IdentityPicker, IdentityTile };
 
 export function MinistryManagement({
   mode,

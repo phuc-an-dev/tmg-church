@@ -52,7 +52,7 @@ import {
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
-import { IdentityTile } from "@/features/ministry/components/ministry-management";
+import { IdentityTile } from "@/components/shared/identity-picker";
 import {
   archiveMemberAction,
   createMemberAction,
