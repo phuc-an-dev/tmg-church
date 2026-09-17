@@ -12,6 +12,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useQueryStates } from "nuqs";
 import { Button } from "@/components/ui/button";
+import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -210,13 +211,13 @@ export function SessionManagement({
                         Edit
                       </Button>
                       {item.canDelete && (
-                        <Button
+                        <DestructiveActionButton
                           size="sm"
-                          variant="destructive"
                           onClick={() => setRemove(item)}
-                        >
-                          Delete
-                        </Button>
+                          className="w-auto"
+                          label="Delete"
+                          icon={Trash2}
+                        />
                       )}
                     </td>
                   </tr>

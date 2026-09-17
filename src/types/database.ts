@@ -315,8 +315,8 @@ export type Database = {
           church_id: string;
           condition_rules: Json;
           created_at: string;
-          id: string;
           icon_key: string;
+          id: string;
           name: string;
           slug: string;
           updated_at: string;
@@ -326,8 +326,8 @@ export type Database = {
           church_id: string;
           condition_rules?: Json;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           name: string;
           slug: string;
           updated_at?: string;
@@ -337,8 +337,8 @@ export type Database = {
           church_id?: string;
           condition_rules?: Json;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           name?: string;
           slug?: string;
           updated_at?: string;
@@ -578,6 +578,20 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "ministry_session_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "church";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ministry_session_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["church_id"];
+          },
           {
             foreignKeyName: "ministry_session_ministry_term_id_fkey";
             columns: ["ministry_term_id"];
@@ -868,8 +882,8 @@ export type Database = {
         Row: {
           accent_color: string;
           created_at: string;
-          id: string;
           icon_key: string;
+          id: string;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -878,8 +892,8 @@ export type Database = {
         Insert: {
           accent_color?: string;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -888,8 +902,8 @@ export type Database = {
         Update: {
           accent_color?: string;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           ministry_term_id?: string;
           name?: string;
           slug?: string;
@@ -916,8 +930,8 @@ export type Database = {
         Row: {
           accent_color: string;
           created_at: string;
-          id: string;
           icon_key: string;
+          id: string;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -926,8 +940,8 @@ export type Database = {
         Insert: {
           accent_color?: string;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -936,8 +950,8 @@ export type Database = {
         Update: {
           accent_color?: string;
           created_at?: string;
-          id?: string;
           icon_key?: string;
+          id?: string;
           ministry_term_id?: string;
           name?: string;
           slug?: string;
@@ -963,27 +977,39 @@ export type Database = {
       term_group_membership: {
         Row: {
           created_at: string;
+          ended_at: string | null;
           id: string;
+          joined_at: string;
           ministry_membership_id: string;
+          role: string;
+          status: string;
           term_group_id: string;
         };
         Insert: {
           created_at?: string;
+          ended_at?: string | null;
           id?: string;
+          joined_at?: string;
           ministry_membership_id: string;
+          role?: string;
+          status?: string;
           term_group_id: string;
         };
         Update: {
           created_at?: string;
+          ended_at?: string | null;
           id?: string;
+          joined_at?: string;
           ministry_membership_id?: string;
+          role?: string;
+          status?: string;
           term_group_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "term_group_membership_ministry_membership_id_fkey";
             columns: ["ministry_membership_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "ministry_membership";
             referencedColumns: ["id"];
           },
@@ -1028,6 +1054,18 @@ export type Database = {
       };
     };
     Functions: {
+      assign_group_member: {
+        Args: { target_group_id: string; target_membership_id: string };
+        Returns: string;
+      };
+      batch_save_service_assignments: {
+        Args: {
+          target_membership_ids: string[];
+          target_role_id: string;
+          target_session_id: string;
+        };
+        Returns: number;
+      };
       create_initial_church: {
         Args: { church_name: string; church_slug: string };
         Returns: {
@@ -1044,7 +1082,6 @@ export type Database = {
           isSetofReturn: true;
         };
       };
-      is_leader: { Args: never; Returns: boolean };
       enroll_member_with_assignments: {
         Args: {
           enrollment_department_ids: string[];
@@ -1054,41 +1091,28 @@ export type Database = {
         };
         Returns: string;
       };
+      is_leader: { Args: never; Returns: boolean };
+      member_matches_segment_rules: {
+        Args: {
+          candidate: Database["public"]["Tables"]["member_profile"]["Row"];
+          rules: Json;
+        };
+        Returns: boolean;
+      };
+      preview_segment_members_by_rules: {
+        Args: { target_conditions: Json; target_segment_id: string };
+        Returns: number;
+      };
+      remove_group_member: {
+        Args: { target_record_id: string };
+        Returns: undefined;
+      };
       remove_ministry_membership_with_assignments: {
         Args: { removal_membership_id: string };
         Returns: undefined;
       };
-      set_ministry_assignments: {
-        Args: {
-          assignment_department_ids: string[];
-          assignment_membership_id: string;
-        };
-        Returns: undefined;
-      };
-      set_member_segments: {
-        Args: { target_member_id: string; target_segment_ids: string[] };
-        Returns: undefined;
-      };
-      preview_segment_members_by_rules: {
-        Args: {
-          target_conditions: Json;
-          target_segment_id: string;
-        };
-        Returns: number;
-      };
-      save_segment_rules_and_add_members: {
-        Args: {
-          target_conditions: Json;
-          target_segment_id: string;
-        };
-        Returns: number;
-      };
-      save_session_attendance: {
-        Args: {
-          target_member_id: string;
-          target_session_id: string;
-          target_status: string;
-        };
+      remove_service_assignment: {
+        Args: { target_assignment_id: string };
         Returns: undefined;
       };
       save_bulk_session_attendance: {
@@ -1099,6 +1123,10 @@ export type Database = {
         };
         Returns: undefined;
       };
+      save_segment_rules_and_add_members: {
+        Args: { target_conditions: Json; target_segment_id: string };
+        Returns: number;
+      };
       save_service_assignment: {
         Args: {
           target_membership_id: string;
@@ -1107,19 +1135,36 @@ export type Database = {
         };
         Returns: string;
       };
-      batch_save_service_assignments: {
+      save_session_attendance: {
         Args: {
-          target_membership_ids: string[];
-          target_role_id: string;
+          target_member_id: string;
           target_session_id: string;
-        };
-        Returns: number;
-      };
-      remove_service_assignment: {
-        Args: {
-          target_assignment_id: string;
+          target_status: string;
         };
         Returns: undefined;
+      };
+      set_member_segments: {
+        Args: { target_member_id: string; target_segment_ids: string[] };
+        Returns: undefined;
+      };
+      set_ministry_assignments: {
+        Args: {
+          assignment_department_ids: string[];
+          assignment_membership_id: string;
+        };
+        Returns: undefined;
+      };
+      update_group_member_role: {
+        Args: { target_record_id: string; target_role: string };
+        Returns: undefined;
+      };
+      update_group_member_status: {
+        Args: { target_record_id: string; target_status: string };
+        Returns: undefined;
+      };
+      valid_member_segment_conditions: {
+        Args: { rules: Json };
+        Returns: boolean;
       };
     };
     Enums: {

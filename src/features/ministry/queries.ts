@@ -260,12 +260,35 @@ export async function getStructure(
     .order("name")
     .order("id");
   if (error) throw new Error("Failed to fetch term structure");
+
+  const groupIds = (data ?? []).map((row) => row.id);
+  const { data: memberRows, error: memberErr } =
+    groupIds.length > 0
+      ? await supabase
+          .from("term_group_membership")
+          .select("term_group_id")
+          .in("term_group_id", groupIds)
+          .is("ended_at", null)
+          .eq("status", "active")
+      : { data: [], error: null };
+
+  if (memberErr) throw new Error("Failed to fetch group member counts");
+
+  const memberCountMap = new Map<string, number>();
+  for (const m of memberRows ?? []) {
+    memberCountMap.set(
+      m.term_group_id,
+      (memberCountMap.get(m.term_group_id) ?? 0) + 1,
+    );
+  }
+
   const items = (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
     slug: row.slug,
     accentColor: row.accent_color,
     iconKey: row.icon_key,
+    memberCount: memberCountMap.get(row.id) ?? 0,
   }));
   return {
     items,

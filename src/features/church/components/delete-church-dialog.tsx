@@ -3,6 +3,7 @@
 import * as React from "react";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
@@ -74,42 +75,29 @@ export function DeleteChurchDialog({
       >
         Cancel
       </Button>
-      <Button
+      <DestructiveActionButton
         type="submit"
         form="delete-church-form"
-        variant="destructive"
         disabled={!isMatched || isPending}
         className="min-h-[44px] w-full gap-2 sm:w-auto"
-      >
-        {isPending ? (
-          <>
-            <Loader2
-              className="size-4 animate-spin motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-            <span>Deleting church...</span>
-          </>
-        ) : (
-          <>
-            <Trash2 className="size-4" aria-hidden="true" />
-            <span>Delete Church</span>
-          </>
-        )}
-      </Button>
+        label={isPending ? "Deleting church..." : "Delete Church"}
+        icon={isPending ? Loader2 : Trash2}
+        iconClassName={
+          isPending ? "animate-spin motion-reduce:animate-none" : undefined
+        }
+      />
     </>
   );
 
   return (
     <>
-      <Button
-        variant="destructive"
+      <DestructiveActionButton
         onClick={() => setOpen(true)}
         className="min-h-[44px] w-full gap-2 sm:w-auto"
         disabled={!church.isDeletable}
-      >
-        <Trash2 className="size-4" aria-hidden="true" />
-        <span>Delete Church</span>
-      </Button>
+        label="Delete Church"
+        icon={Trash2}
+      />
 
       <ResponsiveEditor
         open={open}

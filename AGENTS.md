@@ -22,6 +22,14 @@ Apply these rules to every UI change before other presentation choices. Design a
 - Do not use `alert()`, `confirm()`, or `prompt()`.
 - On mobile, render collections as cards. Open create, edit, detail, filters, and confirmations in a bottom drawer only. Do not use a centered modal or dialog on mobile.
 
+## Destructive actions
+
+- Use `DestructiveActionButton` from `@/components/shared/item-action-buttons` for every destructive **Button** trigger: Delete, Archive, Leave, Remove, Unassign, and Deactivate.
+- The canonical destructive treatment is `destructive-subtle`: light-red background, subtle red border, and destructive foreground. Do not hand-compose dangerous action colors with `Button variant="outline"` and `border-destructive`, `text-destructive`, or `bg-destructive` utilities.
+- Do not use `Button variant="destructive"` directly in feature UI. Pass the action-specific English label and Lucide icon to the shared semantic component instead. Extend that component first if a legitimate destructive action needs a new presentation.
+- This Button rule does not apply to `DropdownMenuItem` or `ConfirmationSheet`; retain their established destructive menu and confirmation semantics instead of styling them like an inline Button.
+- The automated `destructive-action-policy.test.ts` guard enforces this rule; keep it passing when adding or changing action controls.
+
 ## Start here
 
 - Read `docs/NEXT_AGENT_TASK.md` only. It is the sole implementation authorization and names any extra context required by the active task.
@@ -47,6 +55,7 @@ Apply these rules to every UI change before other presentation choices. Design a
 - Before handoff, run:
 
 ```bash
+pnpm test
 pnpm lint
 pnpm typecheck
 pnpm format:check

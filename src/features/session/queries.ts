@@ -133,7 +133,7 @@ export async function getSessionDetail(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group_id,ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
@@ -199,9 +199,10 @@ export async function getSessionDetail(
       ? s
           .from("term_group_membership")
           .select(
-            "ministry_membership_id,term_group:term_group_id(id,name,accent_color,icon_key)",
+            "ministry_membership_id,status,term_group:term_group_id(id,name,accent_color,icon_key)",
           )
           .in("ministry_membership_id", membershipIds)
+          .is("ended_at", null)
       : Promise.resolve({ data: [] }),
     membershipIds.length > 0
       ? s
@@ -219,6 +220,7 @@ export async function getSessionDetail(
   ]);
 
   const groupByMembership = new Map<string, SessionGroupInfo>();
+  const groupStatusByMembership = new Map<string, string>();
   for (const row of groupRes.data ?? []) {
     const tg = Array.isArray(row.term_group)
       ? row.term_group[0]
@@ -230,6 +232,7 @@ export async function getSessionDetail(
         accentColor: tg.accent_color,
         iconKey: tg.icon_key,
       });
+      groupStatusByMembership.set(row.ministry_membership_id, row.status);
     }
   }
 
@@ -263,12 +266,23 @@ export async function getSessionDetail(
     }
   }
 
-  // Calculate summary counts across all enrolled members
+  // Calculate summary counts across enrolled eligible members
   let presentCount = 0;
   let absentCount = 0;
   let excusedCount = 0;
 
-  const allParticipants: SessionParticipantDetail[] = (memberships ?? []).map(
+  const termGroupId = raw.term_group_id;
+  const eligibleMemberships = (memberships ?? []).filter((m) => {
+    if (!termGroupId) return true;
+    const group = groupByMembership.get(m.id);
+    const isGroupActive =
+      group?.id === termGroupId &&
+      groupStatusByMembership.get(m.id) === "active";
+    const hasExistingAttendance = statusByMember.has(m.member_profile_id);
+    return isGroupActive || hasExistingAttendance;
+  });
+
+  const allParticipants: SessionParticipantDetail[] = eligibleMemberships.map(
     (m) => {
       const profile = m.member_profile as unknown as {
         id: string;

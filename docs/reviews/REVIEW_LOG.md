@@ -2,6 +2,14 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-17: Destructive action Button standardization
+
+Result: accepted. Added `DestructiveActionButton` with the canonical subtle-red treatment and action-specific Lucide icons, migrated feature-level destructive Buttons, and added an automated policy guard against hand-composed destructive Button styling. Tests, lint, typecheck, format check, and production build passed.
+
+## 2026-09-17: Group Detail: membership lifecycle and group-scoped attendance
+
+Result: accepted. Implemented slug-routed Group Detail administration at `/admin/ministries/[ministrySlug]/terms/[termSlug]/groups/[groupSlug]` with section tabs (members, history), mobile card presentation, table layout on desktop, bottom drawers for member selection and confirmations, and fixed group roles (`member`, `group_leader`, `deputy_leader`, `bible_study_leader`). Added migration `20260917000006_group_detail_lifecycle.sql` enforcing partial unique indexes for single open group membership per term and single active leadership role per group, with atomic RPC mutations (`assign_group_member`, `update_group_member_role`, `update_group_member_status`, `remove_group_member`). Updated session attendance to strictly enforce active group membership when `ministry_session.term_group_id` is set. Lint, typecheck, format check, smoke tests, and production build passed.
+
 ## 2026-09-16: Admin Icon Management
 
 Result: accepted after implementation review. Added admin Icon Management area at `/admin/icons` with a persistent shared `frequent_icon` list, on-demand catalog search (no icons loaded until search query is explicitly submitted), keyboard-accessible drag-and-drop ordering through a dedicated 44px grip, raised drag overlay, optimistic persistence on drop, selection detail panel, and mobile bottom drawers for details and deletion confirmation. Applied local migration `20260916000004_frequent_icon.sql` with RLS and initial icon seed. Lint, typecheck, format check, smoke tests, production build, and live keyboard reorder/restore passed.

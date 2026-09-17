@@ -45,6 +45,16 @@ export type DepartmentOperationalContext = TermOperationalContext & {
   };
 };
 
+export type GroupOperationalContext = TermOperationalContext & {
+  group: {
+    id: string;
+    name: string;
+    slug: string;
+    accentColor: string;
+    iconKey: string;
+  };
+};
+
 /**
  * Resolves the authenticated leader and single active church.
  *
@@ -212,6 +222,54 @@ export const requireDepartmentContext = cache(
       ? {
           ...termCtx,
           department: {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            accentColor: data.accent_color,
+            iconKey: data.icon_key,
+          },
+        }
+      : null;
+  },
+);
+
+/**
+ * Resolves operational context with a specific ministry, term, and group.
+ *
+ * @param ministrySlug - Ministry's immutable Church-scoped slug.
+ * @param termSlug - Term's immutable ministry-scoped slug.
+ * @param groupSlug - Group's immutable term-scoped slug.
+ * @returns The full group context, or `null` if ministry, term, or group is not found.
+ */
+export const requireGroupContext = cache(
+  async (
+    ministrySlug: string,
+    termSlug: string,
+    groupSlug: string,
+  ): Promise<GroupOperationalContext | null> => {
+    if (isUuid(ministrySlug) || isUuid(termSlug) || isUuid(groupSlug)) {
+      return null;
+    }
+    const termCtx = await requireTermContext(ministrySlug, termSlug);
+    if (!termCtx) return null;
+
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("term_group")
+      .select("id, name, slug, accent_color, icon_key")
+      .eq("ministry_term_id", termCtx.term.id)
+      .eq("slug", groupSlug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("Failed to fetch group context");
+    }
+
+    return data
+      ? {
+          ...termCtx,
+          group: {
             id: data.id,
             name: data.name,
             slug: data.slug,

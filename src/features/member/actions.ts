@@ -607,19 +607,27 @@ export async function assignTermGroupAction(
       };
     }
 
-    // If termGroupId is null, remove existing group membership
+    // If termGroupId is null, mark existing open group membership as left
     if (!termGroupId) {
-      const { error: delErr } = await supabase
+      const { data: openRecord } = await supabase
         .from("term_group_membership")
-        .delete()
-        .eq("ministry_membership_id", membershipId);
+        .select("id")
+        .eq("ministry_membership_id", membershipId)
+        .is("ended_at", null)
+        .maybeSingle();
 
-      if (delErr) {
-        return {
-          success: false,
-          error: "Failed to clear group assignment.",
-          code: "CLEAR_FAILED",
-        };
+      if (openRecord) {
+        const { error: removeErr } = await supabase.rpc("remove_group_member", {
+          target_record_id: openRecord.id,
+        });
+
+        if (removeErr) {
+          return {
+            success: false,
+            error: "Failed to clear group assignment.",
+            code: "CLEAR_FAILED",
+          };
+        }
       }
 
       await revalidateMemberPaths(church.id, memberId);
@@ -629,37 +637,25 @@ export async function assignTermGroupAction(
       };
     }
 
-    // If setting a group, verify group belongs to the exact same ministry term
-    const { data: group, error: groupErr } = await supabase
-      .from("term_group")
-      .select("id, ministry_term_id")
-      .eq("id", termGroupId)
-      .eq("ministry_term_id", membership.ministry_term_id)
-      .maybeSingle();
+    // Call atomic RPC to assign or move member
+    const { error: assignErr } = await supabase.rpc("assign_group_member", {
+      target_group_id: termGroupId,
+      target_membership_id: membershipId,
+    });
 
-    if (groupErr || !group) {
+    if (assignErr) {
+      if (
+        assignErr.code === "22023" &&
+        assignErr.message?.includes("already in this group")
+      ) {
+        return {
+          success: true,
+          message: "Member is already in this group.",
+        };
+      }
       return {
         success: false,
-        error: "Selected group does not belong to this ministry term.",
-        code: "GROUP_MISMATCH",
-      };
-    }
-
-    // Upsert or insert/update group membership (unique on ministry_membership_id)
-    const { error: upsertErr } = await supabase
-      .from("term_group_membership")
-      .upsert(
-        {
-          ministry_membership_id: membershipId,
-          term_group_id: termGroupId,
-        },
-        { onConflict: "ministry_membership_id" },
-      );
-
-    if (upsertErr) {
-      return {
-        success: false,
-        error: "Failed to assign group. Please try again.",
+        error: assignErr.message || "Failed to assign group. Please try again.",
         code: "ASSIGN_FAILED",
       };
     }

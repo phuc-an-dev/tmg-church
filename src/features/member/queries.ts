@@ -291,7 +291,8 @@ export async function getMemberDetail(
         )
       `,
       )
-      .in("ministry_membership_id", membershipIds);
+      .in("ministry_membership_id", membershipIds)
+      .is("ended_at", null);
 
     if (groupError) {
       throw new Error("Failed to fetch group memberships");

@@ -366,7 +366,9 @@ export function MinistryManagement({
         ? `/admin/ministries/${ministrySlug}/terms/${item.slug}`
         : mode === "departments"
           ? `/admin/ministries/${ministrySlug}/terms/${termSlug}/departments/${item.slug}`
-          : undefined;
+          : mode === "groups"
+            ? `/admin/ministries/${ministrySlug}/terms/${termSlug}/groups/${item.slug}`
+            : undefined;
 
   function openEditor(item: Item | "create") {
     const identityItem =
@@ -589,7 +591,9 @@ export function MinistryManagement({
                         ? "md:grid-cols-[1fr_180px_120px_180px]"
                         : mode === "departments"
                           ? "md:grid-cols-[1fr_180px_180px_120px]"
-                          : "md:grid-cols-[1fr_180px_180px]",
+                          : mode === "groups"
+                            ? "md:grid-cols-[1fr_180px_180px_120px]"
+                            : "md:grid-cols-[1fr_180px_180px]",
                   )}
                 >
                   <div role="columnheader">Name</div>
@@ -601,6 +605,7 @@ export function MinistryManagement({
                   {mode === "departments" && (
                     <div role="columnheader">Members & Roles</div>
                   )}
+                  {mode === "groups" && <div role="columnheader">Members</div>}
                   <div role="columnheader" className="text-right">
                     Actions
                   </div>
@@ -637,7 +642,9 @@ export function MinistryManagement({
                             ? "md:grid-cols-[1fr_180px_120px_180px]"
                             : mode === "departments"
                               ? "md:grid-cols-[1fr_180px_180px_120px]"
-                              : "md:grid-cols-[1fr_180px_180px]",
+                              : mode === "groups"
+                                ? "md:grid-cols-[1fr_180px_180px_120px]"
+                                : "md:grid-cols-[1fr_180px_180px]",
                       )}
                     >
                       <div role="cell" className="min-w-0">
@@ -738,6 +745,16 @@ export function MinistryManagement({
                                       </span>
                                     </>
                                   )}
+                                  {mode === "groups" && (
+                                    <span>
+                                      •{" "}
+                                      {(item as StructureItem).memberCount ?? 0}{" "}
+                                      {((item as StructureItem).memberCount ??
+                                        0) === 1
+                                        ? "member"
+                                        : "members"}
+                                    </span>
+                                  )}
                                   {isMinistry(item) && (
                                     <span>
                                       • {item.termCount}{" "}
@@ -793,6 +810,17 @@ export function MinistryManagement({
                           {((item as StructureItem).roleCount ?? 0) === 1
                             ? "role"
                             : "roles"}
+                        </div>
+                      )}
+                      {mode === "groups" && (
+                        <div
+                          role="cell"
+                          className="text-muted-foreground hidden text-sm md:block"
+                        >
+                          {(item as StructureItem).memberCount ?? 0}{" "}
+                          {((item as StructureItem).memberCount ?? 0) === 1
+                            ? "member"
+                            : "members"}
                         </div>
                       )}
                       <div role="cell" className="hidden justify-end md:flex">

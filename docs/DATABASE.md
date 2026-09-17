@@ -82,7 +82,7 @@ The migration should preserve the supplied domain model and include these refine
 - `member_profile.user_id` is unique when present.
 - `ministry_membership` is unique by `(ministry_term_id, member_profile_id)`.
 - `member_segment_membership` is unique by `(member_segment_id, member_profile_id)`.
-- `term_group_membership` is unique by `ministry_membership_id`, enforcing zero or one group per membership within its term.
+- `term_group_membership` has status (`active`, `inactive`, `transferred`, `left`), fixed role (`member`, `group_leader`, `deputy_leader`, `bible_study_leader`), `joined_at`, and nullable `ended_at`. A partial unique index enforces at most one open row (`ended_at is null`) per `ministry_membership_id`. Partial unique indexes enforce at most one active member in each leadership role per `term_group_id`.
 - `ministry_assignment` is unique by `(ministry_membership_id, term_department_id)`.
 - `session_participant` is unique by `(ministry_session_id, member_profile_id)`.
 - `attendance_record` is unique by `session_participant_id` and has status `present`, `absent`, or `excused`.

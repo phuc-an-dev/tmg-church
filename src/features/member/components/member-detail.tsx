@@ -9,12 +9,14 @@ import {
   Loader2,
   Phone,
   RotateCcw,
+  UserMinus,
   Users,
 } from "lucide-react";
 import { cn } from "cn";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
+import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
@@ -546,19 +548,17 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
                     </div>
                   </div>
 
-                  {/* Remove Button: Outline, bg-transparent, min-h-10 */}
-                  <Button
+                  <DestructiveActionButton
                     type="button"
-                    variant="outline"
                     onClick={() => {
                       setMembershipToRemove(membership);
                       setRemoveMembershipError(null);
                     }}
-                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/60 h-10 min-h-10 bg-transparent px-4 text-xs font-semibold sm:text-sm"
+                    className="h-11 w-auto px-4 text-xs sm:text-sm"
                     aria-label="Remove enrollment"
-                  >
-                    Remove
-                  </Button>
+                    label="Remove"
+                    icon={UserMinus}
+                  />
                 </div>
 
                 {/* Assignments: one group, many departments. */}
@@ -1324,23 +1324,19 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
               >
                 Cancel
               </Button>
-              <Button
+              <DestructiveActionButton
                 type="button"
-                variant="destructive"
                 disabled={removeMembershipPending}
                 onClick={handleConfirmRemoveMembership}
                 className="min-h-11 w-full gap-2 font-medium"
-              >
-                {removeMembershipPending && (
-                  <Loader2
-                    className="size-4 animate-spin motion-reduce:animate-none"
-                    aria-hidden="true"
-                  />
-                )}
-                <span>
-                  {removeMembershipPending ? "Removing..." : "Remove"}
-                </span>
-              </Button>
+                label={removeMembershipPending ? "Removing..." : "Remove"}
+                icon={removeMembershipPending ? Loader2 : UserMinus}
+                iconClassName={
+                  removeMembershipPending
+                    ? "animate-spin motion-reduce:animate-none"
+                    : undefined
+                }
+              />
             </div>
           </SheetContent>
         </Sheet>

@@ -44,33 +44,33 @@ export function EditActionButton({
   );
 }
 
-export interface DeleteActionButtonProps extends Omit<
+export interface DestructiveActionButtonProps extends Omit<
   React.ComponentProps<typeof Button>,
-  "children"
+  "children" | "variant"
 > {
   label?: string;
   icon?: React.ComponentType<{
     className?: string;
     "aria-hidden"?: boolean | "true" | "false";
   }>;
-  variant?: "destructive-subtle" | "destructive" | "outline" | "default";
+  iconClassName?: string;
 }
 
 /**
- * Standard reusable delete action button with guaranteed 44px mobile touch target
- * and subtle red background (destructive-subtle).
+ * Standard reusable destructive action button with guaranteed 44px mobile touch
+ * target and the canonical subtle-red treatment.
  */
-export function DeleteActionButton({
-  label = "Delete",
+export function DestructiveActionButton({
+  label = "Remove",
   icon: Icon = Trash2,
+  iconClassName,
   className,
-  variant = "destructive-subtle",
   ...props
-}: DeleteActionButtonProps) {
+}: DestructiveActionButtonProps) {
   return (
     <Button
       type="button"
-      variant={variant}
+      variant="destructive-subtle"
       className={cn(
         "min-h-11 w-full gap-2 text-sm font-semibold disabled:opacity-40",
         className,
@@ -78,10 +78,16 @@ export function DeleteActionButton({
       data-interactive="true"
       {...props}
     >
-      <Icon className="size-4" aria-hidden="true" />
+      <Icon className={cn("size-4", iconClassName)} aria-hidden="true" />
       <span>{label}</span>
     </Button>
   );
+}
+
+export type DeleteActionButtonProps = DestructiveActionButtonProps;
+
+export function DeleteActionButton(props: DeleteActionButtonProps) {
+  return <DestructiveActionButton label="Delete" icon={Trash2} {...props} />;
 }
 
 export interface ItemActionButtonsProps {
@@ -132,6 +138,8 @@ export function ItemActionButtons({
       : undefined;
 
   const hasBoth = Boolean(onEdit && onDelete);
+  const isDestructiveDelete =
+    deleteVariant === "destructive" || deleteVariant === "destructive-subtle";
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -153,19 +161,35 @@ export function ItemActionButtons({
           />
         )}
 
-        {onDelete && (
-          <DeleteActionButton
-            label={deleteLabel}
-            icon={DeleteIcon}
-            variant={deleteVariant}
-            disabled={deleteDisabled}
-            aria-describedby={deleteReasonId}
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(event);
-            }}
-          />
-        )}
+        {onDelete &&
+          (isDestructiveDelete ? (
+            <DestructiveActionButton
+              label={deleteLabel}
+              icon={DeleteIcon}
+              disabled={deleteDisabled}
+              aria-describedby={deleteReasonId}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(event);
+              }}
+            />
+          ) : (
+            <Button
+              type="button"
+              variant={deleteVariant}
+              className="min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+              disabled={deleteDisabled}
+              aria-describedby={deleteReasonId}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(event);
+              }}
+              data-interactive="true"
+            >
+              <DeleteIcon className="size-4" aria-hidden="true" />
+              <span>{deleteLabel}</span>
+            </Button>
+          ))}
       </div>
 
       {deleteDisabled && deleteDisabledReason && (

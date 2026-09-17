@@ -34,6 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
@@ -668,18 +669,16 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
                   )}
                 </Button>
 
-                <Button
+                <DestructiveActionButton
                   type="button"
-                  variant="destructive"
                   onClick={() => {
                     setMobileDetailOpen(false);
                     setDeleteConfirmIcon(selectedIcon);
                   }}
                   className="min-h-[44px] gap-2 text-sm font-semibold"
-                >
-                  <Trash2 className="size-4" />
-                  <span>Remove</span>
-                </Button>
+                  label="Remove"
+                  icon={Trash2}
+                />
               </div>
             </div>
           )}

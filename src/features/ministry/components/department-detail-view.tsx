@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { StatusToast } from "@/components/ui/status-toast";
@@ -369,20 +370,14 @@ export function DepartmentDetailView({
                         {/* Mobile action button revealed when 3-dot is clicked */}
                         {isExpanded && (
                           <div className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 md:hidden">
-                            <Button
+                            <DestructiveActionButton
                               type="button"
-                              variant="outline"
-                              size="sm"
                               onClick={() => setUnassignConfirmMember(m)}
-                              className="border-destructive/30 text-destructive hover:bg-destructive/10 min-h-11 w-full gap-2 text-sm font-semibold"
+                              className="min-h-11 w-full"
                               aria-label={`Remove ${m.memberName} from ${department.name}`}
-                            >
-                              <UserMinus
-                                className="size-4"
-                                aria-hidden="true"
-                              />
-                              <span>Remove from department</span>
-                            </Button>
+                              label="Remove from department"
+                              icon={UserMinus}
+                            />
                           </div>
                         )}
                       </div>
