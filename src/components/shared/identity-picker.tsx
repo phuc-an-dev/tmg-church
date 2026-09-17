@@ -175,7 +175,7 @@ export function IdentityPicker({
       <div className="space-y-2">
         <Label>{entityLabel} color</Label>
         <div
-          className="flex flex-wrap items-center gap-2"
+          className="grid grid-cols-7 gap-2"
           role="radiogroup"
           aria-label={`${entityLabel} color options`}
         >
@@ -194,7 +194,7 @@ export function IdentityPicker({
                 onKeyDown={(event) =>
                   moveColorFocus(event, MINISTRY_COLOR_OPTIONS.indexOf(option))
                 }
-                className="focus-visible:outline-primary flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border-2 border-transparent transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="focus-visible:outline-primary flex aspect-square min-h-11 w-full items-center justify-center rounded-full border-2 border-transparent transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
                 style={{
                   backgroundColor: option.value,
                   borderColor: selected ? "var(--foreground)" : "transparent",
@@ -221,7 +221,7 @@ export function IdentityPicker({
               moveColorFocus(event, MINISTRY_COLOR_OPTIONS.length)
             }
             className={cn(
-              "focus-visible:outline-primary relative flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border-2 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
+              "focus-visible:outline-primary relative flex aspect-square min-h-11 w-full items-center justify-center rounded-full border-2 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
               customColorSelected
                 ? "border-foreground"
                 : customColorOpen
