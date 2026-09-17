@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, Info } from "lucide-react";
+import { Check, Info, Plus } from "lucide-react";
 import { cn } from "cn";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DynamicLucideIcon } from "@/features/ministry/components/dynamic-lucide-icon";
@@ -211,19 +210,48 @@ export function IdentityPicker({
               </button>
             );
           })}
-          <Button
+          <button
             type="button"
             role="radio"
             aria-checked={customColorSelected}
-            variant="outline"
-            className="min-h-11 rounded-full px-3 text-sm"
+            aria-label="Custom color"
+            title="Custom color"
             onClick={() => onCustomColorOpenChange(!customColorOpen)}
             onKeyDown={(event) =>
               moveColorFocus(event, MINISTRY_COLOR_OPTIONS.length)
             }
+            className={cn(
+              "focus-visible:outline-primary relative flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border-2 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
+              customColorSelected ? "border-foreground" : "border-transparent",
+            )}
+            style={
+              customColorSelected
+                ? {
+                    backgroundColor: normalizedColor,
+                    borderColor: "var(--foreground)",
+                  }
+                : {
+                    background:
+                      "conic-gradient(from 0deg, #ef4444, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
+                  }
+            }
           >
-            Custom color
-          </Button>
+            {customColorSelected ? (
+              <Check
+                className="size-4 text-white"
+                strokeWidth={3}
+                aria-hidden="true"
+              />
+            ) : (
+              <span className="bg-background/85 text-foreground flex size-6 items-center justify-center rounded-full shadow-xs backdrop-blur-xs">
+                <Plus
+                  className="size-3.5"
+                  strokeWidth={2.5}
+                  aria-hidden="true"
+                />
+              </span>
+            )}
+          </button>
         </div>
         {customColorOpen && (
           <div className="space-y-1.5 pt-1">
