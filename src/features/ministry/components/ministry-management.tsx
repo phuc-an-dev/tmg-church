@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
   ChevronDown,
+  CalendarDays,
   Check,
   Layers3,
   Rows3,
@@ -31,6 +32,7 @@ import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { StatusToast } from "@/components/ui/status-toast";
+import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
@@ -279,6 +281,11 @@ export function MinistryManagement({
     supportsSearchAndPagination ? (query.q ?? "") : "",
   );
   const [editor, setEditor] = React.useState<Item | "create" | null>(null);
+  const [contextualSession, setContextualSession] = React.useState<{
+    ministryTermId: string;
+    groupId?: string;
+    departmentId?: string;
+  } | null>(null);
   const [deleting, setDeleting] = React.useState<Item | null>(null);
   const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
   const [iconKey, setIconKey] = React.useState(
@@ -621,6 +628,9 @@ export function MinistryManagement({
                   const deleteDisabledReason = isDeleteDisabled
                     ? "Cannot delete a ministry with existing terms."
                     : undefined;
+                  const currentTermId = isMinistry(item)
+                    ? item.currentTermId
+                    : null;
 
                   return (
                     <ExpandableActionItem
@@ -634,6 +644,25 @@ export function MinistryManagement({
                       }}
                       deleteDisabled={isDeleteDisabled}
                       deleteDisabledReason={deleteDisabledReason}
+                      onAdditionalAction={
+                        (mode === "groups" || mode === "departments") && termId
+                          ? () =>
+                              setContextualSession({
+                                ministryTermId: termId,
+                                ...(mode === "groups"
+                                  ? { groupId: item.id }
+                                  : { departmentId: item.id }),
+                              })
+                          : mode === "ministries" && currentTermId
+                            ? () =>
+                                setContextualSession({
+                                  ministryTermId: currentTermId,
+                                })
+                            : undefined
+                      }
+                      additionalActionLabel="Create session"
+                      additionalActionSectionLabel="Session"
+                      additionalActionIcon={CalendarDays}
                       className={cn(
                         "p-4 sm:p-5 md:grid md:items-center md:gap-4 md:p-3",
                         mode === "ministries"
@@ -840,7 +869,6 @@ export function MinistryManagement({
             count={result.count}
             itemLabel={title.toLowerCase()}
             onPageChange={(page) => void setQuery({ page } as never)}
-            onPageSizeChange={(pageSize) => update({ pageSize })}
           />
         )}
       </section>
@@ -1146,6 +1174,13 @@ export function MinistryManagement({
           </p>
         )}
       </ConfirmationSheet>
+      {contextualSession && (
+        <SessionEditorDrawer
+          open
+          onOpenChange={(open) => !open && setContextualSession(null)}
+          scope={contextualSession}
+        />
+      )}
     </ExpandableCoordinatorProvider>
   );
 }

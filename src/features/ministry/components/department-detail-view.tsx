@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  CalendarDays,
   Ellipsis,
   Loader2,
   Pencil,
@@ -25,6 +27,8 @@ import { DestructiveActionButton } from "@/components/shared/item-action-buttons
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { StatusToast } from "@/components/ui/status-toast";
+import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
+import { deleteSessionAction } from "@/features/session/actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,10 +48,19 @@ import type {
 } from "../types";
 
 interface DepartmentDetailViewProps {
-  section: "members" | "roles";
+  section: "members" | "sessions" | "roles";
   department: StructureItem;
   members: DepartmentDetailMember[];
   roles: DepartmentServiceRole[];
+  sessions: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    sessionDate: string;
+    participantCount: number;
+    canDelete: boolean;
+  }>;
+  ministryTermId: string;
   ministrySlug: string;
   termSlug: string;
 }
@@ -57,6 +70,8 @@ export function DepartmentDetailView({
   department,
   members,
   roles,
+  sessions,
+  ministryTermId,
 }: DepartmentDetailViewProps) {
   const router = useRouter();
 
@@ -65,6 +80,31 @@ export function DepartmentDetailView({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [sessionDrawerOpen, setSessionDrawerOpen] = React.useState(false);
+  const [editingSession, setEditingSession] = React.useState<
+    DepartmentDetailViewProps["sessions"][number] | null
+  >(null);
+  const [deletingSession, setDeletingSession] = React.useState<
+    DepartmentDetailViewProps["sessions"][number] | null
+  >(null);
+  const [sessionPending, setSessionPending] = React.useState(false);
+
+  async function deleteSession() {
+    if (!deletingSession) return;
+    setSessionPending(true);
+    const result = await deleteSessionAction({ id: deletingSession.id });
+    setSessionPending(false);
+    if (!result.success) {
+      setToast({
+        type: "error",
+        message: result.error ?? "Unable to delete session.",
+      });
+      return;
+    }
+    setDeletingSession(null);
+    setToast({ type: "success", message: "Session deleted." });
+    router.refresh();
+  }
 
   // ---------------------------------------------------------------------------
   // MEMBERS STATE
@@ -432,7 +472,87 @@ export function DepartmentDetailView({
         </div>
       )}
 
-      {/* =================================================================== */}
+      {section === "sessions" && (
+        <div className="space-y-4 pb-24 md:pb-16">
+          {sessions.length === 0 ? (
+            <div className="border-border/60 bg-muted/20 rounded-xl border p-8 text-center">
+              <CalendarDays
+                className="text-muted-foreground mx-auto size-10"
+                aria-hidden="true"
+              />
+              <h3 className="mt-3 text-base font-semibold">No sessions yet</h3>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Create the first session for this department.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="border-border/60 bg-card rounded-xl border p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/admin/sessions/${session.slug}`}
+                      className="min-w-0 flex-1"
+                    >
+                      <p className="font-semibold">{session.title}</p>
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        {session.sessionDate} · {session.participantCount}{" "}
+                        participants
+                      </p>
+                    </Link>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-11 min-w-11 p-0"
+                          aria-label={`Actions for ${session.title}`}
+                        >
+                          <Ellipsis className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingSession(session);
+                            setSessionDrawerOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={!session.canDelete}
+                          onClick={() => setDeletingSession(session)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <FloatingCreateButton
+            icon={<CalendarDays className="size-5" aria-hidden="true" />}
+            onClick={() => {
+              setEditingSession(null);
+              setSessionDrawerOpen(true);
+            }}
+            aria-label="Create session for department"
+          >
+            Create session
+          </FloatingCreateButton>
+        </div>
+      )}
+
       {/* =================================================================== */}
       {/* SECTION: ROLES                                                      */}
       {/* =================================================================== */}
@@ -608,6 +728,27 @@ export function DepartmentDetailView({
           </FloatingCreateButton>
         </div>
       )}
+      <SessionEditorDrawer
+        key={editingSession?.id ?? "new"}
+        open={sessionDrawerOpen}
+        onOpenChange={(open) => {
+          setSessionDrawerOpen(open);
+          if (!open) setEditingSession(null);
+        }}
+        scope={{ departmentId: department.id, ministryTermId }}
+        session={editingSession}
+        onSaved={() => router.refresh()}
+      />
+      <ConfirmationSheet
+        open={Boolean(deletingSession)}
+        onOpenChange={(open) => !open && setDeletingSession(null)}
+        title="Delete session"
+        description="This is allowed only while the session has no participants or historical attendance."
+        confirmLabel="Delete session"
+        pending={sessionPending}
+        onConfirm={deleteSession}
+        confirmIcon={<Trash2 className="size-4" />}
+      />
 
       {/* =================================================================== */}
       {/* DRAWER: ASSIGN ENROLLED MEMBERS                                     */}

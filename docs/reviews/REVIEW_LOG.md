@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-17: Contextual Session creation and Term Detail
+
+Result: accepted. Implemented contextual Session creation for Group, Department, and Ministry Term, with Term Detail as the canonical ministry-detail surface. Reused existing Session editor as a responsive bottom drawer. Enforced scope mutual exclusivity and term integrity in Postgres migration `20260917000008_contextual_session_attendance_and_term_member_integrity.sql` and RLS-aware Server Actions. Scoped session attendance eligibility to active scoped members while preserving historical attendees. Provided mobile-first Term Detail with Members, Groups, Departments, and Sessions tabs. Tests, lint, typecheck, format check, and production build passed.
+
 ## 2026-09-17: Destructive action Button standardization
 
 Result: accepted. Added `DestructiveActionButton` with the canonical subtle-red treatment and action-specific Lucide icons, migrated feature-level destructive Buttons, and added an automated policy guard against hand-composed destructive Button styling. Tests, lint, typecheck, format check, and production build passed.

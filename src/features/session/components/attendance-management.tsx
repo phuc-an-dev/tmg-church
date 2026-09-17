@@ -353,8 +353,8 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
               {session.title}
             </h1>
             <p className="text-muted-foreground truncate text-sm">
-              {session.ministryName} · {session.termName} ·{" "}
-              {session.sessionDate} ·{" "}
+              {session.ministryName} · {session.termName} · {session.scopeLabel}{" "}
+              · {session.sessionDate} ·{" "}
               <span className="text-foreground/80 font-medium">
                 {session.summary.recordedCount}/{session.summary.enrolledCount}{" "}
                 recorded

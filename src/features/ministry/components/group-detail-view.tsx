@@ -1,18 +1,23 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
+  CalendarDays,
   Check,
   Crown,
   Ellipsis,
   LogOut,
   Loader2,
   Plus,
+  Pencil,
   Search,
   Shield,
   UserPlus,
   Users,
+  Trash2,
   X,
 } from "lucide-react";
 import { cn } from "cn";
@@ -24,6 +29,8 @@ import { DestructiveActionButton } from "@/components/shared/item-action-buttons
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { StatusToast } from "@/components/ui/status-toast";
+import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
+import { deleteSessionAction } from "@/features/session/actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +57,7 @@ import type {
 } from "../group-queries";
 
 interface GroupDetailViewProps {
-  section: "members" | "history";
+  section: "members" | "sessions" | "history";
   ministrySlug: string;
   termSlug: string;
   groupSlug: string;
@@ -82,6 +89,32 @@ export function GroupDetailView({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [groupSessionOpen, setGroupSessionOpen] = React.useState(false);
+  const router = useRouter();
+  const [editingSession, setEditingSession] = React.useState<
+    GroupDetailData["sessions"][number] | null
+  >(null);
+  const [deletingSession, setDeletingSession] = React.useState<
+    GroupDetailData["sessions"][number] | null
+  >(null);
+  const [sessionPending, setSessionPending] = React.useState(false);
+
+  async function deleteSession() {
+    if (!deletingSession) return;
+    setSessionPending(true);
+    const result = await deleteSessionAction({ id: deletingSession.id });
+    setSessionPending(false);
+    if (!result.success) {
+      setToast({
+        type: "error",
+        message: result.error ?? "Unable to delete session.",
+      });
+      return;
+    }
+    setDeletingSession(null);
+    setToast({ type: "success", message: "Session deleted." });
+    router.refresh();
+  }
 
   const pathContext = React.useMemo(
     () => ({ ministrySlug, termSlug, groupSlug }),
@@ -901,6 +934,99 @@ export function GroupDetailView({
         </div>
       )}
 
+      {section === "sessions" && (
+        <div className="space-y-4">
+          <div>
+            <div>
+              <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
+                Sessions ({data.sessions.length})
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Sessions for {data.group.name}.
+              </p>
+            </div>
+          </div>
+          {data.sessions.length === 0 ? (
+            <div className="border-border/80 bg-card rounded-xl border p-8 text-center shadow-xs">
+              <CalendarDays
+                className="text-muted-foreground mx-auto size-10 stroke-1"
+                aria-hidden="true"
+              />
+              <h3 className="text-foreground mt-3 text-base font-semibold">
+                No sessions yet
+              </h3>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Create the first session for this group.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {data.sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="border-border/80 bg-card rounded-xl border p-4 shadow-xs"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/admin/sessions/${session.slug}`}
+                      className="min-w-0 flex-1"
+                    >
+                      <p className="font-semibold">{session.title}</p>
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        {session.sessionDate} · {session.participantCount}{" "}
+                        participants
+                      </p>
+                    </Link>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-11 min-w-11 p-0"
+                          aria-label={`Actions for ${session.title}`}
+                        >
+                          <Ellipsis className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingSession(session);
+                            setGroupSessionOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={!session.canDelete}
+                          onClick={() => setDeletingSession(session)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <FloatingCreateButton
+            icon={<CalendarDays className="size-5" aria-hidden="true" />}
+            onClick={() => {
+              setEditingSession(null);
+              setGroupSessionOpen(true);
+            }}
+            aria-label="Create session for group"
+          >
+            Create session
+          </FloatingCreateButton>
+        </div>
+      )}
+
       {/* =================================================================== */}
       {/* HISTORY TAB                                                         */}
       {/* =================================================================== */}
@@ -1582,6 +1708,30 @@ export function GroupDetailView({
         confirmLabel="Remove Member"
         pending={leavePending}
         onConfirm={handleConfirmLeave}
+      />
+      <SessionEditorDrawer
+        key={editingSession?.id ?? "new"}
+        open={groupSessionOpen}
+        onOpenChange={(open) => {
+          setGroupSessionOpen(open);
+          if (!open) setEditingSession(null);
+        }}
+        scope={{
+          groupId: data.group.id,
+          ministryTermId: data.group.ministryTermId,
+        }}
+        session={editingSession}
+        onSaved={() => router.refresh()}
+      />
+      <ConfirmationSheet
+        open={Boolean(deletingSession)}
+        onOpenChange={(open) => !open && setDeletingSession(null)}
+        title="Delete session"
+        description="This is allowed only while the session has no participants or historical attendance."
+        confirmLabel="Delete session"
+        pending={sessionPending}
+        onConfirm={deleteSession}
+        confirmIcon={<Trash2 className="size-4" />}
       />
     </div>
   );

@@ -21,6 +21,7 @@ export type MinistryItem = {
   accentColor: string;
   iconKey: string;
   termCount: number;
+  currentTermId: string | null;
   currentTermSlug: string | null;
 };
 export type TermItem = {
@@ -66,4 +67,40 @@ export type DepartmentDetailData = {
   department: StructureItem;
   members: DepartmentDetailMember[];
   roles: DepartmentServiceRole[];
+  sessions: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    sessionDate: string;
+    participantCount: number;
+    canDelete: boolean;
+  }>;
+};
+
+export type TermDetailMember = {
+  membershipId: string;
+  memberId: string;
+  memberName: string;
+  memberSlug: string;
+};
+
+export type EligibleTermMember = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type TermDetailSession = {
+  id: string;
+  slug: string;
+  title: string;
+  sessionDate: string;
+  participantCount: number;
+  canDelete: boolean;
+};
+
+export type TermDetailData = {
+  members: TermDetailMember[];
+  eligibleMembers: EligibleTermMember[];
+  sessions: TermDetailSession[];
 };

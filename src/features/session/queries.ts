@@ -69,7 +69,7 @@ export async function getSessions(p: {
   let q = s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),term_department:term_department_id(name),session_participant(count),session_assignment(count),service_assignment(count)",
       { count: "exact" },
     )
     .in("ministry_term_id", ids)
@@ -107,6 +107,15 @@ export async function getSessions(p: {
         termId: x.ministry_term_id,
         termName: t.name,
         ministryName: t.ministryName,
+        scopeLabel: Array.isArray(x.term_group)
+          ? `Group: ${x.term_group[0]?.name ?? "Unknown"}`
+          : x.term_group
+            ? `Group: ${x.term_group.name}`
+            : Array.isArray(x.term_department)
+              ? `Department: ${x.term_department[0]?.name ?? "Unknown"}`
+              : x.term_department
+                ? `Department: ${x.term_department.name}`
+                : "Ministry term",
         participantCount: participants,
         canDelete:
           participants === 0 && assignments === 0 && serviceAssignments === 0,
@@ -133,7 +142,7 @@ export async function getSessionDetail(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,term_group_id,ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group_id,term_department_id,term_group:term_group_id(name),term_department:term_department_id(name),ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
@@ -169,6 +178,15 @@ export async function getSessionDetail(
     termId: raw.ministry_term_id,
     termName,
     ministryName,
+    scopeLabel: Array.isArray(raw.term_group)
+      ? `Group: ${raw.term_group[0]?.name ?? "Unknown"}`
+      : raw.term_group
+        ? `Group: ${raw.term_group.name}`
+        : Array.isArray(raw.term_department)
+          ? `Department: ${raw.term_department[0]?.name ?? "Unknown"}`
+          : raw.term_department
+            ? `Department: ${raw.term_department.name}`
+            : "Ministry term",
     participantCount,
     canDelete:
       participantCount === 0 &&
@@ -272,14 +290,18 @@ export async function getSessionDetail(
   let excusedCount = 0;
 
   const termGroupId = raw.term_group_id;
+  const termDepartmentId = raw.term_department_id;
   const eligibleMemberships = (memberships ?? []).filter((m) => {
-    if (!termGroupId) return true;
+    if (!termGroupId && !termDepartmentId) return true;
     const group = groupByMembership.get(m.id);
     const isGroupActive =
       group?.id === termGroupId &&
       groupStatusByMembership.get(m.id) === "active";
+    const isDepartmentAssigned = (deptsByMembership.get(m.id) ?? []).some(
+      (department) => department.id === termDepartmentId,
+    );
     const hasExistingAttendance = statusByMember.has(m.member_profile_id);
-    return isGroupActive || hasExistingAttendance;
+    return isGroupActive || isDepartmentAssigned || hasExistingAttendance;
   });
 
   const allParticipants: SessionParticipantDetail[] = eligibleMemberships.map(
@@ -366,7 +388,7 @@ export async function getSessionServiceAssignmentData(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,ministry_term!inner(slug,name,ministry!inner(slug,name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),ministry_term!inner(slug,name,ministry!inner(slug,name)),session_participant(count),session_assignment(count),service_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
@@ -411,6 +433,11 @@ export async function getSessionServiceAssignmentData(
     termId: raw.ministry_term_id,
     termName: singleTerm?.name ?? "",
     ministryName: singleMinistry?.name ?? "",
+    scopeLabel: Array.isArray(raw.term_group)
+      ? `Group: ${raw.term_group[0]?.name ?? "Unknown"}`
+      : raw.term_group
+        ? `Group: ${raw.term_group.name}`
+        : "Ministry term",
     participantCount,
     canDelete:
       participantCount === 0 &&

@@ -40,6 +40,7 @@ export type SessionItem = {
   termId: string;
   termName: string;
   ministryName: string;
+  scopeLabel: string;
   participantCount: number;
   canDelete: boolean;
 };

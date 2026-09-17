@@ -1355,10 +1355,8 @@ export function MemberManagement({
           page={result.page}
           pageSize={query.pageSize}
           count={result.count}
-          pageSizeOptions={MEMBER_PAGE_SIZES}
           itemLabel="members"
           onPageChange={(page) => void setQuery({ page })}
-          onPageSizeChange={(pageSize) => void setQuery({ pageSize, page: 1 })}
         />
       </section>
 

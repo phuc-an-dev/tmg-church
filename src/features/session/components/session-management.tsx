@@ -181,6 +181,7 @@ export function SessionManagement({
                 <tr className="border-b text-left">
                   <th className="p-3">Session</th>
                   <th>Term</th>
+                  <th>Scope</th>
                   <th>Date</th>
                   <th>Participants</th>
                   <th className="p-3">Actions</th>
@@ -200,6 +201,7 @@ export function SessionManagement({
                     <td>
                       {item.ministryName} · {item.termName}
                     </td>
+                    <td>{item.scopeLabel}</td>
                     <td>{item.sessionDate}</td>
                     <td>{item.participantCount}</td>
                     <td className="flex gap-2 p-3">
@@ -233,7 +235,6 @@ export function SessionManagement({
         count={result.count}
         itemLabel="sessions"
         onPageChange={(page) => void setQuery({ page })}
-        onPageSizeChange={(pageSize) => void setQuery({ pageSize, page: 1 })}
       />
       <ResponsiveEditor
         open={Boolean(edit)}
@@ -435,6 +436,9 @@ function SessionCard({
               </span>
               <span className="text-muted-foreground mt-0.5 block truncate text-xs">
                 {item.ministryName} · {item.termName}
+              </span>
+              <span className="text-muted-foreground mt-0.5 block truncate text-xs">
+                {item.scopeLabel}
               </span>
               <span className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
                 <span>{formattedDate}</span>

@@ -7,9 +7,10 @@ import {
   NavigationTabLink,
 } from "@/components/shared/navigation-tabs";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
+import { TermDetailView } from "@/features/ministry/components/term-detail-view";
 import { requireTermContext } from "@/features/context/queries";
 import { getFrequentIcons } from "@/features/icon/queries";
-import { getStructure } from "@/features/ministry/queries";
+import { getStructure, getTermDetailData } from "@/features/ministry/queries";
 import { structureSearchParamsCache } from "@/features/ministry/search-params";
 
 export const metadata: Metadata = { title: "Term Structure" };
@@ -29,23 +30,32 @@ export default async function TermDetailPage({
   if (!context) notFound();
 
   const section = query.section;
-  const result = await getStructure(
-    context.ministry.slug,
-    context.term.slug,
-    section,
-  );
+  const [structure, detail] = await Promise.all([
+    section === "groups" || section === "departments"
+      ? getStructure(context.ministry.slug, context.term.slug, section)
+      : Promise.resolve(null),
+    section === "members" || section === "sessions"
+      ? getTermDetailData(context.ministry.slug, context.term.slug)
+      : Promise.resolve(null),
+  ]);
   const sectionLabel = section === "groups" ? "Groups" : "Departments";
   return (
     <AdminPageContainer>
       <AdminPageHeader
-        title="Term Structure"
-        description={`Manage groups and departments for ${context.ministry.name} (${context.term.name}).`}
+        title="Term Detail"
+        description={`Manage members, groups, departments, and sessions for ${context.ministry.name} (${context.term.name}).`}
         backLink={{
           href: "/admin/ministries",
           label: "Ministries",
         }}
       />
-      <NavigationTabs aria-label="Term structure sections">
+      <NavigationTabs aria-label="Term detail sections">
+        <NavigationTabLink
+          href="?section=members"
+          active={section === "members"}
+        >
+          Members
+        </NavigationTabLink>
         <NavigationTabLink href="?section=groups" active={section === "groups"}>
           Groups
         </NavigationTabLink>
@@ -55,18 +65,32 @@ export default async function TermDetailPage({
         >
           Departments
         </NavigationTabLink>
+        <NavigationTabLink
+          href="?section=sessions"
+          active={section === "sessions"}
+        >
+          Sessions
+        </NavigationTabLink>
       </NavigationTabs>
-      <MinistryManagement
-        mode={section === "groups" ? "groups" : "departments"}
-        title={sectionLabel}
-        description={`Only ${sectionLabel.toLowerCase()} are loaded for the selected section.`}
-        result={result}
-        ministryId={context.ministry.id}
-        ministrySlug={context.ministry.slug}
-        termId={context.term.id}
-        termSlug={context.term.slug}
-        frequentIcons={frequentIcons}
-      />
+      {structure ? (
+        <MinistryManagement
+          mode={section === "groups" ? "groups" : "departments"}
+          title={sectionLabel}
+          description={`Only ${sectionLabel.toLowerCase()} are loaded for the selected section.`}
+          result={structure}
+          ministryId={context.ministry.id}
+          ministrySlug={context.ministry.slug}
+          termId={context.term.id}
+          termSlug={context.term.slug}
+          frequentIcons={frequentIcons}
+        />
+      ) : detail ? (
+        <TermDetailView
+          section={section === "members" ? "members" : "sessions"}
+          termId={context.term.id}
+          data={detail}
+        />
+      ) : null}
     </AdminPageContainer>
   );
 }

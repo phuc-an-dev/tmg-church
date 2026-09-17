@@ -7,9 +7,7 @@ export interface PaginationCardProps {
   page: number;
   pageSize?: number;
   count: number;
-  pageSizeOptions?: readonly number[] | number[];
   onPageChange: (page: number) => void;
-  onPageSizeChange?: (pageSize: number) => void;
   itemLabel?: string;
   variant?: "card" | "bar";
   className?: string;
@@ -23,9 +21,7 @@ export function PaginationCard({
   page,
   pageSize = 20,
   count,
-  pageSizeOptions = [20, 50, 100],
   onPageChange,
-  onPageSizeChange,
   itemLabel = "items",
   variant = "card",
   className,
@@ -36,8 +32,17 @@ export function PaginationCard({
   }
 
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  const currentPage = count === 0 ? 0 : Math.min(page, totalPages);
   const rangeStart = count === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, count);
+  const visiblePages =
+    totalPages <= 4
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : currentPage <= 2
+        ? [1, 2, 3, totalPages]
+        : currentPage >= totalPages - 1
+          ? [1, totalPages - 2, totalPages - 1, totalPages]
+          : [1, currentPage - 1, currentPage, totalPages];
 
   if (variant === "bar") {
     return (
@@ -86,51 +91,22 @@ export function PaginationCard({
   return (
     <div
       className={cn(
-        "border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]",
+        "border-border/70 bg-card space-y-3 rounded-2xl border p-4 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3 p-4">
-        <span className="text-muted-foreground text-sm">
-          Showing{" "}
-          <strong className="text-foreground font-medium">
-            {rangeStart}–{rangeEnd}
-          </strong>{" "}
-          of <strong className="text-foreground font-medium">{count}</strong>{" "}
-          {itemLabel}
-        </span>
-        {onPageSizeChange && (
-          <div
-            role="group"
-            className="border-input bg-muted/35 flex shrink-0 items-center rounded-xl border p-1"
-            aria-label="Results per page"
-          >
-            {pageSizeOptions.map((option) => {
-              const active = pageSize === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={active}
-                  aria-label={`Show ${option} ${itemLabel} per page`}
-                  onClick={() => onPageSizeChange(option)}
-                  className={
-                    active
-                      ? "bg-primary text-primary-foreground min-h-11 min-w-11 rounded-lg px-2 text-sm font-semibold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground min-h-11 min-w-11 rounded-lg px-2 text-sm font-medium transition-colors"
-                  }
-                >
-                  {option}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t p-4">
+      <p className="text-muted-foreground text-sm">
+        Showing{" "}
+        <strong className="text-foreground font-medium">
+          {rangeStart}–{rangeEnd}
+        </strong>{" "}
+        of <strong className="text-foreground font-medium">{count}</strong>{" "}
+        {itemLabel}
+      </p>
+      <div className="flex items-center justify-between gap-1.5 sm:gap-3">
         <Button
           variant="outline"
-          className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
+          className="border-border bg-card hover:bg-accent hover:text-accent-foreground min-h-11 shrink-0 rounded-xl border px-2.5 shadow-xs"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
@@ -138,17 +114,44 @@ export function PaginationCard({
           <span className="hidden sm:inline">Previous</span>
           <span className="sm:hidden">Prev</span>
         </Button>
-        <span
-          className="border-input bg-card flex min-h-12 min-w-20 items-center justify-center rounded-xl border px-3 text-base font-semibold"
-          aria-live="polite"
+        <div
+          className="flex min-w-0 items-center justify-center gap-1"
+          aria-label="Pagination"
         >
-          {count === 0 ? 0 : Math.min(page, totalPages)}
-          <span className="text-muted-foreground px-1">/</span>
-          {totalPages}
-        </span>
+          {visiblePages.map((pageNumber, index) => {
+            const active = pageNumber === currentPage;
+            const previousPage = visiblePages[index - 1];
+            return (
+              <React.Fragment key={pageNumber}>
+                {previousPage && pageNumber > previousPage + 1 && (
+                  <span
+                    className="text-muted-foreground flex min-h-11 w-3 items-center justify-center text-sm"
+                    aria-hidden="true"
+                  >
+                    …
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-current={active ? "page" : undefined}
+                  aria-label={`Page ${pageNumber}`}
+                  onClick={() => onPageChange(pageNumber)}
+                  className={cn(
+                    "border-border min-h-11 min-w-11 rounded-xl border px-2 text-sm font-semibold shadow-xs transition-colors",
+                    active
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : "bg-card text-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  {pageNumber}
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
         <Button
           variant="outline"
-          className="bg-secondary hover:bg-secondary/80 disabled:bg-muted/40 min-h-12 w-full rounded-xl border-0"
+          className="border-border bg-card hover:bg-accent hover:text-accent-foreground min-h-11 shrink-0 rounded-xl border px-2.5 shadow-xs"
           disabled={page >= totalPages || count === 0}
           onClick={() => onPageChange(page + 1)}
         >

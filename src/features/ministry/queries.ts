@@ -14,9 +14,12 @@ import type {
   DepartmentDetailMember,
   DepartmentServiceRole,
   DepartmentServiceStructure,
+  EligibleTermMember,
   MinistryItem,
   PageResult,
   StructureItem,
+  TermDetailData,
+  TermDetailMember,
   TermItem,
 } from "./types";
 
@@ -120,14 +123,14 @@ export async function getMinistries(params: {
   const { data: currentTerms, error: currentTermsError } = ministryIds.length
     ? await supabase
         .from("ministry_term")
-        .select("ministry_id, slug")
+        .select("id, ministry_id, slug")
         .in("ministry_id", ministryIds)
         .lte("start_date", currentDate)
         .gte("end_date", currentDate)
     : { data: [], error: null };
   if (currentTermsError) throw new Error("Failed to fetch current terms");
-  const currentTermSlugByMinistry = new Map(
-    (currentTerms ?? []).map((term) => [term.ministry_id, term.slug]),
+  const currentTermByMinistry = new Map(
+    (currentTerms ?? []).map((term) => [term.ministry_id, term]),
   );
 
   return {
@@ -140,7 +143,8 @@ export async function getMinistries(params: {
       termCount:
         (row as unknown as { ministry_term: { count: number }[] })
           .ministry_term?.[0]?.count ?? 0,
-      currentTermSlug: currentTermSlugByMinistry.get(row.id) ?? null,
+      currentTermId: currentTermByMinistry.get(row.id)?.id ?? null,
+      currentTermSlug: currentTermByMinistry.get(row.id)?.slug ?? null,
     })),
     count: count ?? 0,
     page,
@@ -359,24 +363,37 @@ export async function getDepartmentDetailData(
   if (!context) return null;
   const supabase = await createClient();
 
-  const [membershipsRes, assignmentsRes, rolesRes] = await Promise.all([
-    supabase
-      .from("ministry_membership")
-      .select("id, member_profile!inner(id, full_name, slug, archived_at)")
-      .eq("ministry_term_id", context.term.id)
-      .is("member_profile.archived_at", null),
-    supabase
-      .from("ministry_assignment")
-      .select("id, ministry_membership_id")
-      .eq("term_department_id", context.department.id),
-    supabase
-      .from("department_service_role")
-      .select("id, term_department_id, name, service_assignment(count)")
-      .eq("term_department_id", context.department.id)
-      .order("name"),
-  ]);
+  const [membershipsRes, assignmentsRes, rolesRes, sessionsRes] =
+    await Promise.all([
+      supabase
+        .from("ministry_membership")
+        .select("id, member_profile!inner(id, full_name, slug, archived_at)")
+        .eq("ministry_term_id", context.term.id)
+        .is("member_profile.archived_at", null),
+      supabase
+        .from("ministry_assignment")
+        .select("id, ministry_membership_id")
+        .eq("term_department_id", context.department.id),
+      supabase
+        .from("department_service_role")
+        .select("id, term_department_id, name, service_assignment(count)")
+        .eq("term_department_id", context.department.id)
+        .order("name"),
+      supabase
+        .from("ministry_session")
+        .select(
+          "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
+        )
+        .eq("term_department_id", context.department.id)
+        .order("session_date", { ascending: false }),
+    ]);
 
-  if (membershipsRes.error || assignmentsRes.error || rolesRes.error) {
+  if (
+    membershipsRes.error ||
+    assignmentsRes.error ||
+    rolesRes.error ||
+    sessionsRes.error
+  ) {
     throw new Error("Failed to fetch department detail data");
   }
 
@@ -425,5 +442,112 @@ export async function getDepartmentDetailData(
     },
     members,
     roles,
+    sessions: (sessionsRes.data ?? []).map((session) => {
+      const participantCount =
+        (session.session_participant as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const assignmentCount =
+        (session.session_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const serviceAssignmentCount =
+        (session.service_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      return {
+        id: session.id,
+        slug: session.slug,
+        title: session.title,
+        sessionDate: session.session_date,
+        participantCount,
+        canDelete:
+          participantCount === 0 &&
+          assignmentCount === 0 &&
+          serviceAssignmentCount === 0,
+      };
+    }),
+  };
+}
+
+export async function getTermDetailData(
+  ministrySlug: string,
+  termSlug: string,
+): Promise<TermDetailData | null> {
+  const context = await requireTermContext(ministrySlug, termSlug);
+  if (!context) return null;
+  const supabase = await createClient();
+  const [membershipsRes, profilesRes, sessionsRes] = await Promise.all([
+    supabase
+      .from("ministry_membership")
+      .select("id,member_profile!inner(id,full_name,slug,archived_at)")
+      .eq("ministry_term_id", context.term.id)
+      .is("member_profile.archived_at", null)
+      .order("member_profile(full_name)"),
+    supabase
+      .from("member_profile")
+      .select("id,full_name,slug")
+      .eq("church_id", context.church.id)
+      .is("archived_at", null)
+      .order("full_name"),
+    supabase
+      .from("ministry_session")
+      .select(
+        "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
+      )
+      .eq("ministry_term_id", context.term.id)
+      .is("term_group_id", null)
+      .is("term_department_id", null)
+      .order("session_date", { ascending: false }),
+  ]);
+
+  if (membershipsRes.error || profilesRes.error || sessionsRes.error) {
+    throw new Error("Failed to fetch term detail data");
+  }
+
+  const members: TermDetailMember[] = (membershipsRes.data ?? []).map((row) => {
+    const profile = row.member_profile as unknown as {
+      id: string;
+      full_name: string;
+      slug: string;
+    };
+    return {
+      membershipId: row.id,
+      memberId: profile.id,
+      memberName: profile.full_name,
+      memberSlug: profile.slug,
+    };
+  });
+  const memberIds = new Set(members.map((member) => member.memberId));
+  const eligibleMembers: EligibleTermMember[] = (profilesRes.data ?? [])
+    .filter((profile) => !memberIds.has(profile.id))
+    .map((profile) => ({
+      id: profile.id,
+      name: profile.full_name,
+      slug: profile.slug,
+    }));
+
+  return {
+    members,
+    eligibleMembers,
+    sessions: (sessionsRes.data ?? []).map((session) => {
+      const participantCount =
+        (session.session_participant as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const assignmentCount =
+        (session.session_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const serviceAssignmentCount =
+        (session.service_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      return {
+        id: session.id,
+        slug: session.slug,
+        title: session.title,
+        sessionDate: session.session_date,
+        participantCount,
+        canDelete:
+          participantCount === 0 &&
+          assignmentCount === 0 &&
+          serviceAssignmentCount === 0,
+      };
+    }),
   };
 }

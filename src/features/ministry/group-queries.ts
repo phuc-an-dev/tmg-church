@@ -41,6 +41,14 @@ export interface GroupDetailData {
   leadership: GroupLeadership;
   history: GroupMemberItem[];
   eligibleMembers: EligibleTermMemberItem[];
+  sessions: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    sessionDate: string;
+    participantCount: number;
+    canDelete: boolean;
+  }>;
 }
 
 export async function getGroupDetailData(
@@ -269,6 +277,20 @@ export async function getGroupDetailData(
     })
     .sort((a, b) => a.name.localeCompare(b.name, "vi"));
 
+  const { data: sessions, error: sessionError } = await supabase
+    .from("ministry_session")
+    .select(
+      "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
+    )
+    .eq("term_group_id", context.group.id)
+    .order("session_date", { ascending: false })
+    .order("id");
+
+  if (sessionError) {
+    console.error("Failed to fetch group sessions:", sessionError);
+    throw new Error("Failed to fetch group sessions");
+  }
+
   return {
     group: {
       id: context.group.id,
@@ -282,5 +304,27 @@ export async function getGroupDetailData(
     leadership,
     history,
     eligibleMembers,
+    sessions: (sessions ?? []).map((session) => {
+      const participantCount =
+        (session.session_participant as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const assignmentCount =
+        (session.session_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      const serviceAssignmentCount =
+        (session.service_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
+      return {
+        id: session.id,
+        slug: session.slug,
+        title: session.title,
+        sessionDate: session.session_date,
+        participantCount,
+        canDelete:
+          participantCount === 0 &&
+          assignmentCount === 0 &&
+          serviceAssignmentCount === 0,
+      };
+    }),
   };
 }

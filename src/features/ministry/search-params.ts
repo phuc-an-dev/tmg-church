@@ -32,19 +32,26 @@ export const termSearchParams = {
   ] as const).withDefault("start-desc"),
 };
 export const structureSearchParams = {
-  section: parseAsStringLiteral(["groups", "departments"] as const).withDefault(
+  section: parseAsStringLiteral([
+    "members",
     "groups",
-  ),
+    "departments",
+    "sessions",
+  ] as const).withDefault("members"),
 };
 export const departmentDetailSearchParams = {
-  section: parseAsStringLiteral(["members", "roles"] as const).withDefault(
+  section: parseAsStringLiteral([
     "members",
-  ),
+    "sessions",
+    "roles",
+  ] as const).withDefault("members"),
 };
 export const groupDetailSearchParams = {
-  section: parseAsStringLiteral(["members", "history"] as const).withDefault(
+  section: parseAsStringLiteral([
     "members",
-  ),
+    "sessions",
+    "history",
+  ] as const).withDefault("members"),
 };
 export const ministrySearchParamsCache =
   createSearchParamsCache(ministrySearchParams);

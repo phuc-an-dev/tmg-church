@@ -38,6 +38,7 @@ export default async function DepartmentDetailPage({
   if (
     rawSection !== undefined &&
     rawSection !== "members" &&
+    rawSection !== "sessions" &&
     rawSection !== "roles"
   ) {
     redirect(
@@ -79,6 +80,12 @@ export default async function DepartmentDetailPage({
         >
           Members ({data.department.memberCount ?? 0})
         </NavigationTabLink>
+        <NavigationTabLink
+          href="?section=sessions"
+          active={section === "sessions"}
+        >
+          Sessions ({data.sessions.length})
+        </NavigationTabLink>
         <NavigationTabLink href="?section=roles" active={section === "roles"}>
           Roles ({data.roles.length})
         </NavigationTabLink>
@@ -88,6 +95,8 @@ export default async function DepartmentDetailPage({
         department={data.department}
         members={data.members}
         roles={data.roles}
+        sessions={data.sessions}
+        ministryTermId={context.term.id}
         ministrySlug={context.ministry.slug}
         termSlug={context.term.slug}
       />

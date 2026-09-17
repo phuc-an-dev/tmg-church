@@ -2,18 +2,25 @@ import { z } from "zod";
 
 const id = z.string().uuid("Invalid record identifier");
 
-export const sessionSchema = z.object({
-  id: id.optional(),
-  ministryTermId: id,
-  title: z.string().trim().min(1, "Title is required").max(160),
-  sessionDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date")
-    .refine(
-      (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
-      "Use a valid calendar date",
-    ),
-});
+export const sessionSchema = z
+  .object({
+    id: id.optional(),
+    ministryTermId: id,
+    termGroupId: id.optional(),
+    termDepartmentId: id.optional(),
+    title: z.string().trim().min(1, "Title is required").max(160),
+    sessionDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid date")
+      .refine(
+        (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+        "Use a valid calendar date",
+      ),
+  })
+  .refine(
+    (value) => !(value.termGroupId && value.termDepartmentId),
+    "A session can target either a Group or Department, not both.",
+  );
 
 export const deleteSessionSchema = z.object({ id });
 

@@ -38,6 +38,7 @@ export default async function GroupDetailPage({
   if (
     rawSection !== undefined &&
     rawSection !== "members" &&
+    rawSection !== "sessions" &&
     rawSection !== "history"
   ) {
     redirect(
@@ -78,6 +79,12 @@ export default async function GroupDetailPage({
           active={section === "members"}
         >
           Members ({data.members.length})
+        </NavigationTabLink>
+        <NavigationTabLink
+          href="?section=sessions"
+          active={section === "sessions"}
+        >
+          Sessions ({data.sessions.length})
         </NavigationTabLink>
         <NavigationTabLink
           href="?section=history"

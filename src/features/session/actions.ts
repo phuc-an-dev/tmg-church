@@ -14,7 +14,12 @@ import {
   sessionSchema,
 } from "./schemas";
 
-type Result = { success: boolean; message?: string; error?: string };
+type Result = {
+  success: boolean;
+  message?: string;
+  error?: string;
+  slug?: string;
+};
 
 async function uniqueSessionSlug(
   churchId: string,
@@ -42,6 +47,8 @@ async function uniqueSessionSlug(
 async function createSessionWithUniqueSlug(input: {
   churchId: string;
   ministryTermId: string;
+  termGroupId?: string;
+  termDepartmentId?: string;
   title: string;
   sessionDate: string;
 }) {
@@ -57,6 +64,8 @@ async function createSessionWithUniqueSlug(input: {
       .insert({
         church_id: input.churchId,
         ministry_term_id: input.ministryTermId,
+        term_group_id: input.termGroupId ?? null,
+        term_department_id: input.termDepartmentId ?? null,
         slug,
         title: input.title,
         session_date: input.sessionDate,
@@ -84,25 +93,56 @@ export async function saveSessionAction(raw: unknown): Promise<Result> {
   if (!p.success)
     return { success: false, error: "Please correct the session details." };
   const s = await createClient();
-  const { data: term } = await s
-    .from("ministry_term")
-    .select("id,ministry!inner(church_id)")
-    .eq("id", p.data.ministryTermId)
-    .eq("ministry.church_id", ctx.church.id)
-    .maybeSingle();
+  const { data: term } = p.data.termGroupId
+    ? await s
+        .from("term_group")
+        .select(
+          "id,ministry_term_id,ministry_term!inner(ministry!inner(church_id))",
+        )
+        .eq("id", p.data.termGroupId)
+        .eq("ministry_term.ministry.church_id", ctx.church.id)
+        .maybeSingle()
+    : p.data.termDepartmentId
+      ? await s
+          .from("term_department")
+          .select(
+            "id,ministry_term_id,ministry_term!inner(ministry!inner(church_id))",
+          )
+          .eq("id", p.data.termDepartmentId)
+          .eq("ministry_term.ministry.church_id", ctx.church.id)
+          .maybeSingle()
+      : await s
+          .from("ministry_term")
+          .select("id,ministry!inner(church_id)")
+          .eq("id", p.data.ministryTermId)
+          .eq("ministry.church_id", ctx.church.id)
+          .maybeSingle();
   if (!term)
-    return { success: false, error: "The selected term was not found." };
+    return {
+      success: false,
+      error: p.data.termGroupId
+        ? "The selected group was not found."
+        : p.data.termDepartmentId
+          ? "The selected department was not found."
+          : "The selected term was not found.",
+    };
+  const ministryTermId =
+    p.data.termGroupId || p.data.termDepartmentId
+      ? (term as { ministry_term_id: string }).ministry_term_id
+      : (term as { id: string }).id;
   const r = p.data.id
     ? await s
         .from("ministry_session")
         .update({ title: p.data.title, session_date: p.data.sessionDate })
         .eq("id", p.data.id)
-        .eq("ministry_term_id", term.id)
+        .eq("ministry_term_id", ministryTermId)
         .select("id,slug")
         .maybeSingle()
     : await createSessionWithUniqueSlug({
         churchId: ctx.church.id,
-        ministryTermId: term.id,
+        ministryTermId,
+        termGroupId: p.data.termGroupId,
+        termDepartmentId: p.data.termDepartmentId,
         title: p.data.title,
         sessionDate: p.data.sessionDate,
       });
@@ -113,7 +153,7 @@ export async function saveSessionAction(raw: unknown): Promise<Result> {
     };
   revalidatePath("/admin/sessions");
   revalidatePath(`/admin/sessions/${r.data.slug}`);
-  return { success: true, message: "Session saved." };
+  return { success: true, message: "Session saved.", slug: r.data.slug };
 }
 
 export async function deleteSessionAction(raw: unknown): Promise<Result> {
