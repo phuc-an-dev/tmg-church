@@ -222,7 +222,11 @@ export function IdentityPicker({
             }
             className={cn(
               "focus-visible:outline-primary relative flex size-11 min-h-11 min-w-11 items-center justify-center rounded-full border-2 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2",
-              customColorSelected ? "border-foreground" : "border-transparent",
+              customColorSelected
+                ? "border-foreground"
+                : customColorOpen
+                  ? "border-foreground bg-background text-foreground"
+                  : "border-input bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
             style={
               customColorSelected
@@ -230,10 +234,7 @@ export function IdentityPicker({
                     backgroundColor: normalizedColor,
                     borderColor: "var(--foreground)",
                   }
-                : {
-                    background:
-                      "conic-gradient(from 0deg, #ef4444, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)",
-                  }
+                : undefined
             }
           >
             {customColorSelected ? (
@@ -243,13 +244,7 @@ export function IdentityPicker({
                 aria-hidden="true"
               />
             ) : (
-              <span className="bg-background/85 text-foreground flex size-6 items-center justify-center rounded-full shadow-xs backdrop-blur-xs">
-                <Plus
-                  className="size-3.5"
-                  strokeWidth={2.5}
-                  aria-hidden="true"
-                />
-              </span>
+              <Plus className="size-5" strokeWidth={2} aria-hidden="true" />
             )}
           </button>
         </div>

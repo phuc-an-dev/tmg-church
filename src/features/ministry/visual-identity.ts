@@ -53,7 +53,6 @@ export const MINISTRY_COLOR_OPTIONS = [
   { label: "Indigo", value: "#6366f1" },
   { label: "Teal", value: "#14b8a6" },
   { label: "Slate", value: "#64748b" },
-  { label: "Stone", value: "#78716c" },
 ] as const;
 
 export const MINISTRY_ICON_COMPONENTS = {
