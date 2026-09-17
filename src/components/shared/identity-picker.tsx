@@ -290,7 +290,7 @@ export function IdentityPicker({
             ref={iconContainerRef}
             role="radiogroup"
             aria-label={`${entityLabel} icon options`}
-            className="grid max-h-52 grid-cols-6 gap-2 overflow-y-auto rounded-xl border p-2.5 sm:grid-cols-7 md:grid-cols-8"
+            className="grid max-h-[16.75rem] grid-cols-6 gap-2 overflow-y-auto rounded-xl border p-2.5 sm:grid-cols-7 md:grid-cols-8"
           >
             {iconList.map((icon, index) => {
               const isSelected = icon.name === iconKey;
