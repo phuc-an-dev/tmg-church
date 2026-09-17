@@ -8,6 +8,7 @@ import {
 } from "@/components/shared/navigation-tabs";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { requireTermContext } from "@/features/context/queries";
+import { getFrequentIcons } from "@/features/icon/queries";
 import { getStructure } from "@/features/ministry/queries";
 import { structureSearchParamsCache } from "@/features/ministry/search-params";
 
@@ -20,9 +21,10 @@ export default async function TermDetailPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { ministrySlug, termSlug } = await params;
-  const [context, query] = await Promise.all([
+  const [context, query, frequentIcons] = await Promise.all([
     requireTermContext(ministrySlug, termSlug),
     structureSearchParamsCache.parse(searchParams),
+    getFrequentIcons(),
   ]);
   if (!context) notFound();
 
@@ -63,6 +65,7 @@ export default async function TermDetailPage({
         ministrySlug={context.ministry.slug}
         termId={context.term.id}
         termSlug={context.term.slug}
+        frequentIcons={frequentIcons}
       />
     </AdminPageContainer>
   );

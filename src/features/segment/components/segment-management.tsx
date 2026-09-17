@@ -20,7 +20,8 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import {
   IdentityPicker,
   IdentityTile,
-} from "@/features/ministry/components/ministry-management";
+} from "@/components/shared/identity-picker";
+import type { FrequentIconItem } from "@/features/icon/types";
 import {
   DEFAULT_MINISTRY_COLOR,
   DEFAULT_MINISTRY_ICON_KEY,
@@ -157,10 +158,12 @@ function SegmentDialog({
   open,
   onOpenChange,
   item,
+  frequentIcons = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item?: SegmentItem;
+  frequentIcons?: FrequentIconItem[];
 }) {
   const router = useRouter();
   const [name, setName] = React.useState(item ? item.name : "Nhóm ");
@@ -168,7 +171,7 @@ function SegmentDialog({
     item?.accentColor ?? DEFAULT_MINISTRY_COLOR,
   );
   const [iconKey, setIconKey] = React.useState(
-    item?.iconKey ?? DEFAULT_MINISTRY_ICON_KEY,
+    item?.iconKey ?? frequentIcons[0]?.name ?? DEFAULT_MINISTRY_ICON_KEY,
   );
   const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [nameError, setNameError] = React.useState<string | null>(null);
@@ -253,6 +256,7 @@ function SegmentDialog({
               : "Use a six-digit hex color."
           }
           previewName={name || "Nhóm "}
+          frequentIcons={frequentIcons}
           onAccentColorChange={(value) => {
             setAccentColor(value);
             setFormError(null);
@@ -267,7 +271,13 @@ function SegmentDialog({
     </ResponsiveEditor>
   );
 }
-export function SegmentManagement({ segments }: { segments: SegmentItem[] }) {
+export function SegmentManagement({
+  segments,
+  frequentIcons = [],
+}: {
+  segments: SegmentItem[];
+  frequentIcons?: FrequentIconItem[];
+}) {
   const router = useRouter();
   const [q, setQ] = React.useState("");
   const [dialog, setDialog] = React.useState(false);
@@ -412,6 +422,7 @@ export function SegmentManagement({ segments }: { segments: SegmentItem[] }) {
           open={dialog}
           onOpenChange={setDialog}
           item={editing}
+          frequentIcons={frequentIcons}
         />
         <ConfirmationSheet
           open={Boolean(deleting)}

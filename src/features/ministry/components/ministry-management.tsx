@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
@@ -62,25 +61,12 @@ import type {
   StructureItem,
   TermItem,
 } from "../types";
+import type { FrequentIconItem } from "@/features/icon/types";
 import {
   DEFAULT_MINISTRY_COLOR,
   DEFAULT_MINISTRY_ICON_KEY,
-  MINISTRY_COLOR_OPTIONS,
-  isMinistryIconKey,
-  ministryIconLabel,
-  ministryIconFor,
   normalizeMinistryColor,
 } from "../visual-identity";
-
-const IconBrowser = dynamic(
-  () => import("./icon-browser").then((module) => module.IconBrowser),
-  { ssr: false },
-);
-const DynamicLucideIcon = dynamic(
-  () =>
-    import("./dynamic-lucide-icon").then((module) => module.DynamicLucideIcon),
-  { ssr: false },
-);
 
 type Mode = "ministries" | "terms" | "groups" | "departments";
 type Item = MinistryItem | TermItem | StructureItem;
@@ -93,6 +79,7 @@ type Props = {
   ministrySlug?: string;
   termId?: string;
   termSlug?: string;
+  frequentIcons?: FrequentIconItem[];
 };
 const labelFor = (mode: Mode) =>
   mode === "ministries"
@@ -260,242 +247,12 @@ function LifecycleDropdown({
   );
 }
 
-export function IdentityTile({
-  accentColor,
-  iconKey,
-  className = "size-10 rounded-xl",
-  iconClassName = "size-5",
-}: {
-  accentColor: string;
-  iconKey: string;
-  className?: string;
-  iconClassName?: string;
-}) {
-  const color = normalizeMinistryColor(accentColor);
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center border ${className}`}
-      style={{
-        borderColor: `color-mix(in srgb, ${color} 34%, transparent)`,
-        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-        color,
-      }}
-    >
-      <IdentityIcon iconKey={iconKey} className={iconClassName} />
-    </span>
-  );
-}
-
-function IdentityIcon({
-  iconKey,
-  className,
-}: {
-  iconKey: string;
-  className: string;
-}) {
-  if (!isMinistryIconKey(iconKey)) {
-    return <DynamicLucideIcon iconKey={iconKey} className={className} />;
-  }
-
-  const Icon = ministryIconFor(iconKey);
-  return React.createElement(Icon, { className, "aria-hidden": true });
-}
-
-export function IdentityPicker({
-  entityLabel,
-  accentColor,
-  iconKey,
-  customColorOpen,
-  colorError,
-  previewName,
-  onAccentColorChange,
-  onIconKeyChange,
-  onCustomColorOpenChange,
-}: {
-  entityLabel: string;
-  accentColor: string;
-  iconKey: string;
-  customColorOpen: boolean;
-  colorError: string | null;
-  previewName: string;
-  onAccentColorChange: (value: string) => void;
-  onIconKeyChange: (value: string) => void;
-  onCustomColorOpenChange: (value: boolean) => void;
-}) {
-  const normalizedColor = normalizeMinistryColor(accentColor);
-  const [iconBrowserOpen, setIconBrowserOpen] = React.useState(false);
-  const activeIconLabel = ministryIconLabel(iconKey);
-  const customColorSelected = !MINISTRY_COLOR_OPTIONS.some(
-    (option) => option.value === normalizedColor,
-  );
-
-  function selectColor(index: number) {
-    if (index === MINISTRY_COLOR_OPTIONS.length) {
-      onCustomColorOpenChange(true);
-      return;
-    }
-    onAccentColorChange(MINISTRY_COLOR_OPTIONS[index].value);
-    onCustomColorOpenChange(false);
-  }
-
-  function moveColorFocus(
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ) {
-    if (
-      event.key !== "ArrowRight" &&
-      event.key !== "ArrowDown" &&
-      event.key !== "ArrowLeft" &&
-      event.key !== "ArrowUp"
-    )
-      return;
-    event.preventDefault();
-    const count = MINISTRY_COLOR_OPTIONS.length + 1;
-    const delta =
-      event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
-    const next = (index + delta + count) % count;
-    selectColor(next);
-    const controls = event.currentTarget
-      .closest("[data-color-options]")
-      ?.querySelectorAll<HTMLButtonElement>('button[role="radio"]');
-    controls?.[next]?.focus();
-  }
-
-  return (
-    <div className="bg-card space-y-5 rounded-2xl border p-4">
-      <div className="space-y-3">
-        <Label>{entityLabel} color</Label>
-        <div
-          data-color-options
-          className="flex flex-wrap gap-1.5"
-          role="radiogroup"
-          aria-label={`${entityLabel} color`}
-        >
-          {MINISTRY_COLOR_OPTIONS.map((option) => {
-            const selected = normalizedColor === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                aria-label={option.label}
-                onClick={() => {
-                  selectColor(MINISTRY_COLOR_OPTIONS.indexOf(option));
-                }}
-                onKeyDown={(event) =>
-                  moveColorFocus(event, MINISTRY_COLOR_OPTIONS.indexOf(option))
-                }
-                className="focus-visible:outline-primary flex size-11 items-center justify-center rounded-full border-2 border-transparent transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2"
-                style={{
-                  backgroundColor: option.value,
-                  borderColor: selected ? "var(--foreground)" : "transparent",
-                }}
-              >
-                {selected && (
-                  <Check
-                    className="size-4 text-white"
-                    strokeWidth={3}
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            );
-          })}
-          <Button
-            type="button"
-            role="radio"
-            aria-checked={customColorSelected}
-            variant="outline"
-            className="min-h-11 rounded-full px-3 text-sm"
-            onClick={() => onCustomColorOpenChange(!customColorOpen)}
-            onKeyDown={(event) =>
-              moveColorFocus(event, MINISTRY_COLOR_OPTIONS.length)
-            }
-          >
-            Custom color
-          </Button>
-        </div>
-        {customColorOpen && (
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-2">
-              <Input
-                type="color"
-                aria-label={`Choose custom ${entityLabel.toLowerCase()} color`}
-                value={normalizedColor}
-                onChange={(event) => onAccentColorChange(event.target.value)}
-                className="h-11 w-12 p-1"
-              />
-              <Input
-                value={accentColor}
-                onChange={(event) =>
-                  onAccentColorChange(event.target.value.toLowerCase())
-                }
-                aria-invalid={Boolean(colorError)}
-                aria-describedby={colorError ? "custom-color-error" : undefined}
-                aria-label={`Custom ${entityLabel.toLowerCase()} color hex value`}
-                placeholder="#3b82f6"
-                className="h-11 font-mono text-base"
-                pattern="^#[0-9a-fA-F]{6}$"
-              />
-            </div>
-            {colorError && (
-              <p id="custom-color-error" className="text-destructive text-sm">
-                {colorError}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="space-y-3">
-        <Label>{entityLabel} icon</Label>
-        <p className="text-muted-foreground text-sm">
-          Selected icon:{" "}
-          <span className="text-foreground">{activeIconLabel}</span>
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-12 w-full gap-2"
-          onClick={() => setIconBrowserOpen(true)}
-        >
-          <IdentityIcon iconKey={iconKey} className="size-4" />
-          Browse Lucide icons
-        </Button>
-      </div>
-      <div
-        className="flex items-center gap-3 rounded-xl border p-3"
-        style={{ borderLeftColor: normalizedColor, borderLeftWidth: 3 }}
-        aria-label={`${entityLabel} identity preview`}
-      >
-        <span
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-          style={{
-            color: normalizedColor,
-            backgroundColor: `color-mix(in srgb, ${normalizedColor} 12%, transparent)`,
-          }}
-        >
-          <IdentityIcon iconKey={iconKey} className="size-5" />
-        </span>
-        <span className="min-w-0">
-          <span className="text-muted-foreground block text-xs font-medium">
-            Preview
-          </span>
-          <span className="block truncate font-semibold">{previewName}</span>
-        </span>
-      </div>
-      {iconBrowserOpen && (
-        <IconBrowser
-          open={iconBrowserOpen}
-          entityLabel={entityLabel}
-          selectedIconKey={iconKey}
-          onOpenChange={setIconBrowserOpen}
-          onSelect={onIconKeyChange}
-        />
-      )}
-    </div>
-  );
-}
+import {
+  IdentityIcon,
+  IdentityPicker,
+  IdentityTile,
+} from "@/components/shared/identity-picker";
+export { IdentityIcon, IdentityPicker, IdentityTile };
 
 export function MinistryManagement({
   mode,
@@ -506,6 +263,7 @@ export function MinistryManagement({
   ministrySlug,
   termId,
   termSlug,
+  frequentIcons = [],
 }: Props) {
   const label = labelFor(mode);
   const supportsSearchAndPagination = mode === "ministries" || mode === "terms";
@@ -525,7 +283,9 @@ export function MinistryManagement({
   const [editor, setEditor] = React.useState<Item | "create" | null>(null);
   const [deleting, setDeleting] = React.useState<Item | null>(null);
   const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
-  const [iconKey, setIconKey] = React.useState("cross");
+  const [iconKey, setIconKey] = React.useState(
+    frequentIcons[0]?.name ?? DEFAULT_MINISTRY_ICON_KEY,
+  );
   const [customColorOpen, setCustomColorOpen] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -618,7 +378,11 @@ export function MinistryManagement({
         ? normalizeMinistryColor(identityItem.accentColor)
         : DEFAULT_MINISTRY_COLOR,
     );
-    setIconKey(identityItem?.iconKey ?? DEFAULT_MINISTRY_ICON_KEY);
+    setIconKey(
+      identityItem?.iconKey ??
+        frequentIcons[0]?.name ??
+        DEFAULT_MINISTRY_ICON_KEY,
+    );
     setCustomColorOpen(false);
     setIdentityNameDraft(item !== "create" ? item.name : getInitialDraft(mode));
     const term = item !== "create" && isTerm(item) ? item : null;
@@ -1116,6 +880,7 @@ export function MinistryManagement({
                     : "Use a six-digit hex color."
                 }
                 previewName={identityNameDraft || getInitialDraft(mode)}
+                frequentIcons={frequentIcons}
                 onAccentColorChange={setAccentColor}
                 onIconKeyChange={setIconKey}
                 onCustomColorOpenChange={setCustomColorOpen}

@@ -85,6 +85,8 @@ export async function addFrequentIconAction(
   }
 
   revalidatePath("/admin/icons");
+  revalidatePath("/admin/ministries");
+  revalidatePath("/admin/segments");
   return {
     success: true,
     message: `Icon "${parsed.data.name}" added to frequently used list.`,
@@ -113,6 +115,8 @@ export async function removeFrequentIconAction(
   }
 
   revalidatePath("/admin/icons");
+  revalidatePath("/admin/ministries");
+  revalidatePath("/admin/segments");
   return {
     success: true,
     message: "Icon removed from frequently used list.",
@@ -143,6 +147,8 @@ export async function reorderFrequentIconsAction(
   }
 
   revalidatePath("/admin/icons");
+  revalidatePath("/admin/ministries");
+  revalidatePath("/admin/segments");
   return {
     success: true,
     message: "Icon order updated.",

@@ -3,6 +3,7 @@ import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { MinistryManagement } from "@/features/ministry/components/ministry-management";
 import { getMinistries } from "@/features/ministry/queries";
+import { getFrequentIcons } from "@/features/icon/queries";
 import {
   ministrySearchParamsCache,
   safePageSize,
@@ -18,11 +19,14 @@ export default async function MinistriesPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await ministrySearchParamsCache.parse(searchParams);
-  const result = await getMinistries({
-    ...params,
-    page: Math.max(1, params.page),
-    pageSize: safePageSize(params.pageSize),
-  });
+  const [result, frequentIcons] = await Promise.all([
+    getMinistries({
+      ...params,
+      page: Math.max(1, params.page),
+      pageSize: safePageSize(params.pageSize),
+    }),
+    getFrequentIcons(),
+  ]);
   return (
     <AdminPageContainer>
       <AdminPageHeader
@@ -34,6 +38,7 @@ export default async function MinistriesPage({
         title="Ministries"
         description="Search, sort, and manage the ministry structure."
         result={result}
+        frequentIcons={frequentIcons}
       />
     </AdminPageContainer>
   );
