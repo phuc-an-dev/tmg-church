@@ -97,3 +97,7 @@ Delivered Supabase SSR clients, Magic Link PKCE authentication, leader authoriza
 Result: accepted in `42cd479`.
 
 Delivered the schema, integrity constraints, RLS policies, generated types, reduced public member view, and first-leader bootstrap runbook. Local reset, database lint, concurrency checks, and the repository quality gate passed.
+
+## 2026-09-18: Milestone B — invitation activation
+
+Result: accepted locally after independent security review. Added hashed one-time invitations, Resend delivery, private invitation status projection, password activation with email binding, atomic invitation consumption, callback completion, and password sign-in. Local authorization migration applied successfully; invitation/RLS checks passed 20/20. Full test, lint, typecheck, format, build, and diff checks passed. Hosted SMTP/Auth Hook rollout remains an operator step.

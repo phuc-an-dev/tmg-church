@@ -14,19 +14,28 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ChurchViewModel } from "../types";
-import type { SystemRoleCandidate } from "../authorization-queries";
+import type {
+  InvitationCandidate,
+  InvitationStatus,
+  SystemRoleCandidate,
+} from "../authorization-queries";
 import { DeleteChurchDialog } from "./delete-church-dialog";
 import { SystemRoleManagement } from "./system-role-management";
+import { InvitationManagement } from "./invitation-management";
 
 interface ChurchAdvancedSettingsProps {
   church: ChurchViewModel;
   systemRoleCandidates: SystemRoleCandidate[];
+  invitationCandidates: InvitationCandidate[];
+  invitationStatuses: InvitationStatus[];
   actorRole: string;
 }
 
 export function ChurchAdvancedSettings({
   church,
   systemRoleCandidates,
+  invitationCandidates,
+  invitationStatuses,
   actorRole,
 }: ChurchAdvancedSettingsProps) {
   const router = useRouter();
@@ -53,6 +62,13 @@ export function ChurchAdvancedSettings({
       <SystemRoleManagement
         churchId={church.id}
         candidates={systemRoleCandidates}
+        actorRole={actorRole}
+      />
+
+      <InvitationManagement
+        churchId={church.id}
+        candidates={invitationCandidates}
+        statuses={invitationStatuses}
         actorRole={actorRole}
       />
 

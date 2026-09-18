@@ -180,4 +180,82 @@ describe("Phase 2 fast cutover", () => {
       .eq("id", profileId);
     expect(cleanup.error).toBeNull();
   });
+
+  it("scopes invitations, hashes tokens, and rejects mismatched authenticated email", async () => {
+    const profileId = crypto.randomUUID();
+    const email = `invitation-${profileId.slice(0, 8)}@example.test`;
+    const insert = await clients.masterAdmin.from("member_profile").insert({
+      id: profileId,
+      church_id: churchId,
+      full_name: "Invitation Target",
+      email,
+      slug: `invitation-target-${profileId.slice(0, 8)}`,
+    });
+    expect(insert.error).toBeNull();
+
+    const created = await clients.masterAdmin.rpc(
+      "create_member_access_invitation",
+      { p_church_id: churchId, p_member_profile_id: profileId },
+    );
+    expect(created.error).toBeNull();
+    const payload = created.data as {
+      id: string;
+      email: string;
+      token: string;
+    };
+    expect(payload.email).toBe(email);
+    expect(payload.token).toHaveLength(64);
+
+    const status = await clients.masterAdmin
+      .from("member_access_invitation_status")
+      .select("id, email")
+      .eq("id", payload.id)
+      .single();
+    expect(status.error).toBeNull();
+    expect(status.data?.email).toBe(email);
+    expect(status.data && "token_hash" in status.data).toBe(false);
+
+    const preview = await anon.rpc("preview_member_access_invitation", {
+      p_token: payload.token,
+    });
+    expect(preview.error).toBeNull();
+    expect((preview.data as { email: string }).email).toBe(email);
+
+    const noRoleCreate = await clients.noRoleMember.rpc(
+      "create_member_access_invitation",
+      { p_church_id: churchId, p_member_profile_id: profileId },
+    );
+    expect(noRoleCreate.error?.code).toBe("42501");
+
+    const mismatchedConsume = await clients.noRoleMember.rpc(
+      "consume_member_access_invitation",
+      { p_token: payload.token, p_email: email },
+    );
+    expect(mismatchedConsume.error?.code).toBe("P0001");
+
+    const resent = await clients.masterAdmin.rpc(
+      "create_member_access_invitation",
+      { p_church_id: churchId, p_member_profile_id: profileId },
+    );
+    expect(resent.error).toBeNull();
+    const resentPayload = resent.data as { id: string; token: string };
+    expect(resentPayload.token).not.toBe(payload.token);
+
+    const oldPreview = await anon.rpc("preview_member_access_invitation", {
+      p_token: payload.token,
+    });
+    expect(oldPreview.data).toBeNull();
+
+    const revoked = await clients.masterAdmin.rpc(
+      "revoke_member_access_invitation",
+      { p_church_id: churchId, p_invitation_id: resentPayload.id },
+    );
+    expect(revoked.error).toBeNull();
+    expect(revoked.data).toBe(true);
+
+    const revokedPreview = await anon.rpc("preview_member_access_invitation", {
+      p_token: resentPayload.token,
+    });
+    expect(revokedPreview.data).toBeNull();
+  });
 });

@@ -1,14 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  Mail,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
-  RotateCcw,
-} from "lucide-react";
-import { sendMagicLink } from "@/features/auth/actions";
+import { useActionState } from "react";
+import { LockKeyhole, Loader2, AlertCircle } from "lucide-react";
+import { signInWithPassword } from "@/features/auth/actions";
 import { initialLoginState } from "@/features/auth/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,74 +11,14 @@ interface LoginFormProps {
   initialErrorMessage?: string;
 }
 
-interface LoginFormInnerProps {
-  initialErrorMessage?: string;
-  onReset: () => void;
-}
-
-function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
+function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState(
-    sendMagicLink,
+    signInWithPassword,
     initialLoginState,
   );
-  const [submittedEmail, setSubmittedEmail] = useState("");
-
-  if (state.status === "success") {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        className="admin-surface p-5 sm:p-6"
-      >
-        <div className="flex items-start gap-3">
-          <CheckCircle2
-            className="text-primary mt-0.5 size-5 shrink-0"
-            aria-hidden="true"
-          />
-          <div className="min-w-0 flex-1 space-y-2">
-            <h2 className="text-card-foreground text-base font-semibold">
-              Sign-in link sent
-            </h2>
-            <p className="text-muted-foreground text-sm">{state.message}</p>
-            {submittedEmail && (
-              <p className="text-foreground text-sm font-medium break-all">
-                Sent to:{" "}
-                <span className="text-primary font-mono font-semibold">
-                  {submittedEmail}
-                </span>
-              </p>
-            )}
-            <div className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onReset}
-                className="min-h-[44px] gap-2"
-              >
-                <RotateCcw className="size-4" aria-hidden="true" />
-                <span>Resend or enter a different email</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        const formData = new FormData(e.currentTarget);
-        const email = formData.get("email");
-        if (typeof email === "string") {
-          setSubmittedEmail(email);
-        }
-      }}
-      noValidate
-      className="space-y-5"
-    >
+    <form action={formAction} noValidate className="space-y-5">
       {initialErrorMessage && state.status === "idle" && (
         <div
           role="alert"
@@ -134,6 +68,24 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
         )}
       </div>
 
+      <div className="flex flex-col gap-3">
+        <label
+          htmlFor="password"
+          className="text-foreground text-sm font-medium"
+        >
+          Password
+        </label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          disabled={isPending}
+          className="h-12 px-4 text-lg"
+        />
+      </div>
+
       <Button
         type="submit"
         disabled={isPending}
@@ -145,12 +97,12 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
               className="size-4 animate-spin motion-reduce:animate-none"
               aria-hidden="true"
             />
-            <span>Sending sign-in link...</span>
+            <span>Signing in...</span>
           </>
         ) : (
           <>
-            <Mail className="size-4" aria-hidden="true" />
-            <span>Send sign-in link</span>
+            <LockKeyhole className="size-4" aria-hidden="true" />
+            <span>Sign in</span>
           </>
         )}
       </Button>
@@ -159,17 +111,5 @@ function LoginFormInner({ initialErrorMessage, onReset }: LoginFormInnerProps) {
 }
 
 export function LoginForm({ initialErrorMessage }: LoginFormProps) {
-  const [formKey, setFormKey] = useState(0);
-
-  const handleReset = () => {
-    setFormKey((k) => k + 1);
-  };
-
-  return (
-    <LoginFormInner
-      key={formKey}
-      initialErrorMessage={formKey === 0 ? initialErrorMessage : undefined}
-      onReset={handleReset}
-    />
-  );
+  return <LoginFormInner initialErrorMessage={initialErrorMessage} />;
 }

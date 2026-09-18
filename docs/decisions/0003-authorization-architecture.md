@@ -185,7 +185,7 @@ stateDiagram-v2
 
 The exact activation-proof transport and transaction boundary between Supabase Auth and application data require an official-documentation check and local prototype in Phase 4. They must satisfy the properties above; this ADR does not prescribe passing the raw token through persisted Auth metadata.
 
-Supabase SMTP and templates handle Auth-generated messages such as recovery and verified email changes. The custom invitation uses a separate application mail path, which may use the same provider. Provider selection and production credentials remain Phase 4 user-owned decisions.
+Supabase SMTP and templates handle Auth-generated messages such as recovery and verified email changes. The custom invitation uses a separate application mail path delivered through Resend. Production credentials remain operator-managed and are never committed.
 
 ## 6. Migration and rollback strategy
 

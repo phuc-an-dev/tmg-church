@@ -366,6 +366,60 @@ export type Database = {
           },
         ];
       };
+      member_access_invitation: {
+        Row: {
+          church_id: string;
+          consumed_at: string | null;
+          created_at: string;
+          created_by: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          member_profile_id: string;
+          revoked_at: string | null;
+          token_hash: string;
+        };
+        Insert: {
+          church_id: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          created_by: string;
+          email: string;
+          expires_at: string;
+          id?: string;
+          member_profile_id: string;
+          revoked_at?: string | null;
+          token_hash: string;
+        };
+        Update: {
+          church_id?: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          member_profile_id?: string;
+          revoked_at?: string | null;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_access_invitation_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "church";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "member_access_invitation_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       member_segment: {
         Row: {
           accent_color: string;
@@ -1189,6 +1243,20 @@ export type Database = {
       };
     };
     Views: {
+      member_access_invitation_status: {
+        Row: {
+          church_id: string | null;
+          consumed_at: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          email: string | null;
+          expires_at: string | null;
+          id: string | null;
+          member_profile_id: string | null;
+          revoked_at: string | null;
+        };
+        Relationships: [];
+      };
       member_profile_public: {
         Row: {
           birth_year: number | null;
@@ -1273,6 +1341,22 @@ export type Database = {
       remove_term_role: {
         Args: { p_role: string; p_term_id: string };
         Returns: boolean;
+      };
+      create_member_access_invitation: {
+        Args: { p_church_id: string; p_member_profile_id: string };
+        Returns: Json;
+      };
+      revoke_member_access_invitation: {
+        Args: { p_church_id: string; p_invitation_id: string };
+        Returns: boolean;
+      };
+      preview_member_access_invitation: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      consume_member_access_invitation: {
+        Args: { p_email: string; p_token: string };
+        Returns: string;
       };
       is_system_admin: { Args: never; Returns: boolean };
       is_system_admin_for_church: {

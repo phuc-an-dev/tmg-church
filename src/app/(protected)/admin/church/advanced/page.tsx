@@ -3,7 +3,11 @@ import Link from "next/link";
 import { ArrowLeft, Info } from "lucide-react";
 import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
-import { getSystemRoleCandidates } from "@/features/church/authorization-queries";
+import {
+  getInvitationCandidates,
+  getInvitationStatuses,
+  getSystemRoleCandidates,
+} from "@/features/church/authorization-queries";
 import { ChurchAdvancedSettings } from "@/features/church/components/church-advanced-settings";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
@@ -18,14 +22,19 @@ export default async function AdvancedChurchSettingsPage() {
   const churchState = await getAdminChurchState();
 
   if (churchState.status === "one") {
-    const systemRoleCandidates = await getSystemRoleCandidates(
-      churchState.church.id,
-    );
+    const [systemRoleCandidates, invitationCandidates, invitationStatuses] =
+      await Promise.all([
+        getSystemRoleCandidates(churchState.church.id),
+        getInvitationCandidates(churchState.church.id),
+        getInvitationStatuses(churchState.church.id),
+      ]);
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <ChurchAdvancedSettings
           church={churchState.church}
           systemRoleCandidates={systemRoleCandidates}
+          invitationCandidates={invitationCandidates}
+          invitationStatuses={invitationStatuses}
           actorRole={auth.systemRole.role}
         />
       </div>

@@ -21,6 +21,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       "This sign-in link is invalid or has expired. Please request a new link.";
   }
 
+  if (status === "activated") {
+    initialErrorMessage =
+      "Your account is activated. Sign in with your email and password.";
+  }
+
   return (
     <AuthShell contentPosition="upper">
       <div className="admin-panel-strong overflow-hidden">

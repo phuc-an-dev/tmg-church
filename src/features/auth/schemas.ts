@@ -9,6 +9,10 @@ export const loginSchema = z.object({
     .toLowerCase(),
 });
 
+export const passwordLoginSchema = loginSchema.extend({
+  password: z.string().min(1, "Password is required."),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export type LoginActionState = {
