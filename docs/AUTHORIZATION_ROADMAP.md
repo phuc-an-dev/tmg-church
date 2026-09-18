@@ -5,7 +5,7 @@
 - Initiative status: Planning
 - Active implementation phase: None
 - Implementation authorization: `docs/NEXT_AGENT_TASK.md` remains the sole active brief
-- Next gate: Complete and approve the remaining Phase 0 architecture artifacts
+- Next gate: Brainstorm and approve Phase 1 before authorizing implementation
 
 ## Objective
 
@@ -184,7 +184,7 @@ Each phase selects from the following steps. The catalog makes user involvement 
 
 | Phase | Name                                     | Status      | Depends on       |
 | ----- | ---------------------------------------- | ----------- | ---------------- |
-| 0     | Architecture and planning baseline       | In progress | None             |
+| 0     | Architecture and planning baseline       | Complete    | None             |
 | 1     | Authorization foundation                 | Not started | Phase 0          |
 | 2     | Capability engine and RLS cutover        | Not started | Phase 1          |
 | 3     | System governance and role-management UI | Not started | Phase 2          |
@@ -223,13 +223,13 @@ Create a shared vocabulary and controlled delivery process before any implementa
 ### Required outputs
 
 - [x] Master roadmap with phase order and fixed decisions
-- [ ] Approved domain model for accounts, roles, invitations, capabilities, and audit records
-- [ ] Approved Role x Capability x Scope matrix
-- [ ] Approved lifecycle state machines
-- [ ] Approved authorization and RLS enforcement model
-- [ ] Approved invitation activation sequence
-- [ ] Approved migration and rollback strategy
-- [ ] Approved cross-phase test-persona matrix
+- [x] Approved domain model for accounts, roles, invitations, capabilities, and audit records
+- [x] Approved Role x Capability x Scope matrix
+- [x] Approved lifecycle state machines
+- [x] Approved authorization and RLS enforcement model
+- [x] Approved invitation activation sequence
+- [x] Approved migration and rollback strategy
+- [x] Approved cross-phase test-persona matrix
 
 ### Acceptance gate
 
@@ -497,7 +497,7 @@ Applying linked migrations, changing hosted Supabase Auth settings, configuring 
 
 - [x] Record agreed initiative boundaries and fixed decisions
 - [x] Establish phase order and dependencies
-- [ ] Complete and approve Phase 0 architecture artifacts
+- [x] Complete and approve Phase 0 architecture artifacts
 - [ ] Brainstorm Phase 1
 - [ ] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
 - [ ] Implement and independently accept Phase 1
