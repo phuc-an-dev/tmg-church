@@ -88,6 +88,20 @@ begin
     on conflict do nothing;
   end if;
 
+  -- Backfill the existing production term's legacy Department names into the
+  -- fixed catalog before enforcing the non-null invariant.
+  update public.term_department
+  set department_code = case slug
+    when 'ban-am-nhac' then 'music'
+    when 'ban-ky-thuat' then 'worship'
+    when 'ban-tham-vieng' then 'visitation_care'
+    when 'ban-truyen-giang' then 'evangelism'
+    when 'ban-tuong-tro' then 'social_support'
+    else department_code
+  end
+  where department_code is null
+    and slug in ('ban-am-nhac', 'ban-ky-thuat', 'ban-tham-vieng', 'ban-truyen-giang', 'ban-tuong-tro');
+
   -- Preflight assertion: any existing term_department in the database must have department_code populated
   if exists (select 1 from public.term_department where department_code is null) then
     raise exception 'Preflight validation failed: Existing term_department records have unmapped department_code';
