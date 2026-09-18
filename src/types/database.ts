@@ -1304,6 +1304,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      portal_department_directory: {
+        Row: {
+          id: string;
+          ministry_slug: string;
+          ministry_term_id: string;
+          name: string;
+          slug: string;
+          term_slug: string;
+        };
+        Relationships: [];
+      };
+      portal_department_member_directory: {
+        Row: {
+          assignment_id: string | null;
+          department_id: string;
+          department_name: string;
+          full_name: string;
+          member_id: string;
+          membership_id: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       assign_group_member: {
@@ -1367,6 +1389,14 @@ export type Database = {
       };
       portal_remove_group_member: {
         Args: { p_record_id: string };
+        Returns: undefined;
+      };
+      portal_assign_department_member: {
+        Args: { p_department_id: string; p_membership_id: string };
+        Returns: string;
+      };
+      portal_remove_department_member: {
+        Args: { p_assignment_id: string };
         Returns: undefined;
       };
       set_system_admin: {

@@ -23,6 +23,7 @@ Status: completed locally; waiting for the next bounded scope.
 - `/admin` behavior remains unchanged for Master/Admin.
 - Direct Data API deletes and writes are denied for read-only Group roles.
 - Group membership assignment cannot cross terms, steal a member from another open Group, or remove a leadership assignment.
+- Department commissioner-derived roles can assign and remove members only within their exact active Department.
 - Local migration, authorization tests, lint, typecheck, format, build, and independent review pass.
 
 ## Constraints carried forward
@@ -33,4 +34,4 @@ Status: completed locally; waiting for the next bounded scope.
 
 ## Next choice
 
-Choose one bounded Milestone C slice before implementation continues: Department member management, Department requests, or additional Group read surfaces. Do not infer this choice from the roadmap.
+Choose one bounded Milestone C slice before implementation continues: Department requests, Department service-role assignment, or additional read-only portal surfaces.

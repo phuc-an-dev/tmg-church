@@ -113,3 +113,7 @@ Result: accepted locally after independent security review. Added group-scoped s
 ## 2026-09-18: Milestone C — Group roster portal slice
 
 Result: accepted locally after independent security review. Added a scoped Group member directory and regular-member assign/unassign actions for Group Leaders and Deputies. Cross-term assignment, moving a member out of another open Group, leadership removal, and Department service-role access remain denied. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.
+
+## 2026-09-18: Milestone C — Department member management
+
+Result: accepted locally after independent security review. Added commissioner-derived Department member assignment/removal through a private term-member projection and scoped RPC/RLS policies. Same-term and exact-Department checks are enforced; no service-role assignment or Department request workflow was opened. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.

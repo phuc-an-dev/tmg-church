@@ -405,6 +405,69 @@ describe("Phase 2 fast cutover", () => {
       .eq("id", sessionId);
     expect(cleanup.error).toBeNull();
 
+    const departmentId = crypto.randomUUID();
+    const masterMembershipId = crypto.randomUUID();
+    const department = await clients.masterAdmin
+      .from("term_department")
+      .insert({
+        id: departmentId,
+        ministry_term_id: portalTermId,
+        department_code: "music",
+        name: "Portal Music Department",
+        slug: `portal-music-${departmentId.slice(0, 8)}`,
+      });
+    expect(department.error).toBeNull();
+    const masterMembership = await clients.masterAdmin
+      .from("ministry_membership")
+      .insert({
+        id: masterMembershipId,
+        ministry_term_id: portalTermId,
+        member_profile_id: masterProfileId,
+      });
+    expect(masterMembership.error).toBeNull();
+    const commissioner = await clients.masterAdmin.rpc("assign_term_role", {
+      p_term_id: portalTermId,
+      p_member_profile_id: "e1a52f99-6f89-425a-aaca-676369dd6992",
+      p_role: "music_commissioner",
+    });
+    expect(commissioner.error).toBeNull();
+    const departmentCapability = await clients.noRoleMember.rpc(
+      "has_capability",
+      {
+        p_capability: "department.members.manage",
+        p_scope_type: "department",
+        p_scope_id: departmentId,
+      },
+    );
+    expect(departmentCapability.error).toBeNull();
+    expect(departmentCapability.data).toBe(true);
+    const assignment = await clients.noRoleMember.rpc(
+      "portal_assign_department_member",
+      { p_department_id: departmentId, p_membership_id: masterMembershipId },
+    );
+    expect(assignment.error).toBeNull();
+    const removeAssignment = await clients.noRoleMember.rpc(
+      "portal_remove_department_member",
+      { p_assignment_id: assignment.data as string },
+    );
+    expect(removeAssignment.error).toBeNull();
+    const removeCommissioner = await clients.masterAdmin.rpc(
+      "remove_term_role",
+      {
+        p_term_id: portalTermId,
+        p_role: "music_commissioner",
+      },
+    );
+    expect(removeCommissioner.error).toBeNull();
+    await clients.masterAdmin
+      .from("ministry_membership")
+      .delete()
+      .eq("id", masterMembershipId);
+    await clients.masterAdmin
+      .from("term_department")
+      .delete()
+      .eq("id", departmentId);
+
     await clients.masterAdmin
       .from("term_group_membership")
       .delete()
