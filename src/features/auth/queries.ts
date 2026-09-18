@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
-export type LeaderRow = Database["public"]["Tables"]["leaders"]["Row"];
+export type SystemRoleAssignment =
+  Database["public"]["Tables"]["system_role_assignment"]["Row"];
 
 export type AuthContext =
   | {
@@ -18,13 +19,13 @@ export type AuthContext =
   | {
       status: "authorized";
       email: string;
-      leader: LeaderRow;
+      systemRole: Pick<SystemRoleAssignment, "user_id" | "church_id" | "role">;
     };
 
 /**
- * Retrieves the current authentication and leader authorization context.
+ * Retrieves the current authentication and system-admin authorization context.
  * Deduplicated per request using React cache().
- * Verifies the session JWT with getClaims() before checking leader status.
+ * Verifies the session JWT with getClaims() before checking system role state.
  */
 export const getAuthContext = cache(async (): Promise<AuthContext> => {
   const supabase = await createClient();
@@ -42,18 +43,17 @@ export const getAuthContext = cache(async (): Promise<AuthContext> => {
     };
   }
 
-  const { data: leader, error: leaderError } = await supabase
-    .from("leaders")
-    .select("user_id, email, created_at")
+  const { data: systemRole, error: roleError } = await supabase
+    .from("system_role_assignment")
+    .select("user_id, church_id, role")
     .eq("user_id", userId)
+    .in("role", ["master_admin", "admin"])
+    .limit(1)
     .maybeSingle();
 
-  const email =
-    (typeof claims.email === "string" ? claims.email : null) ??
-    leader?.email ??
-    "";
+  const email = (typeof claims.email === "string" ? claims.email : null) ?? "";
 
-  if (leaderError || !leader) {
+  if (roleError || !systemRole) {
     return {
       status: "unauthorized",
       email,
@@ -63,17 +63,17 @@ export const getAuthContext = cache(async (): Promise<AuthContext> => {
   return {
     status: "authorized",
     email,
-    leader,
+    systemRole,
   };
 });
 
 /**
  * Guard for protected administration routes.
  * Redirects unauthenticated users to /admin/login.
- * Redirects authenticated non-leaders to /admin/unauthorized.
+ * Redirects authenticated users without a Master/Admin role to /admin/unauthorized.
  * Returns the authorized context when successful.
  */
-export async function requireLeader(): Promise<
+export async function requireSystemAdmin(): Promise<
   Extract<AuthContext, { status: "authorized" }>
 > {
   const context = await getAuthContext();

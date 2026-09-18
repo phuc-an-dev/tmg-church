@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import type { ChurchState, ChurchViewModel } from "./types";
 
 /**
@@ -10,7 +10,7 @@ import type { ChurchState, ChurchViewModel } from "./types";
  * Wrapped in React cache() to deduplicate queries within the same request lifecycle.
  */
 export const getAdminChurchState = cache(async (): Promise<ChurchState> => {
-  await requireLeader();
+  await requireSystemAdmin();
   const supabase = await createClient();
 
   const { data: churches, error: churchError } = await supabase

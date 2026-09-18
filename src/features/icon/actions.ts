@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import {
   addFrequentIconSchema,
   removeFrequentIconSchema,
@@ -32,7 +32,7 @@ const invalid = (error: {
 export async function addFrequentIconAction(
   raw: unknown,
 ): Promise<IconActionResult> {
-  await requireLeader();
+  await requireSystemAdmin();
   const parsed = addFrequentIconSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
 
@@ -96,7 +96,7 @@ export async function addFrequentIconAction(
 export async function removeFrequentIconAction(
   raw: unknown,
 ): Promise<IconActionResult> {
-  await requireLeader();
+  await requireSystemAdmin();
   const parsed = removeFrequentIconSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
 
@@ -126,7 +126,7 @@ export async function removeFrequentIconAction(
 export async function reorderFrequentIconsAction(
   raw: unknown,
 ): Promise<IconActionResult> {
-  await requireLeader();
+  await requireSystemAdmin();
   const parsed = reorderFrequentIconsSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
 

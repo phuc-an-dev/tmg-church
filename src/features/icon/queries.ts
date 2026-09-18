@@ -1,11 +1,11 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import type { FrequentIconItem } from "./types";
 
 export async function getFrequentIcons(): Promise<FrequentIconItem[]> {
-  await requireLeader();
+  await requireSystemAdmin();
   const supabase = await createClient();
 
   const { data, error } = await supabase

@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import { isUuid } from "@/lib/slug";
 
 /**
@@ -67,7 +67,7 @@ export type GroupOperationalContext = TermOperationalContext & {
  */
 export const requireOperationalContext = cache(
   async (): Promise<OperationalContext> => {
-    const auth = await requireLeader();
+    const auth = await requireSystemAdmin();
     const supabase = await createClient();
 
     const { data: churches, error } = await supabase
@@ -92,7 +92,7 @@ export const requireOperationalContext = cache(
     const church = churches[0];
 
     return {
-      leader: { userId: auth.leader.user_id, email: auth.email },
+      leader: { userId: auth.systemRole.user_id, email: auth.email },
       church: { id: church.id, name: church.name, slug: church.slug },
     };
   },

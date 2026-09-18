@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
 import { ChurchManagement } from "@/features/church/components/church-management";
 
@@ -15,7 +15,7 @@ interface AdminChurchPageProps {
 export default async function AdminChurchPage({
   searchParams,
 }: AdminChurchPageProps) {
-  await requireLeader();
+  await requireSystemAdmin();
   const [churchState, params] = await Promise.all([
     getAdminChurchState(),
     searchParams,

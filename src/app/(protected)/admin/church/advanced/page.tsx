@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Info } from "lucide-react";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
 import { ChurchAdvancedSettings } from "@/features/church/components/church-advanced-settings";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdvancedChurchSettingsPage() {
-  await requireLeader();
+  await requireSystemAdmin();
   const churchState = await getAdminChurchState();
 
   if (churchState.status === "one") {

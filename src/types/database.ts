@@ -1250,6 +1250,19 @@ export type Database = {
         };
         Returns: string;
       };
+      has_capability: {
+        Args: {
+          p_capability: string;
+          p_scope_id: string;
+          p_scope_type: string;
+        };
+        Returns: boolean;
+      };
+      is_system_admin: { Args: never; Returns: boolean };
+      is_system_admin_for_church: {
+        Args: { p_church_id: string };
+        Returns: boolean;
+      };
       is_leader: { Args: never; Returns: boolean };
       log_application_audit_event: {
         Args: {

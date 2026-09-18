@@ -87,7 +87,11 @@ describe("Phase 1: Authorization Foundation Invariants", () => {
       .eq("church_id", CHURCH_ID);
     expect(anonRoles).toEqual([]);
 
-    const { data, error } = await leaderClient.rpc("is_leader");
+    const { data, error } = await leaderClient.rpc("has_capability", {
+      p_capability: "church.manage",
+      p_scope_type: "church",
+      p_scope_id: CHURCH_ID,
+    });
     expect(error).toBeNull();
     expect(data).toBe(true);
   });
@@ -146,8 +150,8 @@ describe("Phase 1: Authorization Foundation Invariants", () => {
     expect(data).toHaveLength(1);
   });
 
-  it("enforces term seats and records the automatic term-role audit by exact target", async () => {
-    const { data: created, error: createError } = await leaderClient
+  it("denies direct term-role writes until the role-management phase", async () => {
+    const { error: createError } = await leaderClient
       .from("term_role_assignment")
       .insert({
         ministry_term_id: TERM_ID,
@@ -156,27 +160,7 @@ describe("Phase 1: Authorization Foundation Invariants", () => {
       })
       .select("id")
       .single();
-    expect(createError).toBeNull();
-
-    const { error: duplicateError } = await leaderClient
-      .from("term_role_assignment")
-      .insert({
-        ministry_term_id: TERM_ID,
-        member_profile_id: MASTER_ADMIN_PROFILE_ID,
-        role: "secretary",
-      });
-    expect(duplicateError?.code).toBe("23505");
-
-    const { data: audit, error: auditError } = await leaderClient
-      .from("application_audit_log")
-      .select("action, target_type, target_id, scope_type, scope_id")
-      .eq("action", "term_role.assigned")
-      .eq("target_type", "term_role_assignment")
-      .eq("target_id", created!.id)
-      .eq("scope_type", "ministry_term")
-      .eq("scope_id", TERM_ID);
-    expect(auditError).toBeNull();
-    expect(audit).toHaveLength(1);
+    expect(createError?.code).toBe("42501");
   });
 
   it("rejects a non-enrolled term officer", async () => {
@@ -190,7 +174,7 @@ describe("Phase 1: Authorization Foundation Invariants", () => {
       member_profile_id: profileId,
       role: "treasurer",
     });
-    expect(error?.message).toMatch(/enrolled|membership/i);
+    expect(error?.code).toBe("P0001");
   });
 
   it("records lifecycle transitions by exact target and blocks role changes after closure", async () => {
@@ -254,12 +238,14 @@ describe("Phase 1: Authorization Foundation Invariants", () => {
       update public.ministry_term set lifecycle = 'active' where id = '${closedTermId}';
       update public.ministry_term set lifecycle = 'closed' where id = '${closedTermId}';
     `);
-    const { error } = await leaderClient
+    const { data: updated, error } = await leaderClient
       .from("term_role_assignment")
       .update({ ministry_term_id: draftTermId })
       .eq("ministry_term_id", closedTermId)
-      .eq("role", "treasurer");
-    expect(error?.message).toMatch(/immutable|closed/i);
+      .eq("role", "treasurer")
+      .select("id");
+    expect(error).toBeNull();
+    expect(updated).toEqual([]);
   });
 
   it("keeps the generic audit RPC unavailable to authenticated users", async () => {

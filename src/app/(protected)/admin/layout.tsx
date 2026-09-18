@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
 import { AdminHeader } from "@/components/admin/admin-header";
 
@@ -18,7 +18,7 @@ interface ProtectedAdminLayoutProps {
 export default async function ProtectedAdminLayout({
   children,
 }: ProtectedAdminLayoutProps) {
-  const auth = await requireLeader();
+  const auth = await requireSystemAdmin();
   const churchState = await getAdminChurchState();
 
   const activeChurch =

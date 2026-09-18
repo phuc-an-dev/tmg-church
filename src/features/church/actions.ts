@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLeader } from "@/features/auth/queries";
+import { requireSystemAdmin } from "@/features/auth/queries";
 import { requireOperationalContext } from "@/features/context/queries";
 import { generateVietnameseSlug } from "@/lib/slug";
 import {
@@ -45,7 +45,7 @@ async function resolveUniqueChurchSlug(
 export async function createChurchAction(
   rawInput: unknown,
 ): Promise<ActionResult<ChurchViewModel>> {
-  await requireLeader();
+  await requireSystemAdmin();
   try {
     const supabase = await createClient();
 

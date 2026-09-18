@@ -63,7 +63,8 @@ export default function setupPhaseOneDatabase() {
     insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
     values
       ('00000000-0000-0000-0000-000000000000', 'a841f275-afc9-46cf-9b23-a6268ab2fb4b', 'authenticated', 'authenticated', 'anphucphamtrinh@gmail.com', crypt('TMGPhase1FixturePassword!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{"sub":"a841f275-afc9-46cf-9b23-a6268ab2fb4b","email":"anphucphamtrinh@gmail.com","email_verified":true,"phone_verified":false}'::jsonb, now(), now()),
-      ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-000000000099', 'authenticated', 'authenticated', 'phase1-admin@example.test', crypt('TMGPhase1FixturePassword!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{"sub":"00000000-0000-4000-8000-000000000099","email":"phase1-admin@example.test","email_verified":true,"phone_verified":false}'::jsonb, now(), now());
+      ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-000000000099', 'authenticated', 'authenticated', 'phase1-admin@example.test', crypt('TMGPhase1FixturePassword!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{"sub":"00000000-0000-4000-8000-000000000099","email":"phase1-admin@example.test","email_verified":true,"phone_verified":false}'::jsonb, now(), now()),
+      ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-000000000098', 'authenticated', 'authenticated', 'phase1-no-role@example.test', crypt('TMGPhase1FixturePassword!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{"sub":"00000000-0000-4000-8000-000000000098","email":"phase1-no-role@example.test","email_verified":true,"phone_verified":false}'::jsonb, now(), now());
 
     update auth.users
     set confirmation_token = '', recovery_token = '', email_change_token_new = '',
@@ -73,13 +74,16 @@ export default function setupPhaseOneDatabase() {
     insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
     values
       ('anphucphamtrinh@gmail.com', 'a841f275-afc9-46cf-9b23-a6268ab2fb4b', '{"sub":"a841f275-afc9-46cf-9b23-a6268ab2fb4b","email":"anphucphamtrinh@gmail.com"}'::jsonb, 'email', now(), now()),
-      ('phase1-admin@example.test', '00000000-0000-4000-8000-000000000099', '{"sub":"00000000-0000-4000-8000-000000000099","email":"phase1-admin@example.test"}'::jsonb, 'email', now(), now());
+      ('phase1-admin@example.test', '00000000-0000-4000-8000-000000000099', '{"sub":"00000000-0000-4000-8000-000000000099","email":"phase1-admin@example.test"}'::jsonb, 'email', now(), now()),
+      ('phase1-no-role@example.test', '00000000-0000-4000-8000-000000000098', '{"sub":"00000000-0000-4000-8000-000000000098","email":"phase1-no-role@example.test"}'::jsonb, 'email', now(), now());
 
     insert into public.church (id, name, slug)
     values ('c0000000-0000-4000-8000-000000000001', 'Chi Hội TMG', 'hoi-thanh-tmg');
 
     insert into public.member_profile (id, church_id, full_name, user_id)
-    values ('e1a52f99-6f89-425a-aaca-676369dd6991', 'c0000000-0000-4000-8000-000000000001', 'Phạm Trịnh Ân Phúc', 'a841f275-afc9-46cf-9b23-a6268ab2fb4b');
+    values
+      ('e1a52f99-6f89-425a-aaca-676369dd6991', 'c0000000-0000-4000-8000-000000000001', 'Phạm Trịnh Ân Phúc', 'a841f275-afc9-46cf-9b23-a6268ab2fb4b'),
+      ('e1a52f99-6f89-425a-aaca-676369dd6992', 'c0000000-0000-4000-8000-000000000001', 'Phase One No Role', '00000000-0000-4000-8000-000000000098');
 
     insert into public.leaders (user_id, email)
     values ('a841f275-afc9-46cf-9b23-a6268ab2fb4b', 'anphucphamtrinh@gmail.com');

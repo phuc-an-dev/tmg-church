@@ -3,9 +3,9 @@
 ## Status
 
 - Initiative status: In progress
-- Active implementation phase: None
-- Implementation authorization: `docs/NEXT_AGENT_TASK.md` remains the sole active brief
-- Next gate: Brainstorm Phase 2 capability engine and RLS cutover, then approve its active brief
+- Active implementation phase: Phase 2 — Capability engine and RLS cutover
+- Implementation authorization: `docs/NEXT_AGENT_TASK.md` is the sole active brief
+- Next gate: Local implementation, verification, and independent review; hosted cutover requires a separate explicit authorization
 
 ## Objective
 
