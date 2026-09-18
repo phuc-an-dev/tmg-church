@@ -4,8 +4,8 @@
 
 - Initiative status: In progress
 - Active implementation phase: Milestone C — portal foundation
-- Local Phase 2 status: Implemented and committed; hosted cutover remains pending
-- Next gate: Choose the next delivery milestone and authorize it in `docs/NEXT_AGENT_TASK.md`
+- Local Phase 2 status: Implemented and committed; hosted cutover applied on 2026-09-18
+- Next gate: Pilot verification with real accounts before broader rollout
 
 ## Objective
 
@@ -444,6 +444,7 @@ Applying linked migrations, changing hosted Supabase Auth settings, configuring 
 - [x] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
 - [x] Implement and independently accept Phase 1
 - [x] Complete the local Phase 2 fast cutover and commit it
+- [x] Apply the Phase 2 authorization and portal migrations to hosted production
 - [ ] Deliver Milestone A using the lightweight four-step protocol
 - [ ] Retire this roadmap after the final accepted rollout and move durable decisions into canonical documentation
 

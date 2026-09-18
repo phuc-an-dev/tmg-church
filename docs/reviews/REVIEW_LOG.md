@@ -121,3 +121,7 @@ Result: accepted locally after independent security review. Added commissioner-d
 ## 2026-09-18: Milestone C — Department requests and service-role assignment
 
 Result: accepted locally after independent security review. Added member Department requests with withdraw/approve/reject lifecycle, commissioner/ministry-head decision controls, private requester-scoped projections, Department service-role catalog management, and term/Department-scoped session assignments. Direct Data API writes remain denied unless the matching capability is present; RPCs enforce the same scope and reject draft/closed operational writes through the capability resolver. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.
+
+## 2026-09-18: Hosted authorization migration
+
+Result: applied successfully to production project `tmg-church` through migration `20260918000008`. The migration required a safe production backfill for legacy Department names (`Ban Kỹ Thuật` mapped to `worship`) and dynamic Master Admin bootstrap identity resolution; both changes were tested locally before retrying. Production verification confirmed all 32 migrations are recorded, fixed Department codes are populated, and exactly one `master_admin` assignment exists. No application deployment or hosted Auth setting changes were performed.
