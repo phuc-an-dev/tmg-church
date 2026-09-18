@@ -152,12 +152,12 @@ Use a separate design document only when a new schema, security boundary, extern
 
 ## Delivery Milestones
 
-| Milestone | Scope | Status | Depends on |
-| --- | --- | --- | --- |
-| A | Master/Admin governance, role management, and current admin access | Next | Phase 2 local cutover |
-| B | Invitation-only accounts and member access | Later | A |
-| C | Group, Department, join-request, and session workflows | Later | A, B |
-| D | Leadership pilot and production hardening | Later | B, C |
+| Milestone | Scope                                                              | Status | Depends on            |
+| --------- | ------------------------------------------------------------------ | ------ | --------------------- |
+| A         | Master/Admin governance, role management, and current admin access | Next   | Phase 2 local cutover |
+| B         | Invitation-only accounts and member access                         | Later  | A                     |
+| C         | Group, Department, join-request, and session workflows             | Later  | A, B                  |
+| D         | Leadership pilot and production hardening                          | Later  | B, C                  |
 
 The former Phases 3–9 remain useful as scope notes below, but they are not separate mandatory delivery cycles. Split a milestone only when a real dependency, user-facing release, or security boundary requires it.
 
