@@ -101,3 +101,6 @@ Delivered the schema, integrity constraints, RLS policies, generated types, redu
 ## 2026-09-18: Milestone B — invitation activation
 
 Result: accepted locally after independent security review. Added hashed one-time invitations, Resend delivery, protected admin invitation/status controls, private invitation status projection, password activation with email binding, atomic invitation consumption, callback completion, and password sign-in. Local authorization migration applied successfully; invitation/RLS checks passed 20/20. Full test, lint, typecheck, format, build, and diff checks passed. Hosted SMTP/Auth Hook rollout remains an operator step.
+## 2026-09-18: Milestone C — Portal foundation
+
+Result: accepted locally after independent review. Added a capability-driven `/portal`, fail-closed `requirePortalContext()`, Ministry/Department/Group capability resolution, and scoped role context. `/admin` remains system-admin-only; Group roles receive no Department service-role capability. Authorization checks passed 21/21, with full test, lint, typecheck, format, build, and diff checks passing.

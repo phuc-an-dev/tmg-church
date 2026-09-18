@@ -1358,6 +1358,14 @@ export type Database = {
         Args: { p_email: string; p_token: string };
         Returns: string;
       };
+      authorization_current_member_profile_id: {
+        Args: never;
+        Returns: string;
+      };
+      get_my_portal_context: {
+        Args: never;
+        Returns: Json;
+      };
       is_system_admin: { Args: never; Returns: boolean };
       is_system_admin_for_church: {
         Args: { p_church_id: string };

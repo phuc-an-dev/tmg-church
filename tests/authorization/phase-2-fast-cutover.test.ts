@@ -258,4 +258,67 @@ describe("Phase 2 fast cutover", () => {
     });
     expect(revokedPreview.data).toBeNull();
   });
+
+  it("resolves portal capabilities by scoped role and lifecycle", async () => {
+    const groupId = crypto.randomUUID();
+    const membershipId = crypto.randomUUID();
+    const insertTerm = await clients.masterAdmin
+      .from("ministry_term")
+      .update({ lifecycle: "active" })
+      .eq("id", termId);
+    expect(insertTerm.error).toBeNull();
+
+    const group = await clients.masterAdmin.from("term_group").insert({
+      id: groupId,
+      ministry_term_id: termId,
+      name: "Portal Capability Group",
+      slug: `portal-capability-${groupId.slice(0, 8)}`,
+    });
+    expect(group.error).toBeNull();
+    const membership = await clients.masterAdmin
+      .from("ministry_membership")
+      .insert({
+        id: membershipId,
+        ministry_term_id: termId,
+        member_profile_id: "e1a52f99-6f89-425a-aaca-676369dd6992",
+      });
+    expect(membership.error).toBeNull();
+    const groupMembership = await clients.masterAdmin
+      .from("term_group_membership")
+      .insert({
+        ministry_membership_id: membershipId,
+        term_group_id: groupId,
+        role: "group_leader",
+      });
+    expect(groupMembership.error).toBeNull();
+
+    const leader = await clients.noRoleMember.rpc("has_capability", {
+      p_capability: "group.session.manage",
+      p_scope_type: "group",
+      p_scope_id: groupId,
+    });
+    expect(leader.error).toBeNull();
+    expect(leader.data).toBe(true);
+
+    const read = await clients.noRoleMember.rpc("has_capability", {
+      p_capability: "group.read",
+      p_scope_type: "group",
+      p_scope_id: groupId,
+    });
+    expect(read.error).toBeNull();
+    expect(read.data).toBe(true);
+
+    const deputy = await clients.masterAdmin
+      .from("term_group_membership")
+      .update({ role: "deputy_leader" })
+      .eq("ministry_membership_id", membershipId);
+    expect(deputy.error).toBeNull();
+    const deputyManage = await clients.noRoleMember.rpc("has_capability", {
+      p_capability: "group.session.manage",
+      p_scope_type: "group",
+      p_scope_id: groupId,
+    });
+    expect(deputyManage.error).toBeNull();
+    expect(deputyManage.data).toBe(false);
+  });
 });
