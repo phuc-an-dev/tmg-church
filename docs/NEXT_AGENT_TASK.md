@@ -1,15 +1,15 @@
-# Milestone A — System role governance (backend slice)
+# Milestone A — System role governance
 
 Status: authorized for local implementation and review; no hosted rollout.
 
 ## Scope
 
-Implement the smallest useful backend governance slice on top of the Phase 2 cutover:
+Implement the smallest useful governance slice on top of the Phase 2 cutover:
 
 - allow only `master_admin` to assign/revoke Church-wide `admin` roles;
 - keep the sole `master_admin` anti-lockout invariant intact;
 - allow `master_admin` and `admin` to manage Ministry Term role assignments only where the existing schema and lifecycle rules already support it;
-- leave UI wiring for the next bounded slice; do not start invitation/login, member portal, Group/Department scoped-role UX, or session workflow work;
+- expose current system-role assignments in Church Advanced Settings; do not start invitation/login, member portal, Group/Department scoped-role UX, or session workflow work;
 - enforce every write through a protected Server Action/RPC and RLS, with direct Data API/RPC negative tests.
 
 ## Constraints
@@ -21,9 +21,9 @@ Implement the smallest useful backend governance slice on top of the Phase 2 cut
 
 ## Acceptance
 
-- Master Admin can safely assign/revoke an existing Auth user as Church Admin through the protected RPC.
+- Master Admin can safely assign/revoke an existing Auth user as Church Admin through the protected RPC and current admin surface.
 - Admin cannot assign/revoke Master/Admin roles.
 - Master Admin cannot be deleted, demoted, or orphaned.
 - Term-role writes obey term lifecycle and existing assignment invariants.
 - No-role, anonymous, cross-Church, and direct RPC/Data API access are denied.
-- Relevant authorization tests and type checks pass; UI wiring is a separate follow-up brief.
+- Relevant authorization tests, lint, typecheck, format check, and build pass; one independent review reports no blocking/high findings.

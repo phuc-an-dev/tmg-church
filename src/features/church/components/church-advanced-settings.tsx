@@ -14,14 +14,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { ChurchViewModel } from "../types";
+import type { SystemRoleCandidate } from "../authorization-queries";
 import { DeleteChurchDialog } from "./delete-church-dialog";
+import { SystemRoleManagement } from "./system-role-management";
 
 interface ChurchAdvancedSettingsProps {
   church: ChurchViewModel;
+  systemRoleCandidates: SystemRoleCandidate[];
+  actorRole: string;
 }
 
 export function ChurchAdvancedSettings({
   church,
+  systemRoleCandidates,
+  actorRole,
 }: ChurchAdvancedSettingsProps) {
   const router = useRouter();
 
@@ -42,6 +48,12 @@ export function ChurchAdvancedSettings({
             </Link>
           </Button>
         }
+      />
+
+      <SystemRoleManagement
+        churchId={church.id}
+        candidates={systemRoleCandidates}
+        actorRole={actorRole}
       />
 
       <Card className="admin-panel-strong border-destructive/25">

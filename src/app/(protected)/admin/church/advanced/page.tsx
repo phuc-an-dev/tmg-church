@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Info } from "lucide-react";
 import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
+import { getSystemRoleCandidates } from "@/features/church/authorization-queries";
 import { ChurchAdvancedSettings } from "@/features/church/components/church-advanced-settings";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,20 @@ export const metadata: Metadata = {
 };
 
 export default async function AdvancedChurchSettingsPage() {
-  await requireSystemAdmin();
+  const auth = await requireSystemAdmin();
   const churchState = await getAdminChurchState();
 
   if (churchState.status === "one") {
+    const systemRoleCandidates = await getSystemRoleCandidates(
+      churchState.church.id,
+    );
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <ChurchAdvancedSettings church={churchState.church} />
+        <ChurchAdvancedSettings
+          church={churchState.church}
+          systemRoleCandidates={systemRoleCandidates}
+          actorRole={auth.systemRole.role}
+        />
       </div>
     );
   }
