@@ -99,8 +99,16 @@ export type TermDetailSession = {
   canDelete: boolean;
 };
 
+export type TermRoleAssignment = {
+  id: string;
+  role: string;
+  memberId: string;
+  memberName: string;
+};
+
 export type TermDetailData = {
   members: TermDetailMember[];
   eligibleMembers: EligibleTermMember[];
   sessions: TermDetailSession[];
+  termRoles: TermRoleAssignment[];
 };

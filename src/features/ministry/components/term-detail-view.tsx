@@ -32,6 +32,7 @@ import {
   enrollMemberWithAssignmentsAction,
   removeMinistryMembershipAction,
 } from "@/features/member/actions";
+import { TermRoleManagement } from "./term-role-management";
 import type {
   EligibleTermMember,
   TermDetailData,
@@ -157,6 +158,11 @@ export function TermDetailView({
     <>
       {section === "members" ? (
         <section className="pb-24">
+          <TermRoleManagement
+            termId={termId}
+            members={data.members}
+            assignments={data.termRoles}
+          />
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">Members</h2>

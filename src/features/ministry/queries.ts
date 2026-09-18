@@ -474,31 +474,42 @@ export async function getTermDetailData(
   const context = await requireTermContext(ministrySlug, termSlug);
   if (!context) return null;
   const supabase = await createClient();
-  const [membershipsRes, profilesRes, sessionsRes] = await Promise.all([
-    supabase
-      .from("ministry_membership")
-      .select("id,member_profile!inner(id,full_name,slug,archived_at)")
-      .eq("ministry_term_id", context.term.id)
-      .is("member_profile.archived_at", null)
-      .order("member_profile(full_name)"),
-    supabase
-      .from("member_profile")
-      .select("id,full_name,slug")
-      .eq("church_id", context.church.id)
-      .is("archived_at", null)
-      .order("full_name"),
-    supabase
-      .from("ministry_session")
-      .select(
-        "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
-      )
-      .eq("ministry_term_id", context.term.id)
-      .is("term_group_id", null)
-      .is("term_department_id", null)
-      .order("session_date", { ascending: false }),
-  ]);
+  const [membershipsRes, profilesRes, sessionsRes, termRolesRes] =
+    await Promise.all([
+      supabase
+        .from("ministry_membership")
+        .select("id,member_profile!inner(id,full_name,slug,archived_at)")
+        .eq("ministry_term_id", context.term.id)
+        .is("member_profile.archived_at", null)
+        .order("member_profile(full_name)"),
+      supabase
+        .from("member_profile")
+        .select("id,full_name,slug")
+        .eq("church_id", context.church.id)
+        .is("archived_at", null)
+        .order("full_name"),
+      supabase
+        .from("ministry_session")
+        .select(
+          "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
+        )
+        .eq("ministry_term_id", context.term.id)
+        .is("term_group_id", null)
+        .is("term_department_id", null)
+        .order("session_date", { ascending: false }),
+      supabase
+        .from("term_role_assignment")
+        .select("id, role, member_profile!inner(id, full_name)")
+        .eq("ministry_term_id", context.term.id)
+        .order("role"),
+    ]);
 
-  if (membershipsRes.error || profilesRes.error || sessionsRes.error) {
+  if (
+    membershipsRes.error ||
+    profilesRes.error ||
+    sessionsRes.error ||
+    termRolesRes.error
+  ) {
     throw new Error("Failed to fetch term detail data");
   }
 
@@ -527,6 +538,18 @@ export async function getTermDetailData(
   return {
     members,
     eligibleMembers,
+    termRoles: (termRolesRes.data ?? []).map((row) => {
+      const profile = row.member_profile as unknown as {
+        id: string;
+        full_name: string;
+      };
+      return {
+        id: row.id,
+        role: row.role,
+        memberId: profile.id,
+        memberName: profile.full_name,
+      };
+    }),
     sessions: (sessionsRes.data ?? []).map((session) => {
       const participantCount =
         (session.session_participant as unknown as { count: number }[])?.[0]
