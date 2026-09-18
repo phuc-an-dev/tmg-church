@@ -2,9 +2,18 @@ import { ArrowRight, Building2, Layers3, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { requirePortalContext } from "@/features/auth/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function PortalPage() {
   const context = await requirePortalContext();
+  const supabase = await createClient();
+  const groupIds = context.groupRoles.map((role) => role.groupId);
+  const { data: groups } = groupIds.length
+    ? await supabase
+        .from("portal_group_directory")
+        .select("id,name,slug,term_slug,ministry_slug")
+        .in("id", groupIds)
+    : { data: [] };
   const roleLabels = [
     ...context.termRoles.map((role) => role.role.replaceAll("_", " ")),
     ...context.groupRoles.map((role) => role.role.replaceAll("_", " ")),
@@ -87,6 +96,28 @@ export default async function PortalPage() {
           )}
         </CardContent>
       </Card>
+
+      {groups && groups.length > 0 && (
+        <Card className="admin-panel">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg">Your groups</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-2 sm:p-6 sm:pt-0">
+            {groups.map((group) => {
+              return (
+                <Link
+                  key={group.id}
+                  href={`/portal/ministries/${group.ministry_slug}/terms/${group.term_slug}/groups/${group.slug}/sessions`}
+                  className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
+                >
+                  <span className="font-semibold">{group.name}</span>
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

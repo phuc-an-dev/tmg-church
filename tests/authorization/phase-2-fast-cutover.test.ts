@@ -260,17 +260,33 @@ describe("Phase 2 fast cutover", () => {
   });
 
   it("resolves portal capabilities by scoped role and lifecycle", async () => {
+    const ministryId = crypto.randomUUID();
+    const portalTermId = crypto.randomUUID();
     const groupId = crypto.randomUUID();
     const membershipId = crypto.randomUUID();
-    const insertTerm = await clients.masterAdmin
+    const ministry = await clients.masterAdmin.from("ministry").insert({
+      id: ministryId,
+      church_id: churchId,
+      name: "Portal Capability Ministry",
+      slug: `portal-capability-ministry-${ministryId.slice(0, 8)}`,
+    });
+    expect(ministry.error).toBeNull();
+    const term = await clients.masterAdmin.from("ministry_term").insert({
+      id: portalTermId,
+      ministry_id: ministryId,
+      name: "Portal Capability Term",
+      slug: `portal-capability-term-${portalTermId.slice(0, 8)}`,
+    });
+    expect(term.error).toBeNull();
+    const activateTerm = await clients.masterAdmin
       .from("ministry_term")
       .update({ lifecycle: "active" })
-      .eq("id", termId);
-    expect(insertTerm.error).toBeNull();
+      .eq("id", portalTermId);
+    expect(activateTerm.error).toBeNull();
 
     const group = await clients.masterAdmin.from("term_group").insert({
       id: groupId,
-      ministry_term_id: termId,
+      ministry_term_id: portalTermId,
       name: "Portal Capability Group",
       slug: `portal-capability-${groupId.slice(0, 8)}`,
     });
@@ -279,7 +295,7 @@ describe("Phase 2 fast cutover", () => {
       .from("ministry_membership")
       .insert({
         id: membershipId,
-        ministry_term_id: termId,
+        ministry_term_id: portalTermId,
         member_profile_id: "e1a52f99-6f89-425a-aaca-676369dd6992",
       });
     expect(membership.error).toBeNull();
@@ -320,5 +336,68 @@ describe("Phase 2 fast cutover", () => {
     });
     expect(deputyManage.error).toBeNull();
     expect(deputyManage.data).toBe(false);
+
+    const sessionId = crypto.randomUUID();
+    const session = await clients.masterAdmin
+      .from("ministry_session")
+      .insert({
+        id: sessionId,
+        church_id: churchId,
+        ministry_term_id: portalTermId,
+        term_group_id: groupId,
+        title: "Portal RLS Session",
+        slug: `portal-rls-${sessionId.slice(0, 8)}`,
+        session_date: "2026-09-18",
+      })
+      .select("id")
+      .single();
+    expect(session.error).toBeNull();
+
+    const readable = await clients.noRoleMember
+      .from("ministry_session")
+      .select("id")
+      .eq("id", sessionId)
+      .single();
+    expect(readable.error).toBeNull();
+
+    const destructive = await clients.noRoleMember
+      .from("ministry_session")
+      .delete()
+      .eq("id", sessionId);
+    expect(destructive.error).toBeNull();
+    expect(destructive.data).toBeNull();
+
+    const stillPresent = await clients.masterAdmin
+      .from("ministry_session")
+      .select("id")
+      .eq("id", sessionId)
+      .single();
+    expect(stillPresent.error).toBeNull();
+
+    const cleanup = await clients.masterAdmin
+      .from("ministry_session")
+      .delete()
+      .eq("id", sessionId);
+    expect(cleanup.error).toBeNull();
+
+    await clients.masterAdmin
+      .from("term_group_membership")
+      .delete()
+      .eq("ministry_membership_id", membershipId);
+    await clients.masterAdmin
+      .from("ministry_membership")
+      .delete()
+      .eq("id", membershipId);
+    await clients.masterAdmin.from("term_group").delete().eq("id", groupId);
+    const removeTerm = await clients.masterAdmin
+      .from("ministry_term")
+      .delete()
+      .eq("id", portalTermId);
+    expect(removeTerm.error).toBeNull();
+    const removeMinistry = await clients.masterAdmin
+      .from("ministry")
+      .delete()
+      .eq("id", ministryId);
+    expect(removeMinistry.error).toBeNull();
   });
 });

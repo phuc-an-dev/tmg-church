@@ -1,4 +1,4 @@
-# Milestone C — Portal foundation and capability resolver
+# Milestone C — Portal Group Session operations
 
 Status: authorized for local implementation and review.
 
@@ -8,7 +8,10 @@ Status: authorized for local implementation and review.
 - Add capability resolution for Ministry Head, commissioner-derived Department roles, Group Leader, Deputy Leader, and Bible Study Leader.
 - Add `requirePortalContext()` and a capability-driven `/portal` shell.
 - Do not grant Group roles Department service-role assignment capability.
-- Do not implement full Group/Department/Ministry operational screens in this slice.
+- Implement the minimal `/portal` Group Session list and attendance screens.
+- Group Leader may create, edit, delete empty sessions, and record attendance.
+- Deputy Leader and Bible Study Leader may read group session history only.
+- Do not grant Group roles Department service-role assignment capability.
 
 ## Acceptance
 
@@ -17,6 +20,7 @@ Status: authorized for local implementation and review.
 - Group Leader receives Group Session manage capability; Deputy/Bible Study receive read capability only.
 - No-role and anonymous users cannot access `/portal`.
 - `/admin` behavior remains unchanged for Master/Admin.
+- Direct Data API deletes and writes are denied for read-only Group roles.
 - Local migration, authorization tests, lint, typecheck, format, build, and independent review pass.
 
 ## Constraints

@@ -1278,6 +1278,17 @@ export type Database = {
         };
         Relationships: [];
       };
+      portal_group_directory: {
+        Row: {
+          id: string;
+          ministry_slug: string;
+          ministry_term_id: string;
+          name: string;
+          slug: string;
+          term_slug: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       assign_group_member: {
@@ -1325,6 +1336,15 @@ export type Database = {
           p_scope_type: string;
         };
         Returns: boolean;
+      };
+      create_group_session: {
+        Args: {
+          p_group_id: string;
+          p_slug: string;
+          p_title: string;
+          p_session_date: string;
+        };
+        Returns: { id: string; slug: string }[];
       };
       set_system_admin: {
         Args: { p_church_id: string; p_enabled: boolean; p_user_id: string };
