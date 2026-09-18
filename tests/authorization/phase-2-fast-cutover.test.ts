@@ -441,14 +441,106 @@ describe("Phase 2 fast cutover", () => {
     );
     expect(departmentCapability.error).toBeNull();
     expect(departmentCapability.data).toBe(true);
-    const assignment = await clients.noRoleMember.rpc(
-      "portal_assign_department_member",
-      { p_department_id: departmentId, p_membership_id: masterMembershipId },
+    const request = await clients.masterAdmin.rpc(
+      "portal_submit_department_request",
+      { p_department_id: departmentId },
     );
-    expect(assignment.error).toBeNull();
+    expect(request.error).toBeNull();
+    const decision = await clients.noRoleMember.rpc(
+      "portal_decide_department_request",
+      {
+        p_request_id: request.data as string,
+        p_decision: "approved",
+        p_rejection_reason: null,
+      },
+    );
+    expect(decision.error).toBeNull();
+    const serviceRole = await clients.noRoleMember.rpc(
+      "portal_save_department_service_role",
+      {
+        p_department_id: departmentId,
+        p_role_id: null,
+        p_name: "Worship Lead",
+      },
+    );
+    expect(serviceRole.error).toBeNull();
+    const wrongSessionId = crypto.randomUUID();
+    const wrongSession = await clients.masterAdmin
+      .from("ministry_session")
+      .insert({
+        id: wrongSessionId,
+        church_id: churchId,
+        ministry_term_id: portalTermId,
+        title: "Wrong Scope Session",
+        slug: `portal-wrong-${wrongSessionId.slice(0, 8)}`,
+        session_date: "2026-09-18",
+      })
+      .select("id")
+      .single();
+    expect(wrongSession.error).toBeNull();
+    const wrongAssignment = await clients.noRoleMember.rpc(
+      "portal_save_service_assignment",
+      {
+        p_session_id: wrongSessionId,
+        p_role_id: serviceRole.data as string,
+        p_membership_id: masterMembershipId,
+      },
+    );
+    expect(wrongAssignment.data).toBeNull();
+    expect(wrongAssignment.error?.code).toBe("42501");
+    await clients.masterAdmin
+      .from("ministry_session")
+      .delete()
+      .eq("id", wrongSessionId);
+    const departmentSessionId = crypto.randomUUID();
+    const departmentSession = await clients.masterAdmin
+      .from("ministry_session")
+      .insert({
+        id: departmentSessionId,
+        church_id: churchId,
+        ministry_term_id: portalTermId,
+        term_department_id: departmentId,
+        title: "Department Service Session",
+        slug: `portal-department-${departmentSessionId.slice(0, 8)}`,
+        session_date: "2026-09-18",
+      })
+      .select("id")
+      .single();
+    expect(departmentSession.error).toBeNull();
+    const serviceAssignment = await clients.noRoleMember.rpc(
+      "portal_save_service_assignment",
+      {
+        p_session_id: departmentSessionId,
+        p_role_id: serviceRole.data as string,
+        p_membership_id: masterMembershipId,
+      },
+    );
+    expect(serviceAssignment.error).toBeNull();
+    const removeServiceAssignment = await clients.noRoleMember.rpc(
+      "portal_remove_service_assignment",
+      { p_assignment_id: serviceAssignment.data as string },
+    );
+    expect(removeServiceAssignment.error).toBeNull();
+    const deleteServiceRole = await clients.noRoleMember.rpc(
+      "portal_delete_department_service_role",
+      { p_role_id: serviceRole.data as string },
+    );
+    expect(deleteServiceRole.error).toBeNull();
+    await clients.masterAdmin
+      .from("ministry_session")
+      .delete()
+      .eq("id", departmentSessionId);
+    const assignedMember = await clients.noRoleMember
+      .from("ministry_assignment")
+      .select("id")
+      .eq("term_department_id", departmentId)
+      .eq("ministry_membership_id", masterMembershipId)
+      .single();
+    expect(assignedMember.error).toBeNull();
+    expect(assignedMember.data).not.toBeNull();
     const removeAssignment = await clients.noRoleMember.rpc(
       "portal_remove_department_member",
-      { p_assignment_id: assignment.data as string },
+      { p_assignment_id: assignedMember.data?.id ?? "" },
     );
     expect(removeAssignment.error).toBeNull();
     const removeCommissioner = await clients.masterAdmin.rpc(

@@ -18,7 +18,7 @@ begin
   end if;
   if v_term_id is not null then v_lifecycle := public.authorization_term_lifecycle(v_term_id); end if;
   if v_system_admin then
-    if p_capability in ('church.read', 'church.manage', 'term.read_history') then return true; end if;
+    if p_capability in ('church.read', 'church.manage', 'term.read_history', 'group.read', 'department.read') then return true; end if;
     if p_capability = 'term.structure.prepare' then return v_lifecycle in ('draft', 'active'); end if;
     if p_capability in ('term.operational.manage', 'ministry.operational.manage') then return v_lifecycle = 'active'; end if;
     if p_capability in ('group.session.manage', 'group.members.manage') then return p_scope_type = 'group' and v_lifecycle = 'active'; end if;
@@ -33,7 +33,7 @@ begin
   end if;
   if p_scope_type = 'department' and exists (select 1 from public.term_department td join public.term_role_assignment tra on tra.ministry_term_id = td.ministry_term_id where td.id = p_scope_id and tra.member_profile_id = v_member_id and (tra.role = 'ministry_head' or tra.role = td.department_code || '_commissioner')) then
     if p_capability in ('term.read_history', 'department.read') then return true; end if;
-    if p_capability = 'department.members.manage' then return v_lifecycle = 'active'; end if;
+    if p_capability in ('department.members.manage', 'department.service_role.manage') then return v_lifecycle = 'active'; end if;
   end if;
   if p_scope_type = 'group' and exists (select 1 from public.term_group_membership tgm join public.ministry_membership mm on mm.id = tgm.ministry_membership_id where tgm.term_group_id = p_scope_id and mm.member_profile_id = v_member_id) then
     if p_capability in ('term.read_history', 'group.read') then return v_lifecycle in ('draft', 'active', 'closed'); end if;

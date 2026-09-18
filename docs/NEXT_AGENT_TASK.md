@@ -19,7 +19,7 @@ Status: completed locally; waiting for the next bounded scope.
 - Capability resolution is server-side and available through a protected RPC.
 - Draft roles have no operational capability; closed terms expose history only.
 - Group Leader receives Group Session manage capability; Deputy/Bible Study receive read capability only.
-- No-role and anonymous users cannot access `/portal`.
+- Authenticated member profiles can access `/portal`; anonymous users and authenticated users without a linked member profile cannot.
 - `/admin` behavior remains unchanged for Master/Admin.
 - Direct Data API deletes and writes are denied for read-only Group roles.
 - Group membership assignment cannot cross terms, steal a member from another open Group, or remove a leadership assignment.

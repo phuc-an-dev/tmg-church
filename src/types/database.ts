@@ -1326,6 +1326,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      portal_department_service_directory: {
+        Row: {
+          department_id: string;
+          department_name: string;
+          department_slug: string;
+          ministry_term_id: string;
+          ministry_slug: string;
+          role_id: string | null;
+          role_name: string | null;
+          term_slug: string;
+        };
+        Relationships: [];
+      };
+      portal_department_service_assignment_directory: {
+        Row: {
+          assignment_id: string | null;
+          department_id: string;
+          full_name: string | null;
+          membership_id: string | null;
+          role_id: string;
+          role_name: string;
+          session_date: string;
+          session_id: string;
+          session_slug: string;
+          session_title: string;
+        };
+        Relationships: [];
+      };
+      portal_department_request_directory: {
+        Row: {
+          created_at: string | null;
+          department_id: string;
+          department_name: string;
+          department_slug: string;
+          ministry_slug: string;
+          ministry_term_id: string;
+          rejection_reason: string | null;
+          request_id: string | null;
+          requester_member_id: string | null;
+          requester_name: string | null;
+          status: string | null;
+          term_slug: string;
+        };
+        Relationships: [];
+      };
+      portal_department_session_directory: {
+        Row: {
+          department_id: string;
+          session_date: string;
+          session_id: string;
+          session_slug: string;
+          session_title: string;
+        };
+        Relationships: [];
+      };
+      portal_department_request_targets: {
+        Row: {
+          department_id: string;
+          department_name: string;
+          department_slug: string;
+          ministry_slug: string;
+          ministry_term_id: string;
+          term_slug: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       assign_group_member: {
@@ -1396,6 +1462,46 @@ export type Database = {
         Returns: string;
       };
       portal_remove_department_member: {
+        Args: { p_assignment_id: string };
+        Returns: undefined;
+      };
+      portal_submit_department_request: {
+        Args: { p_department_id: string };
+        Returns: string;
+      };
+      portal_withdraw_department_request: {
+        Args: { p_request_id: string };
+        Returns: undefined;
+      };
+      portal_decide_department_request: {
+        Args: {
+          p_request_id: string;
+          p_decision: string;
+          p_rejection_reason?: string | null;
+        };
+        Returns: undefined;
+      };
+      portal_save_department_service_role: {
+        Args: {
+          p_department_id: string;
+          p_role_id: string | null;
+          p_name: string;
+        };
+        Returns: string;
+      };
+      portal_delete_department_service_role: {
+        Args: { p_role_id: string };
+        Returns: undefined;
+      };
+      portal_save_service_assignment: {
+        Args: {
+          p_session_id: string;
+          p_role_id: string;
+          p_membership_id: string;
+        };
+        Returns: string;
+      };
+      portal_remove_service_assignment: {
         Args: { p_assignment_id: string };
         Returns: undefined;
       };

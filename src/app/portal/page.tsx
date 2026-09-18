@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requirePortalContext } from "@/features/auth/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalRequestDepartments } from "@/features/portal/department-request-queries";
 
 export default async function PortalPage() {
   const context = await requirePortalContext();
@@ -18,6 +19,7 @@ export default async function PortalPage() {
     .from("portal_department_directory")
     .select("id,name,slug,term_slug,ministry_slug")
     .order("name");
+  const requestDepartments = await getPortalRequestDepartments();
   const roleLabels = [
     ...context.termRoles.map((role) => role.role.replaceAll("_", " ")),
     ...context.groupRoles.map((role) => role.role.replaceAll("_", " ")),
@@ -130,6 +132,20 @@ export default async function PortalPage() {
                       Members{" "}
                       <ArrowRight className="size-4" aria-hidden="true" />
                     </Link>
+                    <Link
+                      href={`${basePath}/requests`}
+                      className="text-primary inline-flex min-h-11 items-center gap-2"
+                    >
+                      Requests{" "}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href={`${basePath}/service-roles`}
+                      className="text-primary inline-flex min-h-11 items-center gap-2"
+                    >
+                      Service roles{" "}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
                   </div>
                 </div>
               );
@@ -151,6 +167,28 @@ export default async function PortalPage() {
                 className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
               >
                 <span className="font-semibold">{department.name}</span>
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {requestDepartments.length > 0 && (
+        <Card className="admin-panel">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg">Department requests</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-2 sm:p-6 sm:pt-0">
+            {requestDepartments.map((department) => (
+              <Link
+                key={department.department_id}
+                href={`/portal/ministries/${department.ministry_slug}/terms/${department.term_slug}/departments/${department.department_slug}/requests`}
+                className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
+              >
+                <span className="font-semibold">
+                  {department.department_name}
+                </span>
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             ))}

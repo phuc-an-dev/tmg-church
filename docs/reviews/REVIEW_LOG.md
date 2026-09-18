@@ -117,3 +117,7 @@ Result: accepted locally after independent security review. Added a scoped Group
 ## 2026-09-18: Milestone C — Department member management
 
 Result: accepted locally after independent security review. Added commissioner-derived Department member assignment/removal through a private term-member projection and scoped RPC/RLS policies. Same-term and exact-Department checks are enforced; no service-role assignment or Department request workflow was opened. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.
+
+## 2026-09-18: Milestone C — Department requests and service-role assignment
+
+Result: accepted locally after independent security review. Added member Department requests with withdraw/approve/reject lifecycle, commissioner/ministry-head decision controls, private requester-scoped projections, Department service-role catalog management, and term/Department-scoped session assignments. Direct Data API writes remain denied unless the matching capability is present; RPCs enforce the same scope and reject draft/closed operational writes through the capability resolver. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.

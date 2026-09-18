@@ -141,10 +141,7 @@ export const getPortalContext = cache(
       typeof record.member_profile_id === "string"
         ? record.member_profile_id
         : null;
-    if (
-      !isSystemAdmin &&
-      (!memberProfileId || (termRoles.length === 0 && groupRoles.length === 0))
-    ) {
+    if (!isSystemAdmin && !memberProfileId) {
       return null;
     }
     return {
