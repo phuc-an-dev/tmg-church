@@ -3,64 +3,34 @@
 ## Status
 
 - Initiative status: In progress
-- Active implementation phase: Phase 2 — Capability engine and RLS cutover
-- Implementation authorization: `docs/NEXT_AGENT_TASK.md` is the sole active brief
-- Next gate: Local implementation, verification, and independent review; hosted cutover requires a separate explicit authorization
+- Active implementation phase: None
+- Local Phase 2 status: Implemented and committed; hosted cutover remains pending
+- Next gate: Choose the next delivery milestone and authorize it in `docs/NEXT_AGENT_TASK.md`
 
 ## Objective
 
 Replace the global `leaders` authorization model with a secure, scoped system that supports one `master_admin`, Church-wide `admin` accounts, Ministry Term roles, Department and Group capabilities, invitation-only email/password accounts, and deny-by-default Row Level Security.
 
-This file tracks sequence, dependencies, phase boundaries, and acceptance gates. It intentionally does not lock implementation details before the dedicated brainstorm for each phase.
+This file tracks sequence, dependencies, phase boundaries, and acceptance gates. It is a product/security guide, not a mandatory ceremony for every change.
 
-## Planning and Delivery Protocol
+## Lightweight Delivery Protocol
 
-1. Select the phase's execution mode from this roadmap.
-2. Brainstorm only when the phase is marked design-first, a fixed decision changes, or implementation discovery exposes a new product decision.
-3. Approve any required phase design and acceptance criteria.
-4. Put only that phase's implementation brief in `docs/NEXT_AGENT_TASK.md`.
-5. Implement, test, and independently review the phase.
-6. Perform any required user-owned external action or manual acceptance.
-7. Record the compact accepted outcome in `docs/reviews/REVIEW_LOG.md`.
-8. Update this roadmap, reset `docs/NEXT_AGENT_TASK.md` to waiting, and stop.
+Every milestone uses four steps:
 
-A bounded phase may proceed without a new brainstorm when its fixed decisions, interfaces, and acceptance criteria are already complete. It still requires explicit authorization through `docs/NEXT_AGENT_TASK.md`.
+1. Write a short active brief in `docs/NEXT_AGENT_TASK.md`.
+2. Implement only that brief and run the relevant automated checks.
+3. Request one independent review and fix blocking/high findings.
+4. Commit the result and record a compact outcome in `docs/reviews/REVIEW_LOG.md`.
 
-The planning agent does not implement application code, database migrations, Supabase configuration, or deployment changes. Implementation is handed off to another agent after approval.
+Use a separate design document only when a new schema, security boundary, external integration, or product decision is introduced. Do not repeat a full brainstorm, exhaustive inventory, or production-like matrix for a bounded feature.
 
 ## Execution Model
 
-### Standard step catalog
+### Safety boundaries
 
-Each phase selects from the following steps. The catalog makes user involvement and agent autonomy explicit.
-
-| Code | Step                                                                                       | Owner                                                      |
-| ---- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| A    | Inspect current repository, database, migration, and environment state                     | Agent                                                      |
-| B    | Brainstorm unresolved product, security, data, or UX decisions                             | User + planning agent                                      |
-| C    | Approve the phase design and acceptance criteria                                           | User                                                       |
-| D    | Write the single active brief and explicitly authorize it                                  | Planning agent + user                                      |
-| E    | Prepare preflight checks, rollback/recovery procedure, and exact external-action checklist | Implementation agent                                       |
-| F    | Implement the authorized scope only                                                        | Implementation agent                                       |
-| G    | Run automated, database, manual, and negative-path verification required by the brief      | Implementation agent                                       |
-| H    | Perform independent review; return findings to the implementer until accepted              | Review agent + implementation agent                        |
-| I    | Perform user-owned setup, secret handling, real-account testing, or business acceptance    | User                                                       |
-| J    | Apply an explicitly authorized linked-production or hosted-service change                  | User or explicitly authorized implementation agent         |
-| K    | Verify production state, access, audit evidence, and rollback readiness                    | Implementation/review agent + user where login is required |
-| L    | Record acceptance, update this roadmap, reset the active brief to waiting, and stop        | Planning/review agent                                      |
-
-### Execution modes
-
-- **Design-first:** Steps B and C are mandatory before an active brief. Use when schema, security boundaries, lifecycle, privacy, or user workflow is being defined.
-- **Bounded delivery:** After D, agents may complete F-H and L without another brainstorm when all fixed decisions already cover the change.
-- **Operational:** Steps I and/or J require the user because they involve secrets, hosted dashboards, real accounts, production data, or an explicit go/no-go decision.
-- **Validation:** The primary work is verification. Any discovered fix must be placed into a bounded active brief before code changes.
-
-### Minimum versus maximum planned path
-
-- **Minimum safe path** is the smallest allowed sequence when no ambiguity, defect, or external rollout is encountered.
-- **Maximum planned path** adds every design, rollback, user acceptance, production rollout, and post-production verification step expected for the phase.
-- The maximum planned path is not a hard safety cap. A failed gate adds a documented fix-and-review loop rather than skipping the gate to preserve a step count.
+- RLS, privacy, data integrity, and destructive-action checks remain mandatory.
+- Hosted changes, secrets, real invitations, push, and deployment still require explicit user authorization.
+- A failed gate adds a focused fix/review loop; it does not require restarting the entire roadmap ceremony.
 
 ## Fixed Decisions
 
@@ -180,39 +150,16 @@ Each phase selects from the following steps. The catalog makes user involvement 
 - An append-only application audit log records invitations, system-role changes, operational-role changes, member assignments, Department-request decisions, lifecycle transitions, and session mutations.
 - Business audit records identify actor, action, target, scope, timestamp, and the minimal safe before/after context needed for review.
 
-## Phase Overview
+## Delivery Milestones
 
-| Phase | Name                                     | Status      | Depends on       |
-| ----- | ---------------------------------------- | ----------- | ---------------- |
-| 0     | Architecture and planning baseline       | Complete    | None             |
-| 1     | Authorization foundation                 | Complete    | Phase 0          |
-| 2     | Capability engine and RLS cutover        | Not started | Phase 1          |
-| 3     | System governance and role-management UI | Not started | Phase 2          |
-| 4     | Invitation-only email/password accounts  | Not started | Phase 2, Phase 3 |
-| 5     | Scoped Group and Department operations   | Not started | Phase 2, Phase 3 |
-| 6     | Department join requests                 | Not started | Phase 4, Phase 5 |
-| 7     | Session authorization                    | Not started | Phase 4, Phase 5 |
-| 8     | Leadership pilot and security hardening  | Not started | Phases 4-7       |
-| 9     | Broader member access                    | Not started | Phase 8          |
+| Milestone | Scope | Status | Depends on |
+| --- | --- | --- | --- |
+| A | Master/Admin governance, role management, and current admin access | Next | Phase 2 local cutover |
+| B | Invitation-only accounts and member access | Later | A |
+| C | Group, Department, join-request, and session workflows | Later | A, B |
+| D | Leadership pilot and production hardening | Later | B, C |
 
-## Per-Phase Execution Requirements
-
-The step codes refer to the standard catalog above. “Agent-only after authorization” means the user must still approve the active brief at Step D, but no further user operation is required unless a gate fails or scope changes.
-
-| Phase | Mode                               | Minimum safe path            | Min steps | Maximum planned path         | Max steps | Mandatory user involvement                                                      |
-| ----- | ---------------------------------- | ---------------------------- | --------: | ---------------------------- | --------: | ------------------------------------------------------------------------------- |
-| 0     | Design-first                       | A, B, C, L                   |         4 | A, B, C, H, L                |         5 | Approve the architecture baseline                                               |
-| 1     | Design-first + Operational         | A, B, C, D, E, F, G, H, I, L |        10 | A-L                          |        12 | Confirm the bootstrap `master_admin`; explicitly authorize any linked migration |
-| 2     | Design-first + Operational         | A, B, C, D, E, F, G, H, I, L |        10 | A-L                          |        12 | Verify Master Admin access and approve the authorization cutover                |
-| 3     | Bounded delivery                   | A, D, F, G, H, L             |         6 | A, B, C, D, E, F, G, H, I, L |        10 | No external setup; UI/business acceptance only if the maximum path is used      |
-| 4     | Design-first + Operational         | A, B, C, D, E, F, G, H, I, L |        10 | A-L                          |        12 | Configure or authorize SMTP/provider secrets and test a real invitation inbox   |
-| 5     | Bounded delivery                   | A, D, F, G, H, L             |         6 | A, B, C, D, E, F, G, H, I, L |        10 | Agent-only after authorization unless the capability matrix changes             |
-| 6     | Bounded delivery                   | A, D, F, G, H, L             |         6 | A, B, C, D, E, F, G, H, I, L |        10 | Agent-only after authorization unless the request workflow changes              |
-| 7     | Bounded delivery + security review | A, D, E, F, G, H, L          |         7 | A, B, C, D, E, F, G, H, I, L |        10 | Agent-only after authorization unless session authority changes                 |
-| 8     | Validation + Operational           | A, D, G, H, I, L             |         6 | A, D, E, F, G, H, I, J, K, L |        10 | Use or supervise real pilot accounts and make the pilot go/no-go decision       |
-| 9     | Design-first + Operational         | A, B, C, D, E, F, G, H, I, L |        10 | A-L                          |        12 | Select the member cohort and approve staged production rollout                  |
-
-The minimum path applies only while the phase's fixed decisions and acceptance gate remain unchanged. New product decisions, material UI changes, failed checks, or production actions add the relevant catalog steps. Phase 2 never uses an agent-only cutover path. Phase 8 findings require a new bounded brief before any fix.
+The former Phases 3–9 remain useful as scope notes below, but they are not separate mandatory delivery cycles. Split a milestone only when a real dependency, user-facing release, or security boundary requires it.
 
 ## Phase 0 — Architecture and Planning Baseline
 
@@ -269,7 +216,7 @@ Introduce the durable role, scope, lifecycle, and audit data model without openi
 - No production authorization source is removed yet.
 - Migration rollback and lockout recovery are documented and tested locally.
 
-## Phase 2 — Capability Engine and RLS Cutover
+## Phase 2 — Capability Engine and RLS Cutover (local complete)
 
 ### Purpose
 
@@ -284,7 +231,7 @@ Replace global authorization with centralized, deny-by-default capability checks
 - RPC authorization and Server Action guards
 - Immediate role-revocation behavior
 - Safe migration from `leaders` to system roles
-- Removal of `is_leader()` only after proven call-site and policy replacement
+- Legacy `is_leader()` cleanup remains a later RPC maintenance task
 
 ### Acceptance gate
 
@@ -292,6 +239,8 @@ Replace global authorization with centralized, deny-by-default capability checks
 - Direct table/API/RPC access cannot bypass the same capability rules.
 - Negative tests prove unauthorized personas are denied.
 - The initial `master_admin` retains required access after `leaders` is retired.
+
+Local implementation is committed. Hosted rollout and real-account verification remain separate user-authorized work.
 
 ## Phase 3 — System Governance and Role-Management UI
 
@@ -482,14 +431,7 @@ pnpm build
 git diff --check
 ```
 
-Database phases additionally require:
-
-- Local migration reset/apply verification
-- Database lint where available
-- Explicit positive and negative RLS checks
-- Concurrency checks for atomic workflows
-- Generated database type synchronization
-- Read-only linked migration status inspection before any production proposal
+Database changes additionally require local migration reset/apply verification, generated type synchronization, and focused positive/negative RLS checks for the affected paths. Add concurrency checks only for workflows that introduce concurrent state transitions.
 
 Applying linked migrations, changing hosted Supabase Auth settings, configuring production SMTP, sending real invitations, pushing, or deploying always requires explicit authorization in the active phase.
 
@@ -501,7 +443,8 @@ Applying linked migrations, changing hosted Supabase Auth settings, configuring 
 - [x] Brainstorm Phase 1
 - [x] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
 - [x] Implement and independently accept Phase 1
-- [ ] Repeat the brainstorm, brief, implementation, and acceptance cycle for Phases 2-9
+- [x] Complete the local Phase 2 fast cutover and commit it
+- [ ] Deliver Milestone A using the lightweight four-step protocol
 - [ ] Retire this roadmap after the final accepted rollout and move durable decisions into canonical documentation
 
 ## Deferred Decisions
@@ -516,4 +459,4 @@ These are intentionally decided during the named phase rather than globally:
 - Phase 8: pilot account roster and test data
 - Phase 9: first broader-member rollout cohort
 
-No deferred decision authorizes implementation by itself.
+No deferred decision authorizes implementation by itself. A milestone brief is sufficient when it stays within the fixed decisions above.
