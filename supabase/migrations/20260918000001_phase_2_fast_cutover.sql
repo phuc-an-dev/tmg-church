@@ -280,3 +280,118 @@ revoke all on function public.create_initial_church(text, text) from public, ano
 grant select, insert, update, delete on public.frequent_icon to authenticated;
 grant select on public.system_role_assignment, public.term_role_assignment,
   public.application_audit_log to authenticated;
+
+-- Milestone A governance RPCs. These are explicit, narrow security-definer
+-- entry points because direct table writes remain unavailable to API clients.
+create or replace function public.set_system_admin(
+  p_church_id uuid,
+  p_user_id uuid,
+  p_enabled boolean
+) returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if not exists (
+    select 1
+    from public.system_role_assignment
+    where church_id = p_church_id
+      and user_id = auth.uid()
+      and role = 'master_admin'
+  ) then
+    raise exception 'Only the master_admin may manage system admins' using errcode = '42501';
+  end if;
+
+  if not exists (select 1 from public.church where id = p_church_id) then
+    raise exception 'Church not found' using errcode = '23503';
+  end if;
+
+  if not exists (select 1 from auth.users where id = p_user_id) then
+    raise exception 'Target Auth user not found' using errcode = '23503';
+  end if;
+
+  if p_enabled then
+    if exists (
+      select 1
+      from public.system_role_assignment
+      where church_id = p_church_id and user_id = p_user_id and role = 'master_admin'
+    ) then
+      raise exception 'The master_admin cannot be changed to admin' using errcode = '42501';
+    end if;
+
+    insert into public.system_role_assignment (church_id, user_id, role)
+    values (p_church_id, p_user_id, 'admin')
+    on conflict (church_id, user_id) do update set role = 'admin';
+  else
+    delete from public.system_role_assignment
+    where church_id = p_church_id and user_id = p_user_id and role = 'admin';
+  end if;
+
+  return true;
+end;
+$$;
+
+create or replace function public.assign_term_role(
+  p_term_id uuid,
+  p_member_profile_id uuid,
+  p_role text
+) returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_church_id uuid; v_lifecycle text;
+begin
+  select m.church_id, mt.lifecycle into v_church_id, v_lifecycle
+  from public.ministry_term mt
+  join public.ministry m on m.id = mt.ministry_id
+  where mt.id = p_term_id;
+
+  if not public.is_system_admin_for_church(v_church_id) then
+    raise exception 'Unauthorized term role assignment' using errcode = '42501';
+  end if;
+  if v_lifecycle = 'closed' then
+    raise exception 'Cannot modify role assignments for closed term' using errcode = 'P0001';
+  end if;
+
+  insert into public.term_role_assignment (ministry_term_id, member_profile_id, role)
+  values (p_term_id, p_member_profile_id, p_role);
+  return true;
+end;
+$$;
+
+create or replace function public.remove_term_role(
+  p_term_id uuid,
+  p_role text
+) returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_church_id uuid; v_lifecycle text;
+begin
+  select m.church_id, mt.lifecycle into v_church_id, v_lifecycle
+  from public.ministry_term mt
+  join public.ministry m on m.id = mt.ministry_id
+  where mt.id = p_term_id;
+
+  if not public.is_system_admin_for_church(v_church_id) then
+    raise exception 'Unauthorized term role removal' using errcode = '42501';
+  end if;
+  if v_lifecycle = 'closed' then
+    raise exception 'Cannot modify role assignments for closed term' using errcode = 'P0001';
+  end if;
+
+  delete from public.term_role_assignment
+  where ministry_term_id = p_term_id and role = p_role;
+  return true;
+end;
+$$;
+
+revoke all on function public.set_system_admin(uuid, uuid, boolean) from public, anon;
+revoke all on function public.assign_term_role(uuid, uuid, text) from public, anon;
+revoke all on function public.remove_term_role(uuid, text) from public, anon;
+grant execute on function public.set_system_admin(uuid, uuid, boolean) to authenticated;
+grant execute on function public.assign_term_role(uuid, uuid, text) to authenticated;
+grant execute on function public.remove_term_role(uuid, text) to authenticated;

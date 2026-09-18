@@ -107,4 +107,53 @@ describe("Phase 2 fast cutover", () => {
     expect(result.data).toBeNull();
     expect(result.error?.code).toBe("42501");
   });
+
+  it("lets Master Admin manage Admin assignments, but not Admin or no-role users", async () => {
+    const assign = await clients.masterAdmin.rpc("set_system_admin", {
+      p_church_id: churchId,
+      p_user_id: ids.admin,
+      p_enabled: true,
+    });
+    expect(assign.error).toBeNull();
+    expect(assign.data).toBe(true);
+
+    const adminDenied = await clients.admin.rpc("set_system_admin", {
+      p_church_id: churchId,
+      p_user_id: ids.noRoleMember,
+      p_enabled: true,
+    });
+    expect(adminDenied.error?.code).toBe("42501");
+
+    const noRoleDenied = await clients.noRoleMember.rpc("set_system_admin", {
+      p_church_id: churchId,
+      p_user_id: ids.admin,
+      p_enabled: false,
+    });
+    expect(noRoleDenied.error?.code).toBe("42501");
+
+    const revoke = await clients.masterAdmin.rpc("set_system_admin", {
+      p_church_id: churchId,
+      p_user_id: ids.admin,
+      p_enabled: false,
+    });
+    expect(revoke.error).toBeNull();
+    expect(revoke.data).toBe(true);
+  });
+
+  it("lets system admins assign and remove an enrolled Ministry role", async () => {
+    const assign = await clients.masterAdmin.rpc("assign_term_role", {
+      p_term_id: termId,
+      p_member_profile_id: masterProfileId,
+      p_role: "ministry_head",
+    });
+    expect(assign.error).toBeNull();
+    expect(assign.data).toBe(true);
+
+    const remove = await clients.masterAdmin.rpc("remove_term_role", {
+      p_term_id: termId,
+      p_role: "ministry_head",
+    });
+    expect(remove.error).toBeNull();
+    expect(remove.data).toBe(true);
+  });
 });

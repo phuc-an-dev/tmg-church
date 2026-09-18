@@ -1258,6 +1258,22 @@ export type Database = {
         };
         Returns: boolean;
       };
+      set_system_admin: {
+        Args: { p_church_id: string; p_enabled: boolean; p_user_id: string };
+        Returns: boolean;
+      };
+      assign_term_role: {
+        Args: {
+          p_member_profile_id: string;
+          p_role: string;
+          p_term_id: string;
+        };
+        Returns: boolean;
+      };
+      remove_term_role: {
+        Args: { p_role: string; p_term_id: string };
+        Returns: boolean;
+      };
       is_system_admin: { Args: never; Returns: boolean };
       is_system_admin_for_church: {
         Args: { p_church_id: string };
