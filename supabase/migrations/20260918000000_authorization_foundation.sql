@@ -717,21 +717,38 @@ execute function public.audit_ministry_term_lifecycle_change();
 do $$
 declare
   v_church_count int;
-  v_church_id uuid := 'c0000000-0000-4000-8000-000000000001';
-  v_master_user_id uuid := 'a841f275-afc9-46cf-9b23-a6268ab2fb4b';
-  v_master_profile_id uuid := 'e1a52f99-6f89-425a-aaca-676369dd6991';
-  v_master_email text := 'anphucphamtrinh@gmail.com';
+  v_leader_count int;
+  v_profile_count int;
+  v_church_id uuid;
+  v_master_user_id uuid;
+  v_master_profile_id uuid;
+  v_master_email text;
   v_master_assignment_id uuid;
 begin
   select count(*) into v_church_count from public.church;
 
   if v_church_count > 0 then
-    -- Preflight 1: target church must exist
-    if not exists (select 1 from public.church where id = v_church_id) then
-      raise exception 'Bootstrap preflight failed: Target church % not found', v_church_id;
+    -- Preflight 1: this single-church application must have one unambiguous target.
+    if v_church_count <> 1 then
+      raise exception 'Bootstrap preflight failed: Expected exactly one church, found %', v_church_count;
+    end if;
+    select id into v_church_id from public.church order by created_at limit 1;
+
+    -- Resolve the existing legacy leader instead of relying on local fixture UUIDs.
+    select count(*) into v_leader_count from public.leaders;
+    if v_leader_count <> 1 then
+      raise exception 'Bootstrap preflight failed: Expected exactly one legacy leader, found %', v_leader_count;
+    end if;
+    select l.user_id, coalesce(nullif(lower(trim(l.email)), ''), lower(trim(u.email)))
+    into v_master_user_id, v_master_email
+    from public.leaders l
+    left join auth.users u on u.id = l.user_id
+    limit 1;
+    if v_master_user_id is null or v_master_email is null then
+      raise exception 'Bootstrap preflight failed: Legacy leader identity is incomplete';
     end if;
 
-    -- Preflight 2: target auth user must exist AND normalized email must match v_master_email exactly
+    -- Preflight 2: target auth user must exist AND normalized email must match the leader record.
     if not exists (
       select 1 from auth.users
       where id = v_master_user_id
@@ -740,9 +757,23 @@ begin
       raise exception 'Bootstrap preflight failed: Auth user % with email % not found in auth.users', v_master_user_id, v_master_email;
     end if;
 
-    -- Preflight 3: target member profile must exist in target church
-    if not exists (select 1 from public.member_profile where id = v_master_profile_id and church_id = v_church_id) then
-      raise exception 'Bootstrap preflight failed: Member profile % not found in church %', v_master_profile_id, v_church_id;
+    -- Resolve an already-linked profile first; otherwise allow exactly one
+    -- existing profile in the single Church to be linked during bootstrap.
+    select id into v_master_profile_id
+    from public.member_profile
+    where church_id = v_church_id and user_id = v_master_user_id
+    limit 1;
+    if v_master_profile_id is null then
+      select count(*) into v_profile_count
+      from public.member_profile
+      where church_id = v_church_id;
+      if v_profile_count <> 1 then
+        raise exception 'Bootstrap preflight failed: Could not resolve a unique Master Admin member profile in church %', v_church_id;
+      end if;
+      select id into v_master_profile_id
+      from public.member_profile
+      where church_id = v_church_id
+      limit 1;
     end if;
 
     -- Preflight 4: fail-closed if target profile is already linked to another user
