@@ -1,29 +1,5 @@
-# Milestone A — System role governance
+# Next agent task
 
-Status: authorized for local implementation and review; no hosted rollout.
+Status: waiting
 
-## Scope
-
-Implement the smallest useful governance slice on top of the Phase 2 cutover:
-
-- allow only `master_admin` to assign/revoke Church-wide `admin` roles;
-- keep the sole `master_admin` anti-lockout invariant intact;
-- allow `master_admin` and `admin` to manage Ministry Term role assignments only where the existing schema and lifecycle rules already support it;
-- expose current system-role assignments in Church Advanced Settings; do not start invitation/login, member portal, Group/Department scoped-role UX, or session workflow work;
-- enforce every write through a protected Server Action/RPC and RLS, with direct Data API/RPC negative tests.
-
-## Constraints
-
-- Local migration and tests only; no linked migration, hosted Supabase change, push, or deploy.
-- Reuse existing member/profile and admin UI patterns.
-- Do not add a new auth provider, invitation flow, or broad capability catalog.
-- Use the lightweight workflow in `docs/WORKFLOW.md`.
-
-## Acceptance
-
-- Master Admin can safely assign/revoke an existing Auth user as Church Admin through the protected RPC and current admin surface.
-- Admin cannot assign/revoke Master/Admin roles.
-- Master Admin cannot be deleted, demoted, or orphaned.
-- Term-role writes obey term lifecycle and existing assignment invariants.
-- No-role, anonymous, cross-Church, and direct RPC/Data API access are denied.
-- Relevant authorization tests, lint, typecheck, format check, and build pass; one independent review reports no blocking/high findings.
+Milestone A is complete locally. Milestone B (invitation-only accounts and member access) is blocked until the user selects the email provider/SMTP path and approves the hosted Auth rollout boundary. Create a short brief after those decisions are resolved.
