@@ -156,4 +156,28 @@ describe("Phase 2 fast cutover", () => {
     expect(remove.error).toBeNull();
     expect(remove.data).toBe(true);
   });
+
+  it("rejects Ministry role assignment for an unenrolled member", async () => {
+    const profileId = crypto.randomUUID();
+    const insert = await clients.masterAdmin.from("member_profile").insert({
+      id: profileId,
+      church_id: churchId,
+      full_name: "Unenrolled Role Tester",
+      slug: `unenrolled-role-${profileId.slice(0, 8)}`,
+    });
+    expect(insert.error).toBeNull();
+
+    const result = await clients.masterAdmin.rpc("assign_term_role", {
+      p_term_id: termId,
+      p_member_profile_id: profileId,
+      p_role: "ministry_head",
+    });
+    expect(result.error?.code).toBe("P0001");
+
+    const cleanup = await clients.masterAdmin
+      .from("member_profile")
+      .delete()
+      .eq("id", profileId);
+    expect(cleanup.error).toBeNull();
+  });
 });
