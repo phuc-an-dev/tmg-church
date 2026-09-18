@@ -1,8 +1,8 @@
-# Milestone C — Portal Group Session operations
+# Waiting for next authorized task
 
-Status: authorized for local implementation and review.
+Status: completed locally; waiting for the next bounded scope.
 
-## Scope
+## Completed scope
 
 - Keep `/admin` restricted to `master_admin` and `admin`.
 - Add capability resolution for Ministry Head, commissioner-derived Department roles, Group Leader, Deputy Leader, and Bible Study Leader.
@@ -11,9 +11,10 @@ Status: authorized for local implementation and review.
 - Implement the minimal `/portal` Group Session list and attendance screens.
 - Group Leader may create, edit, delete empty sessions, and record attendance.
 - Deputy Leader and Bible Study Leader may read group session history only.
+- Group Leader and Deputy Leader may assign/unassign regular Group members; leadership roles remain administrator-managed.
 - Do not grant Group roles Department service-role assignment capability.
 
-## Acceptance
+## Acceptance completed
 
 - Capability resolution is server-side and available through a protected RPC.
 - Draft roles have no operational capability; closed terms expose history only.
@@ -21,10 +22,15 @@ Status: authorized for local implementation and review.
 - No-role and anonymous users cannot access `/portal`.
 - `/admin` behavior remains unchanged for Master/Admin.
 - Direct Data API deletes and writes are denied for read-only Group roles.
+- Group membership assignment cannot cross terms, steal a member from another open Group, or remove a leadership assignment.
 - Local migration, authorization tests, lint, typecheck, format, build, and independent review pass.
 
-## Constraints
+## Constraints carried forward
 
 - RLS and RPC checks remain authoritative.
 - No hosted migration, push, deploy, or secrets.
 - Preserve the existing invitation/authentication work from Milestone B.
+
+## Next choice
+
+Choose one bounded Milestone C slice before implementation continues: Department member management, Department requests, or additional Group read surfaces. Do not infer this choice from the roadmap.

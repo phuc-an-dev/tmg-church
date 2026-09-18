@@ -305,7 +305,9 @@ describe("Phase 2 fast cutover", () => {
         ministry_membership_id: membershipId,
         term_group_id: groupId,
         role: "group_leader",
-      });
+      })
+      .select("id")
+      .single();
     expect(groupMembership.error).toBeNull();
 
     const leader = await clients.noRoleMember.rpc("has_capability", {
@@ -315,6 +317,14 @@ describe("Phase 2 fast cutover", () => {
     });
     expect(leader.error).toBeNull();
     expect(leader.data).toBe(true);
+
+    const leaderMembers = await clients.noRoleMember.rpc("has_capability", {
+      p_capability: "group.members.manage",
+      p_scope_type: "group",
+      p_scope_id: groupId,
+    });
+    expect(leaderMembers.error).toBeNull();
+    expect(leaderMembers.data).toBe(true);
 
     const read = await clients.noRoleMember.rpc("has_capability", {
       p_capability: "group.read",
@@ -336,6 +346,21 @@ describe("Phase 2 fast cutover", () => {
     });
     expect(deputyManage.error).toBeNull();
     expect(deputyManage.data).toBe(false);
+
+    const deputyMembers = await clients.noRoleMember.rpc("has_capability", {
+      p_capability: "group.members.manage",
+      p_scope_type: "group",
+      p_scope_id: groupId,
+    });
+    expect(deputyMembers.error).toBeNull();
+    expect(deputyMembers.data).toBe(true);
+
+    const leadershipRemoval = await clients.noRoleMember.rpc(
+      "portal_remove_group_member",
+      { p_record_id: groupMembership.data?.id ?? "" },
+    );
+    expect(leadershipRemoval.data).toBeNull();
+    expect(leadershipRemoval.error?.code).toBe("42501");
 
     const sessionId = crypto.randomUUID();
     const session = await clients.masterAdmin

@@ -104,15 +104,30 @@ export default async function PortalPage() {
           </CardHeader>
           <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-2 sm:p-6 sm:pt-0">
             {groups.map((group) => {
+              const basePath = `/portal/ministries/${group.ministry_slug}/terms/${group.term_slug}/groups/${group.slug}`;
               return (
-                <Link
+                <div
                   key={group.id}
-                  href={`/portal/ministries/${group.ministry_slug}/terms/${group.term_slug}/groups/${group.slug}/sessions`}
-                  className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
+                  className="border-border rounded-xl border p-4"
                 >
-                  <span className="font-semibold">{group.name}</span>
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
+                  <p className="font-semibold">{group.name}</p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+                    <Link
+                      href={`${basePath}/sessions`}
+                      className="text-primary inline-flex min-h-11 items-center gap-2"
+                    >
+                      Sessions{" "}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      href={`${basePath}/members`}
+                      className="text-primary inline-flex min-h-11 items-center gap-2"
+                    >
+                      Members{" "}
+                      <ArrowRight className="size-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
               );
             })}
           </CardContent>

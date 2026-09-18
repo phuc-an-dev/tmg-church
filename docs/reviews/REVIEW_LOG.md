@@ -109,3 +109,7 @@ Result: accepted locally after independent review. Added a capability-driven `/p
 ## 2026-09-18: Milestone C — Group Session portal slice
 
 Result: accepted locally after independent security review. Added group-scoped session listing, attendance read/write UI, Group Leader-only session mutations, a private group directory projection, and split RLS policies so Deputy/Bible Study can read history but cannot mutate or delete sessions, participants, or attendance through the Data API. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.
+
+## 2026-09-18: Milestone C — Group roster portal slice
+
+Result: accepted locally after independent security review. Added a scoped Group member directory and regular-member assign/unassign actions for Group Leaders and Deputies. Cross-term assignment, moving a member out of another open Group, leadership removal, and Department service-role access remain denied. Authorization checks passed 21/21; full test, lint, typecheck, format, build, and diff checks passed. No hosted migration or deployment was performed.

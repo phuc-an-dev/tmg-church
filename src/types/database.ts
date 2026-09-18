@@ -1289,6 +1289,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      portal_group_member_directory: {
+        Row: {
+          current_group_id: string | null;
+          ended_at: string | null;
+          full_name: string;
+          group_id: string;
+          group_membership_id: string | null;
+          group_name: string;
+          member_id: string;
+          membership_id: string;
+          role: string | null;
+          status: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       assign_group_member: {
@@ -1345,6 +1360,14 @@ export type Database = {
           p_session_date: string;
         };
         Returns: { id: string; slug: string }[];
+      };
+      portal_assign_group_member: {
+        Args: { p_group_id: string; p_membership_id: string };
+        Returns: string;
+      };
+      portal_remove_group_member: {
+        Args: { p_record_id: string };
+        Returns: undefined;
       };
       set_system_admin: {
         Args: { p_church_id: string; p_enabled: boolean; p_user_id: string };
