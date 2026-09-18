@@ -5,7 +5,7 @@
 - Initiative status: Planning
 - Active implementation phase: None
 - Implementation authorization: `docs/NEXT_AGENT_TASK.md` remains the sole active brief
-- Next gate: Brainstorm and approve Phase 1 before authorizing implementation
+- Next gate: Resolve Phase 1 bootstrap/backfill inputs and approve the active brief
 
 ## Objective
 
@@ -498,7 +498,7 @@ Applying linked migrations, changing hosted Supabase Auth settings, configuring 
 - [x] Record agreed initiative boundaries and fixed decisions
 - [x] Establish phase order and dependencies
 - [x] Complete and approve Phase 0 architecture artifacts
-- [ ] Brainstorm Phase 1
+- [x] Brainstorm Phase 1
 - [ ] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
 - [ ] Implement and independently accept Phase 1
 - [ ] Repeat the brainstorm, brief, implementation, and acceptance cycle for Phases 2-9
