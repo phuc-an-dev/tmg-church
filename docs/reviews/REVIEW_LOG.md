@@ -2,6 +2,10 @@
 
 Keep one compact entry per accepted slice. Detailed investigation remains in Git history and must not be copied into active context.
 
+## 2026-09-18: Authorization Foundation
+
+Result: accepted after independent review with two explicitly accepted follow-ups: expanded automated bootstrap fail-closed coverage and enforced verified-email checking in the Master Admin recovery procedure. Added normalized account email storage, fixed Department codes, Church-scoped system roles, Ministry Term officer assignments, lifecycle and closed-term invariants, append-only scoped business auditing with sensitive-payload rejection, the initial Master Admin bootstrap, generated database types, an isolated local authorization integration suite, and the recovery runbook. Legacy `leaders` authorization remains active for the Phase 2 cutover. Local empty reset, unit and authorization tests, lint, typecheck, formatting, production build, generated-type parity, and diff checks passed.
+
 ## 2026-09-17: Contextual Session creation and Term Detail
 
 Result: accepted. Implemented contextual Session creation for Group, Department, and Ministry Term, with Term Detail as the canonical ministry-detail surface. Reused existing Session editor as a responsive bottom drawer. Enforced scope mutual exclusivity and term integrity in Postgres migration `20260917000008_contextual_session_attendance_and_term_member_integrity.sql` and RLS-aware Server Actions. Scoped session attendance eligibility to active scoped members while preserving historical attendees. Provided mobile-first Term Detail with Members, Groups, Departments, and Sessions tabs. Tests, lint, typecheck, format check, and production build passed.

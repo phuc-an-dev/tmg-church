@@ -34,6 +34,60 @@ export type Database = {
   };
   public: {
     Tables: {
+      application_audit_log: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          church_id: string;
+          created_at: string;
+          id: string;
+          payload: Json;
+          scope_id: string;
+          scope_type: string;
+          target_id: string | null;
+          target_type: string;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          church_id: string;
+          created_at?: string;
+          id?: string;
+          payload?: Json;
+          scope_id: string;
+          scope_type: string;
+          target_id?: string | null;
+          target_type: string;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          church_id?: string;
+          created_at?: string;
+          id?: string;
+          payload?: Json;
+          scope_id?: string;
+          scope_type?: string;
+          target_id?: string | null;
+          target_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "application_audit_log_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "church";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "application_audit_log_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["church_id"];
+          },
+        ];
+      };
       attendance_record: {
         Row: {
           id: string;
@@ -258,6 +312,7 @@ export type Database = {
           birth_year: number | null;
           church_id: string;
           created_at: string;
+          email: string | null;
           full_name: string;
           gender: string | null;
           id: string;
@@ -271,6 +326,7 @@ export type Database = {
           birth_year?: number | null;
           church_id: string;
           created_at?: string;
+          email?: string | null;
           full_name: string;
           gender?: string | null;
           id?: string;
@@ -284,6 +340,7 @@ export type Database = {
           birth_year?: number | null;
           church_id?: string;
           created_at?: string;
+          email?: string | null;
           full_name?: string;
           gender?: string | null;
           id?: string;
@@ -641,7 +698,7 @@ export type Database = {
           created_at: string;
           end_date: string | null;
           id: string;
-          lifecycle: "draft" | "active" | "closed";
+          lifecycle: string;
           ministry_id: string;
           name: string;
           slug: string;
@@ -652,7 +709,7 @@ export type Database = {
           created_at?: string;
           end_date?: string | null;
           id?: string;
-          lifecycle?: "draft" | "active" | "closed";
+          lifecycle?: string;
           ministry_id: string;
           name: string;
           slug: string;
@@ -663,7 +720,7 @@ export type Database = {
           created_at?: string;
           end_date?: string | null;
           id?: string;
-          lifecycle?: "draft" | "active" | "closed";
+          lifecycle?: string;
           ministry_id?: string;
           name?: string;
           slug?: string;
@@ -878,10 +935,53 @@ export type Database = {
           },
         ];
       };
+      system_role_assignment: {
+        Row: {
+          church_id: string;
+          created_at: string;
+          id: string;
+          role: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          church_id: string;
+          created_at?: string;
+          id?: string;
+          role: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          church_id?: string;
+          created_at?: string;
+          id?: string;
+          role?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "system_role_assignment_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "church";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "system_role_assignment_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["church_id"];
+          },
+        ];
+      };
       term_department: {
         Row: {
           accent_color: string;
           created_at: string;
+          department_code: string;
           icon_key: string;
           id: string;
           ministry_term_id: string;
@@ -892,6 +992,7 @@ export type Database = {
         Insert: {
           accent_color?: string;
           created_at?: string;
+          department_code: string;
           icon_key?: string;
           id?: string;
           ministry_term_id: string;
@@ -902,6 +1003,7 @@ export type Database = {
         Update: {
           accent_color?: string;
           created_at?: string;
+          department_code?: string;
           icon_key?: string;
           id?: string;
           ministry_term_id?: string;
@@ -1029,6 +1131,62 @@ export type Database = {
           },
         ];
       };
+      term_role_assignment: {
+        Row: {
+          created_at: string;
+          id: string;
+          member_profile_id: string;
+          ministry_term_id: string;
+          role: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          member_profile_id: string;
+          ministry_term_id: string;
+          role: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          member_profile_id?: string;
+          ministry_term_id?: string;
+          role?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "term_role_assignment_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "term_role_assignment_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "term_role_assignment_ministry_term_id_fkey";
+            columns: ["ministry_term_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["ministry_term_id"];
+          },
+          {
+            foreignKeyName: "term_role_assignment_ministry_term_id_fkey";
+            columns: ["ministry_term_id"];
+            isOneToOne: false;
+            referencedRelation: "ministry_term";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       member_profile_public: {
@@ -1058,6 +1216,7 @@ export type Database = {
         Args: { target_group_id: string; target_membership_id: string };
         Returns: string;
       };
+      audit_payload_is_safe: { Args: { p_payload: Json }; Returns: boolean };
       batch_save_service_assignments: {
         Args: {
           target_membership_ids: string[];
@@ -1085,13 +1244,26 @@ export type Database = {
       enroll_member_with_assignments: {
         Args: {
           enrollment_department_ids: string[];
-          enrollment_group_id: string | null;
+          enrollment_group_id: string;
           enrollment_member_id: string;
           enrollment_term_id: string;
         };
         Returns: string;
       };
       is_leader: { Args: never; Returns: boolean };
+      log_application_audit_event: {
+        Args: {
+          p_action: string;
+          p_actor_id: string;
+          p_church_id: string;
+          p_payload?: Json;
+          p_scope_id: string;
+          p_scope_type: string;
+          p_target_id?: string;
+          p_target_type: string;
+        };
+        Returns: string;
+      };
       member_matches_segment_rules: {
         Args: {
           candidate: Database["public"]["Tables"]["member_profile"]["Row"];

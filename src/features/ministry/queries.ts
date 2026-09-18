@@ -78,7 +78,7 @@ export const getCurrentActiveTerm = cache(
             slug: data.slug,
             startDate: data.start_date,
             endDate: data.end_date,
-            lifecycle: data.lifecycle,
+            lifecycle: data.lifecycle as "draft" | "active" | "closed",
           },
         }
       : null;
@@ -204,7 +204,7 @@ export async function getTerms(
       slug: r.slug,
       startDate: r.start_date,
       endDate: r.end_date,
-      lifecycle: r.lifecycle,
+      lifecycle: r.lifecycle as "draft" | "active" | "closed",
     })),
     count: count ?? 0,
     page,

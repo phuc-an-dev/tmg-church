@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:authorization": "vitest run --config vitest.authorization.config.mts",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

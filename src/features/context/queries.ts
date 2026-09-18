@@ -178,7 +178,7 @@ export const requireTermContext = cache(
             slug: data.slug,
             startDate: data.start_date,
             endDate: data.end_date,
-            lifecycle: data.lifecycle,
+            lifecycle: data.lifecycle as "draft" | "active" | "closed",
           },
         }
       : null;

@@ -458,7 +458,7 @@ export async function enrollMemberWithAssignmentsAction(
       {
         enrollment_member_id: memberId,
         enrollment_term_id: ministryTermId,
-        enrollment_group_id: termGroupId,
+        enrollment_group_id: termGroupId as unknown as string,
         enrollment_department_ids: departmentIds,
       },
     );

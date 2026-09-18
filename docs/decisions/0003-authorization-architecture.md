@@ -256,7 +256,7 @@ Phase 1 proves schema invariants and bootstrap recovery. Phase 2 proves capabili
 
 ## Deferred implementation decisions
 
-- Phase 1: exact tables, columns, enum or check-constraint representation, indexes, triggers, audit payload shape, and master-admin recovery mechanism.
+- Phase 1 resolved the exact foundation schema, invariants, audit payload protections, bootstrap, and recovery mechanism in migration `20260918000000_authorization_foundation.sql` and the Master Admin recovery runbook.
 - Phase 2: exact capability catalog, resolver interfaces, per-table RLS expressions, RPC guards, private projections, and cutover batches.
 - Phase 3: administration navigation and role editor interactions.
 - Phase 4: password policy, rate limits, activation-proof transport, Auth Hook transaction design, mail provider, templates, and operational runbook.

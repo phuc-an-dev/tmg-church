@@ -6,13 +6,11 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    exclude: ["**/node_modules/**", "tests/authorization/**"],
+    globalSetup: ["./tests/authorization/phase-1-global-setup.ts"],
+    fileParallelism: false,
+    include: ["tests/authorization/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
     globals: true,
   },
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
-    },
-  },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
 });

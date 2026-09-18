@@ -2,10 +2,10 @@
 
 ## Status
 
-- Initiative status: Planning
+- Initiative status: In progress
 - Active implementation phase: None
 - Implementation authorization: `docs/NEXT_AGENT_TASK.md` remains the sole active brief
-- Next gate: Resolve Phase 1 bootstrap/backfill inputs and approve the active brief
+- Next gate: Brainstorm Phase 2 capability engine and RLS cutover, then approve its active brief
 
 ## Objective
 
@@ -185,7 +185,7 @@ Each phase selects from the following steps. The catalog makes user involvement 
 | Phase | Name                                     | Status      | Depends on       |
 | ----- | ---------------------------------------- | ----------- | ---------------- |
 | 0     | Architecture and planning baseline       | Complete    | None             |
-| 1     | Authorization foundation                 | Not started | Phase 0          |
+| 1     | Authorization foundation                 | Complete    | Phase 0          |
 | 2     | Capability engine and RLS cutover        | Not started | Phase 1          |
 | 3     | System governance and role-management UI | Not started | Phase 2          |
 | 4     | Invitation-only email/password accounts  | Not started | Phase 2, Phase 3 |
@@ -499,8 +499,8 @@ Applying linked migrations, changing hosted Supabase Auth settings, configuring 
 - [x] Establish phase order and dependencies
 - [x] Complete and approve Phase 0 architecture artifacts
 - [x] Brainstorm Phase 1
-- [ ] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
-- [ ] Implement and independently accept Phase 1
+- [x] Authorize Phase 1 in `docs/NEXT_AGENT_TASK.md`
+- [x] Implement and independently accept Phase 1
 - [ ] Repeat the brainstorm, brief, implementation, and acceptance cycle for Phases 2-9
 - [ ] Retire this roadmap after the final accepted rollout and move durable decisions into canonical documentation
 
