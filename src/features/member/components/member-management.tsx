@@ -14,7 +14,6 @@ import {
   FolderCog,
   Loader2,
   Pencil,
-  Plus,
   RotateCcw,
   Rows3,
   Search,
@@ -154,7 +153,7 @@ function ChoiceMenu({
             <DropdownMenuRadioItem
               key={choice.value}
               value={choice.value}
-              className="min-h-10 px-3 text-sm"
+              className="min-h-11 px-3 pr-8 text-base"
             >
               {choice.label}
             </DropdownMenuRadioItem>
@@ -189,7 +188,7 @@ function SegmentFilterMenu({
           type="button"
           variant="outline"
           aria-label={`Filter by segment: ${activeLabel}`}
-          className={`bg-card hover:bg-card h-12 justify-between px-3 text-left text-sm font-normal ${fullWidth ? "w-full" : ""}`}
+          className={`bg-card hover:bg-card h-12 justify-between px-3 text-left text-base font-normal ${fullWidth ? "w-full" : ""}`}
         >
           <SegmentFilterLabel
             selectedSegment={selectedSegment}
@@ -217,7 +216,7 @@ function SegmentFilterMenu({
         >
           <DropdownMenuRadioItem
             value={ALL_SEGMENTS_VALUE}
-            className="min-h-12 gap-3 px-3 text-left text-sm"
+            className="min-h-12 gap-3 px-3 pr-8 text-left text-base"
           >
             <span className="bg-muted text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
               <Tags className="size-4" aria-hidden="true" />
@@ -228,7 +227,7 @@ function SegmentFilterMenu({
             <DropdownMenuRadioItem
               key={segment.id}
               value={segment.slug}
-              className="min-h-12 gap-3 px-3 text-left text-sm"
+              className="min-h-12 gap-3 px-3 pr-8 text-left text-base"
             >
               <IdentityTile
                 accentColor={segment.accentColor}
@@ -700,13 +699,11 @@ function MemberManagerDrawer({
             disabled={isSaving || !fullName.trim()}
             className="min-h-11 gap-2 font-semibold"
           >
-            {isSaving ? (
+            {isSaving && (
               <Loader2
                 className="size-4 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
               />
-            ) : (
-              <Plus className="size-4" aria-hidden="true" />
             )}
             <span>{isSaving ? "Adding member..." : "Add member"}</span>
           </Button>
@@ -798,7 +795,6 @@ function MemberManagerDrawer({
           <NavigationTabButton
             active={tab === "add"}
             onClick={() => setTab("add")}
-            icon={Plus}
           >
             Add Member
           </NavigationTabButton>

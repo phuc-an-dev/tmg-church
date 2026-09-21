@@ -64,7 +64,7 @@ export function GenderDropdown({
             <DropdownMenuRadioItem
               key={option.value}
               value={option.value}
-              className="min-h-11 px-3 text-sm"
+              className="min-h-11 px-3 pr-8 text-base"
             >
               {option.label}
             </DropdownMenuRadioItem>
