@@ -8,17 +8,31 @@ update public.member_profile
 set date_of_birth = make_date(birth_year, 1, 1)
 where birth_year is not null and date_of_birth is null;
 
--- Trigger function to automatically keep birth_year synchronized from date_of_birth
+-- Keep the legacy year and canonical date synchronized; date_of_birth wins when both change.
 create or replace function public.member_profile_sync_birth_year()
 returns trigger
 language plpgsql
 security definer
 as $$
 begin
-  if new.date_of_birth is not null then
-    new.birth_year := extract(year from new.date_of_birth)::smallint;
-  else
-    new.birth_year := null;
+  if tg_op = 'INSERT' then
+    if new.date_of_birth is not null then
+      new.birth_year := extract(year from new.date_of_birth)::smallint;
+    elsif new.birth_year is not null then
+      new.date_of_birth := make_date(new.birth_year, 1, 1);
+    end if;
+  elsif new.date_of_birth is distinct from old.date_of_birth then
+    if new.date_of_birth is null then
+      new.birth_year := null;
+    else
+      new.birth_year := extract(year from new.date_of_birth)::smallint;
+    end if;
+  elsif new.birth_year is distinct from old.birth_year then
+    if new.birth_year is null then
+      new.date_of_birth := null;
+    else
+      new.date_of_birth := make_date(new.birth_year, 1, 1);
+    end if;
   end if;
   return new;
 end;
@@ -26,7 +40,7 @@ $$;
 
 drop trigger if exists trg_member_profile_sync_birth_year on public.member_profile;
 create trigger trg_member_profile_sync_birth_year
-before insert or update of date_of_birth on public.member_profile
+before insert or update of date_of_birth, birth_year on public.member_profile
 for each row
 execute function public.member_profile_sync_birth_year();
 
@@ -82,11 +96,11 @@ set condition_rules = (
           else source.condition->>'operator'
         end,
         'value', case source.condition->>'operator'
-          when 'greater_than' then source.condition->>'value' || '-12-31'
-          when 'greater_than_or_equal' then source.condition->>'value' || '-01-01'
-          when 'less_than' then source.condition->>'value' || '-01-01'
-          when 'less_than_or_equal' then source.condition->>'value' || '-12-31'
-          else source.condition->>'value'
+          when 'greater_than' then btrim(source.condition->>'value') || '-12-31'
+          when 'greater_than_or_equal' then btrim(source.condition->>'value') || '-01-01'
+          when 'less_than' then btrim(source.condition->>'value') || '-01-01'
+          when 'less_than_or_equal' then btrim(source.condition->>'value') || '-12-31'
+          else btrim(source.condition->>'value')
         end
       )
     else source.condition

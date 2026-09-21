@@ -64,6 +64,7 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
       "full name",
       "name",
       "ten",
+      "tên",
       "ho_ten",
       "họ và tên",
       "họ tên",
@@ -93,6 +94,7 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
     value(normalized, [
       "birthyear",
       "birth_year",
+      "birth year",
       "year",
       "nam_sinh",
       "năm sinh",
@@ -100,7 +102,7 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
     ]),
   );
   const gender = normalizeGender(
-    value(normalized, ["gender", "gioi_tinh", "giới tính", "gioi tinh"]),
+    value(normalized, ["gender", "sex", "gioi_tinh", "giới tính", "gioi tinh"]),
   );
   const parsed = createMemberSchema.safeParse({
     fullName,

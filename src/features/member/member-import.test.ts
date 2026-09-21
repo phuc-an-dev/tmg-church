@@ -64,4 +64,33 @@ Invalid Date,2025-02-29,male`);
       skipped: 0,
     });
   });
+
+  test("accepts legacy export, Tên, and Sex aliases", () => {
+    expect(
+      parseMemberImport(
+        "Full Name,Phone,Birth Year,Gender\nJane Doe,0901234567,1985,female",
+      ),
+    ).toEqual({
+      valid: [
+        {
+          fullName: "Jane Doe",
+          phone: "0901234567",
+          dateOfBirth: "1985-01-01",
+          gender: "female",
+        },
+      ],
+      skipped: 0,
+    });
+    expect(parseMemberImport("Tên,Sex\nNguyễn Bình,M")).toEqual({
+      valid: [
+        {
+          fullName: "Nguyễn Bình",
+          phone: null,
+          dateOfBirth: null,
+          gender: "male",
+        },
+      ],
+      skipped: 0,
+    });
+  });
 });
