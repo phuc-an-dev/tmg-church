@@ -66,60 +66,35 @@ where mp.archived_at is null
 revoke all on public.member_profile_public from public, anon, authenticated;
 grant select on public.member_profile_public to authenticated;
 
--- Convert legacy birth-year segment rules to equivalent date-of-birth ranges.
+-- Convert legacy birth-year segment rules without changing the flat rule sequence.
 alter table public.member_segment
   drop constraint if exists member_segment_condition_rules_check;
 
 update public.member_segment
-set condition_rules = converted.rules
-from lateral (
-  select jsonb_agg(expanded.condition order by source.ordinality, expanded.position) as rules
-  from jsonb_array_elements(member_segment.condition_rules) with ordinality as source(condition, ordinality)
-  cross join lateral (
-    select 1 as position,
+set condition_rules = (
+  select jsonb_agg(
+    case when source.condition->>'field' = 'birth_year' then
       source.condition || jsonb_build_object(
         'field', 'date_of_birth',
         'operator', case source.condition->>'operator'
-          when 'equals' then 'greater_than_or_equal'
-          when 'not_equals' then 'less_than'
-          when 'greater_than' then 'greater_than_or_equal'
-          when 'greater_than_or_equal' then 'greater_than_or_equal'
-          when 'less_than' then 'less_than_or_equal'
-          else 'less_than_or_equal'
+          when 'equals' then 'year_equals'
+          when 'not_equals' then 'year_not_equals'
+          else source.condition->>'operator'
         end,
         'value', case source.condition->>'operator'
-          when 'greater_than' then ((source.condition->>'value')::integer + 1)::text || '-01-01'
-          when 'less_than' then ((source.condition->>'value')::integer - 1)::text || '-12-31'
+          when 'greater_than' then source.condition->>'value' || '-12-31'
+          when 'greater_than_or_equal' then source.condition->>'value' || '-01-01'
+          when 'less_than' then source.condition->>'value' || '-01-01'
           when 'less_than_or_equal' then source.condition->>'value' || '-12-31'
-          else source.condition->>'value' || '-01-01'
-        end
-      ) as condition
-    where source.condition->>'field' = 'birth_year'
-
-    union all
-
-    select 2,
-      jsonb_build_object(
-        'field', 'date_of_birth',
-        'operator', case source.condition->>'operator'
-          when 'equals' then 'less_than_or_equal'
-          else 'greater_than'
-        end,
-        'value', source.condition->>'value' || '-12-31',
-        'connector', case source.condition->>'operator'
-          when 'equals' then 'and'
-          else 'or'
+          else source.condition->>'value'
         end
       )
-    where source.condition->>'field' = 'birth_year'
-      and source.condition->>'operator' in ('equals', 'not_equals')
-
-    union all
-
-    select 1, source.condition
-    where source.condition->>'field' <> 'birth_year'
-  ) as expanded(position, condition)
-) as converted
+    else source.condition
+    end
+    order by source.ordinality
+  )
+  from jsonb_array_elements(member_segment.condition_rules) with ordinality as source(condition, ordinality)
+)
 where member_segment.condition_rules @> '[{"field":"birth_year"}]'::jsonb;
 
 create or replace function public.valid_member_segment_conditions(rules jsonb)
@@ -160,21 +135,28 @@ begin
       or target_value not in ('female', 'male')
     ) then return false; end if;
     if field_name = 'date_of_birth' then
-      if operator_name not in (
-        'equals', 'not_equals', 'greater_than', 'greater_than_or_equal',
-        'less_than', 'less_than_or_equal'
-      ) or target_value !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
-        return false;
-      end if;
-      begin
-        target_date := target_value::date;
-        if target_date::text <> target_value
-          or target_date not between date '1900-01-01' and date '2100-12-31' then
+      if operator_name in ('year_equals', 'year_not_equals') then
+        if target_value !~ '^[0-9]{4}$'
+          or target_value::integer not between 1900 and 2100 then
           return false;
         end if;
-      exception when others then
-        return false;
-      end;
+      else
+        if operator_name not in (
+          'equals', 'not_equals', 'greater_than', 'greater_than_or_equal',
+          'less_than', 'less_than_or_equal'
+        ) or target_value !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
+          return false;
+        end if;
+        begin
+          target_date := target_value::date;
+          if target_date::text <> target_value
+            or target_date not between date '1900-01-01' and date '2100-12-31' then
+            return false;
+          end if;
+        exception when others then
+          return false;
+        end;
+      end if;
     end if;
     if field_name in ('full_name', 'phone') and operator_name not in (
       'equals', 'not_equals', 'starts_with', 'ends_with', 'contains'
@@ -240,7 +222,10 @@ begin
         when 'greater_than' then candidate.date_of_birth > target_value::date
         when 'greater_than_or_equal' then candidate.date_of_birth >= target_value::date
         when 'less_than' then candidate.date_of_birth < target_value::date
-        else candidate.date_of_birth <= target_value::date
+        when 'less_than_or_equal' then candidate.date_of_birth <= target_value::date
+        when 'year_equals' then extract(year from candidate.date_of_birth)::integer = target_value::integer
+        else candidate.date_of_birth is not null
+          and extract(year from candidate.date_of_birth)::integer <> target_value::integer
       end
       else case operator_name
         when 'equals' then lower(coalesce(text_value, '')) = lower(target_value)

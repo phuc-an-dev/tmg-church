@@ -104,6 +104,27 @@ const OPERATORS_BY_FIELD: Record<
   ],
 };
 
+const DATE_OF_BIRTH_COMPATIBILITY_OPERATORS: Array<{
+  value: Extract<
+    SegmentCondition["operator"],
+    "year_equals" | "year_not_equals"
+  >;
+  label: string;
+}> = [
+  { value: "year_equals", label: "Year equals" },
+  { value: "year_not_equals", label: "Year does not equal" },
+];
+
+function operatorOptions(condition: SegmentCondition) {
+  const options = OPERATORS_BY_FIELD[condition.field];
+  return condition.field === "date_of_birth" &&
+    DATE_OF_BIRTH_COMPATIBILITY_OPERATORS.some(
+      (option) => option.value === condition.operator,
+    )
+    ? [...options, ...DATE_OF_BIRTH_COMPATIBILITY_OPERATORS]
+    : options;
+}
+
 function ConditionDropdown<T extends string>({
   value,
   options,
@@ -527,7 +548,7 @@ export function SegmentDetailManagement({
               const field = CONDITION_FIELDS.find(
                 (item) => item.value === condition.field,
               )?.label;
-              const operator = OPERATORS_BY_FIELD[condition.field].find(
+              const operator = operatorOptions(condition).find(
                 (item) => item.value === condition.operator,
               )?.label;
               const value =
@@ -719,7 +740,7 @@ export function SegmentDetailManagement({
                         <ConditionDropdown
                           label={`Condition ${index + 1} operator`}
                           value={condition.operator}
-                          options={OPERATORS_BY_FIELD[condition.field]}
+                          options={operatorOptions(condition)}
                           onChange={(operator) =>
                             updateCondition(index, { operator })
                           }
@@ -740,17 +761,26 @@ export function SegmentDetailManagement({
                           <Input
                             aria-label={`Condition ${index + 1} value`}
                             type={
-                              condition.field === "date_of_birth"
+                              condition.field === "date_of_birth" &&
+                              !DATE_OF_BIRTH_COMPATIBILITY_OPERATORS.some(
+                                (option) => option.value === condition.operator,
+                              )
                                 ? "date"
                                 : "text"
                             }
                             min={
-                              condition.field === "date_of_birth"
+                              condition.field === "date_of_birth" &&
+                              !DATE_OF_BIRTH_COMPATIBILITY_OPERATORS.some(
+                                (option) => option.value === condition.operator,
+                              )
                                 ? "1900-01-01"
                                 : undefined
                             }
                             max={
-                              condition.field === "date_of_birth"
+                              condition.field === "date_of_birth" &&
+                              !DATE_OF_BIRTH_COMPATIBILITY_OPERATORS.some(
+                                (option) => option.value === condition.operator,
+                              )
                                 ? "2100-12-31"
                                 : undefined
                             }

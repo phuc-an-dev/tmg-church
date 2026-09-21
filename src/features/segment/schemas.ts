@@ -38,6 +38,8 @@ const conditionOperator = z.enum([
   "greater_than_or_equal",
   "less_than",
   "less_than_or_equal",
+  "year_equals",
+  "year_not_equals",
   "starts_with",
   "ends_with",
   "contains",
@@ -58,6 +60,10 @@ export const segmentConditionSchema = z
       "less_than",
       "less_than_or_equal",
     ]);
+    const compatibilityYearOperators = new Set([
+      "year_equals",
+      "year_not_equals",
+    ]);
     const textOperators = new Set([
       "equals",
       "not_equals",
@@ -68,7 +74,9 @@ export const segmentConditionSchema = z
     if (
       condition.field === "date_of_birth" &&
       (!numericOperators.has(condition.operator) ||
-        !isValidDateOfBirth(condition.value))
+        !isValidDateOfBirth(condition.value)) &&
+      (!compatibilityYearOperators.has(condition.operator) ||
+        !isValidCompatibilityYear(condition.value))
     ) {
       context.addIssue({
         code: "custom",
@@ -108,6 +116,12 @@ function isValidDateOfBirth(value: string) {
     date.getUTCFullYear() === Number(year) &&
     date.getUTCMonth() === Number(month) - 1 &&
     date.getUTCDate() === Number(day)
+  );
+}
+
+function isValidCompatibilityYear(value: string) {
+  return (
+    /^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= 2100
   );
 }
 export const segmentConditionsSchema = z.object({

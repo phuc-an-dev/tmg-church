@@ -21,4 +21,24 @@ describe("segmentConditionSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  test("accepts a migrated year_equals compatibility condition", () => {
+    expect(
+      segmentConditionSchema.safeParse({
+        field: "date_of_birth",
+        operator: "year_equals",
+        value: "2000",
+      }).success,
+    ).toBe(true);
+  });
+
+  test("rejects a compatibility operator with a full date value", () => {
+    expect(
+      segmentConditionSchema.safeParse({
+        field: "date_of_birth",
+        operator: "year_not_equals",
+        value: "2000-01-01",
+      }).success,
+    ).toBe(false);
+  });
 });

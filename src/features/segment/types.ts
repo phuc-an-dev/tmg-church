@@ -16,6 +16,8 @@ export type SegmentCondition = {
     | "greater_than_or_equal"
     | "less_than"
     | "less_than_or_equal"
+    | "year_equals"
+    | "year_not_equals"
     | "starts_with"
     | "ends_with"
     | "contains";
