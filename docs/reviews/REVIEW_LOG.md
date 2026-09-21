@@ -129,3 +129,7 @@ Result: applied successfully to production project `tmg-church` through migratio
 ## 2026-09-21: Admin overview landing
 
 Result: accepted after independent review. `/admin` is now a concise Master Admin/Admin seed-data overview, and the Member directory moved intact to `/admin/members`. Navigation, member-detail back links, and member mutation revalidation now use the new directory path. Direct local browser checks confirmed both routes; full test, lint, typecheck, format, diff, and production build checks passed. No authorization, database, hosted migration, or deployment changes were made.
+
+## 2026-09-21: Admin overview seed cards
+
+Result: accepted after independent review. Replaced the enclosing seed-data card with six mobile-first cards, each with an accessible ellipsis action that reveals a full-width navigation button; removed Quick access. Component tests cover all six ordered destinations. Full test, lint, typecheck, format, diff, and production build checks passed. No authorization, database, hosted migration, or deployment changes were made.
