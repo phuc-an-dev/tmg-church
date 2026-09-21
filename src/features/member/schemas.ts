@@ -77,3 +77,34 @@ export const setMinistryAssignmentsSchema = z.object({
       "Each department can only be selected once.",
     ),
 });
+
+export const importMemberItemSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(1, "Full name is required.")
+    .max(120, "Full name must be 120 characters or fewer."),
+  phone: z
+    .string()
+    .trim()
+    .max(30, "Phone number must be 30 characters or fewer.")
+    .nullable()
+    .optional(),
+  birthYear: z
+    .number()
+    .int("Enter a whole year.")
+    .min(1900, "Birth year must be 1900 or later.")
+    .max(2100, "Birth year must be 2100 or earlier.")
+    .nullable()
+    .optional(),
+  gender: z.enum(["female", "male"]).nullable().optional(),
+});
+
+export const importMembersSchema = z.object({
+  members: z
+    .array(importMemberItemSchema)
+    .min(1, "At least one member is required to import."),
+});
+
+export type ImportMemberItemInput = z.infer<typeof importMemberItemSchema>;
+export type ImportMembersInput = z.infer<typeof importMembersSchema>;

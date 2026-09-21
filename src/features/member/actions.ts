@@ -9,6 +9,7 @@ import {
   assignTermGroupSchema,
   createMemberSchema,
   enrollMemberWithAssignmentsSchema,
+  importMembersSchema,
   removeMinistryMembershipSchema,
   restoreMemberSchema,
   setMinistryAssignmentsSchema,
@@ -746,6 +747,169 @@ export async function setMinistryAssignmentsAction(
       error:
         "An unexpected error occurred while updating department assignments.",
       code: "UNKNOWN_ERROR",
+    };
+  }
+}
+
+export async function importMembersAction(rawInput: unknown): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+  data?: { importedCount: number; skippedCount: number };
+}> {
+  const ctx = await requireOperationalContext();
+  const church = ctx.church;
+
+  try {
+    const parsed = importMembersSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: "Invalid members data format. Please review the import file.",
+      };
+    }
+
+    const supabase = await createClient();
+
+    // Fetch existing phone numbers for active members in this church
+    const { data: existingRows, error: fetchError } = await supabase
+      .from("member_profile")
+      .select("phone, full_name")
+      .eq("church_id", church.id)
+      .is("archived_at", null);
+
+    if (fetchError) {
+      return {
+        success: false,
+        error: "Failed to check existing members.",
+      };
+    }
+
+    const existingPhones = new Set(
+      (existingRows ?? [])
+        .map((r) => r.phone)
+        .filter((p): p is string => Boolean(p)),
+    );
+
+    const candidates = parsed.data.members;
+    const toCreate: Array<{
+      fullName: string;
+      phone: string | null;
+      birthYear: number | null;
+      gender: "female" | "male" | null;
+    }> = [];
+
+    let skippedCount = 0;
+    const seenPhonesInBatch = new Set<string>();
+
+    for (const item of candidates) {
+      const normalizedPhone = item.phone
+        ? normalizePhoneNumber(item.phone)
+        : null;
+      if (normalizedPhone) {
+        if (
+          existingPhones.has(normalizedPhone) ||
+          seenPhonesInBatch.has(normalizedPhone)
+        ) {
+          skippedCount += 1;
+          continue;
+        }
+        seenPhonesInBatch.add(normalizedPhone);
+      }
+
+      toCreate.push({
+        fullName: item.fullName,
+        phone: normalizedPhone,
+        birthYear: item.birthYear ?? null,
+        gender: (item.gender as "female" | "male") || null,
+      });
+    }
+
+    if (toCreate.length === 0) {
+      return {
+        success: true,
+        message: "No new members were imported. All candidates already exist.",
+        data: { importedCount: 0, skippedCount },
+      };
+    }
+
+    // Insert each member
+    let importedCount = 0;
+    for (const member of toCreate) {
+      const { data, error } = await createMemberWithUniqueSlug({
+        churchId: church.id,
+        fullName: member.fullName,
+        phone: member.phone,
+        birthYear: member.birthYear,
+        gender: member.gender,
+      });
+      if (data && !error) {
+        importedCount += 1;
+      } else {
+        skippedCount += 1;
+      }
+    }
+
+    revalidatePath("/admin/members");
+    return {
+      success: true,
+      message: `Successfully imported ${importedCount} member${importedCount === 1 ? "" : "s"}.${skippedCount > 0 ? ` (${skippedCount} duplicates or invalid records skipped)` : ""}`,
+      data: { importedCount, skippedCount },
+    };
+  } catch {
+    return {
+      success: false,
+      error: "An unexpected error occurred while importing members.",
+    };
+  }
+}
+
+export async function exportAllMembersAction(): Promise<{
+  success: boolean;
+  data?: Array<{
+    id: string;
+    fullName: string;
+    phone: string | null;
+    birthYear: number | null;
+    gender: string | null;
+    createdAt: string;
+  }>;
+  error?: string;
+}> {
+  try {
+    const ctx = await requireOperationalContext();
+    const church = ctx.church;
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("member_profile")
+      .select("id, full_name, phone, birth_year, gender, created_at")
+      .eq("church_id", church.id)
+      .is("archived_at", null)
+      .order("full_name", { ascending: true });
+
+    if (error) {
+      return {
+        success: false,
+        error: "Failed to fetch members for export.",
+      };
+    }
+
+    return {
+      success: true,
+      data: (data ?? []).map((m) => ({
+        id: m.id,
+        fullName: m.full_name,
+        phone: m.phone,
+        birthYear: m.birth_year,
+        gender: m.gender,
+        createdAt: m.created_at,
+      })),
+    };
+  } catch {
+    return {
+      success: false,
+      error: "Failed to export members.",
     };
   }
 }

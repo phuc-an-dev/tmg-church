@@ -10,6 +10,8 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  Download,
+  FolderCog,
   Loader2,
   Pencil,
   Plus,
@@ -18,6 +20,7 @@ import {
   Search,
   SlidersHorizontal,
   Tags,
+  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -54,8 +57,14 @@ import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { IdentityTile } from "@/components/shared/identity-picker";
 import {
+  NavigationTabs,
+  NavigationTabButton,
+} from "@/components/shared/navigation-tabs";
+import {
   archiveMemberAction,
   createMemberAction,
+  exportAllMembersAction,
+  importMembersAction,
   restoreMemberAction,
   setMemberSegmentsAction,
   updateMemberAction,
@@ -321,7 +330,7 @@ function SortIcon({
   return <Icon className="size-3.5" aria-hidden="true" />;
 }
 
-function MemberCreator({
+function MemberManagerDrawer({
   open,
   onClose,
   onSuccess,
@@ -330,6 +339,9 @@ function MemberCreator({
   onClose: () => void;
   onSuccess: (message: string) => void;
 }) {
+  const [tab, setTab] = React.useState<"add" | "import" | "export">("add");
+
+  // Tab 1: Add Member Form state
   const [isSaving, setIsSaving] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<
@@ -340,7 +352,7 @@ function MemberCreator({
   const [birthYear, setBirthYear] = React.useState("");
   const [gender, setGender] = React.useState("");
 
-  const resetForm = () => {
+  const resetAddForm = () => {
     setFullName("");
     setPhone("");
     setBirthYear("");
@@ -349,7 +361,7 @@ function MemberCreator({
     setFieldErrors({});
   };
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleAddSubmit(event: React.FormEvent) {
     event.preventDefault();
     setIsSaving(true);
     setErrorMessage(null);
@@ -373,166 +385,738 @@ function MemberCreator({
     }
 
     setIsSaving(false);
-    resetForm();
+    resetAddForm();
     onSuccess(result.message);
   }
 
-  const footer = (
-    <>
+  // Tab 2: Import state
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [importFileName, setImportFileName] = React.useState<string | null>(
+    null,
+  );
+  const [importParsed, setImportParsed] = React.useState<{
+    valid: Array<{
+      fullName: string;
+      phone: string | null;
+      birthYear: number | null;
+      gender: "female" | "male" | null;
+    }>;
+    skipped: number;
+  }>({ valid: [], skipped: 0 });
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importError, setImportError] = React.useState<string | null>(null);
+
+  const resetImportState = () => {
+    setImportFileName(null);
+    setImportParsed({ valid: [], skipped: 0 });
+    setImportError(null);
+  };
+
+  const processImportRaw = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setImportParsed({ valid: [], skipped: 0 });
+      return;
+    }
+
+    const valid: Array<{
+      fullName: string;
+      phone: string | null;
+      birthYear: number | null;
+      gender: "female" | "male" | null;
+    }> = [];
+    let skipped = 0;
+
+    try {
+      // Check if JSON
+      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        const parsedJson = JSON.parse(trimmed);
+        const list = Array.isArray(parsedJson)
+          ? parsedJson
+          : Array.isArray(parsedJson.members)
+            ? parsedJson.members
+            : [];
+
+        for (const item of list) {
+          if (!item || typeof item !== "object") {
+            skipped += 1;
+            continue;
+          }
+          const name = String(
+            item.fullName ||
+              item.full_name ||
+              item.name ||
+              item.ten ||
+              item.ho_ten ||
+              "",
+          ).trim();
+          if (!name) {
+            skipped += 1;
+            continue;
+          }
+
+          const rawPhone = item.phone || item.sdt || item.so_dien_thoai || null;
+          const phone = rawPhone ? String(rawPhone).trim() : null;
+
+          const rawYear =
+            item.birthYear || item.birth_year || item.nam_sinh || null;
+          const yearNum = rawYear ? parseInt(String(rawYear), 10) : null;
+          const birthYear =
+            yearNum &&
+            !Number.isNaN(yearNum) &&
+            yearNum >= 1900 &&
+            yearNum <= 2100
+              ? yearNum
+              : null;
+
+          const rawGender = String(
+            item.gender || item.gioi_tinh || "",
+          ).toLowerCase();
+          const gender: "female" | "male" | null =
+            rawGender.includes("fe") ||
+            rawGender.includes("nữ") ||
+            rawGender === "f" ||
+            rawGender === "nu"
+              ? "female"
+              : rawGender.includes("ma") ||
+                  rawGender.includes("nam") ||
+                  rawGender === "m"
+                ? "male"
+                : null;
+
+          valid.push({ fullName: name, phone, birthYear, gender });
+        }
+
+        setImportParsed({ valid, skipped });
+        return;
+      }
+    } catch {
+      // Fallback to CSV
+    }
+
+    // Parse CSV / TSV
+    const lines = trimmed
+      .split(/[\r\n]+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      setImportParsed({ valid: [], skipped: 0 });
+      return;
+    }
+
+    // Check header row
+    const firstLineCols = lines[0].split(/[,;\t]/).map((c) =>
+      c
+        .replace(/^["']|["']$/g, "")
+        .trim()
+        .toLowerCase(),
+    );
+
+    const hasHeader = firstLineCols.some((col) =>
+      [
+        "fullname",
+        "full_name",
+        "name",
+        "tên",
+        "họ và tên",
+        "họ tên",
+        "ho ten",
+      ].includes(col),
+    );
+
+    let nameIdx = 0;
+    let phoneIdx = 1;
+    let yearIdx = 2;
+    let genderIdx = 3;
+
+    let startRow = 0;
+    if (hasHeader) {
+      startRow = 1;
+      const foundName = firstLineCols.findIndex((c) =>
+        [
+          "fullname",
+          "full_name",
+          "name",
+          "tên",
+          "họ và tên",
+          "họ tên",
+          "ho ten",
+        ].includes(c),
+      );
+      if (foundName !== -1) nameIdx = foundName;
+
+      const foundPhone = firstLineCols.findIndex((c) =>
+        ["phone", "sdt", "số điện thoại", "so dien thoai"].includes(c),
+      );
+      if (foundPhone !== -1) phoneIdx = foundPhone;
+
+      const foundYear = firstLineCols.findIndex((c) =>
+        ["birthyear", "birth_year", "năm sinh", "nam sinh", "year"].includes(c),
+      );
+      if (foundYear !== -1) yearIdx = foundYear;
+
+      const foundGender = firstLineCols.findIndex((c) =>
+        ["gender", "giới tính", "gioi tinh", "sex"].includes(c),
+      );
+      if (foundGender !== -1) genderIdx = foundGender;
+    }
+
+    for (let i = startRow; i < lines.length; i += 1) {
+      const cols = lines[i]
+        .split(/[,;\t]/)
+        .map((c) => c.replace(/^["']|["']$/g, "").trim());
+
+      const name = cols[nameIdx] ?? "";
+      if (!name) {
+        skipped += 1;
+        continue;
+      }
+
+      const rawPhone = cols[phoneIdx] ?? null;
+      const phone = rawPhone ? rawPhone.trim() : null;
+
+      const rawYear = cols[yearIdx] ?? null;
+      const yearNum = rawYear ? parseInt(rawYear, 10) : null;
+      const birthYear =
+        yearNum && !Number.isNaN(yearNum) && yearNum >= 1900 && yearNum <= 2100
+          ? yearNum
+          : null;
+
+      const rawGender = (cols[genderIdx] ?? "").toLowerCase();
+      const gender: "female" | "male" | null =
+        rawGender.includes("fe") ||
+        rawGender.includes("nữ") ||
+        rawGender === "f" ||
+        rawGender === "nu"
+          ? "female"
+          : rawGender.includes("ma") ||
+              rawGender.includes("nam") ||
+              rawGender === "m"
+            ? "male"
+            : null;
+
+      valid.push({ fullName: name, phone, birthYear, gender });
+    }
+
+    setImportParsed({ valid, skipped });
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setImportFileName(file.name);
+    setImportError(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = (e.target?.result as string) ?? "";
+      processImportRaw(text);
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  };
+
+  const handleImportSubmit = async () => {
+    if (importParsed.valid.length === 0) return;
+    setIsImporting(true);
+    setImportError(null);
+
+    const result = await importMembersAction({ members: importParsed.valid });
+    if (!result.success) {
+      setImportError(result.error ?? "Failed to import members.");
+      setIsImporting(false);
+      return;
+    }
+
+    setIsImporting(false);
+    resetImportState();
+    onSuccess(result.message ?? "Members imported successfully.");
+  };
+
+  // Tab 3: Export state
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const handleExportJson = async () => {
+    setIsExporting(true);
+    const result = await exportAllMembersAction();
+    setIsExporting(false);
+    if (!result.success || !result.data) {
+      setImportError(result.error ?? "Failed to export members.");
+      return;
+    }
+
+    const jsonString = JSON.stringify(result.data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tmg-church-members-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCsv = async () => {
+    setIsExporting(true);
+    const result = await exportAllMembersAction();
+    setIsExporting(false);
+    if (!result.success || !result.data) {
+      setImportError(result.error ?? "Failed to export members.");
+      return;
+    }
+
+    const headers = "Full Name,Phone,Birth Year,Gender\n";
+    const rows = result.data
+      .map(
+        (m) =>
+          `"${m.fullName.replace(/"/g, '""')}","${m.phone ?? ""}","${m.birthYear ?? ""}","${m.gender ?? ""}"`,
+      )
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + headers + rows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tmg-church-members-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const renderFooter = () => {
+    if (tab === "add") {
+      return (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving}
+            className="min-h-11 font-semibold"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-member-form"
+            disabled={isSaving || !fullName.trim()}
+            className="min-h-11 gap-2 font-semibold"
+          >
+            {isSaving ? (
+              <Loader2
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <Plus className="size-4" aria-hidden="true" />
+            )}
+            <span>{isSaving ? "Adding member..." : "Add member"}</span>
+          </Button>
+        </>
+      );
+    }
+
+    if (tab === "import") {
+      if (importParsed.valid.length > 0) {
+        return (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isImporting}
+              className="min-h-11 font-semibold"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isImporting}
+              onClick={handleImportSubmit}
+              className="min-h-11 gap-2 font-semibold"
+            >
+              {isImporting ? (
+                <Loader2
+                  className="size-4 animate-spin motion-reduce:animate-none"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Upload className="size-4" aria-hidden="true" />
+              )}
+              <span>
+                {isImporting
+                  ? "Importing..."
+                  : `Import ${importParsed.valid.length} Members`}
+              </span>
+            </Button>
+          </>
+        );
+      }
+
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          className="col-span-2 min-h-11 w-full font-semibold"
+        >
+          Cancel
+        </Button>
+      );
+    }
+
+    // tab === "export"
+    return (
       <Button
         type="button"
         variant="outline"
         onClick={onClose}
-        disabled={isSaving}
-        className="min-h-[44px]"
+        className="col-span-2 min-h-11 w-full font-semibold"
       >
         Cancel
       </Button>
-      <Button
-        type="submit"
-        form="create-member-form"
-        disabled={isSaving || !fullName.trim()}
-        className="min-h-[44px] gap-2"
-      >
-        {isSaving ? (
-          <Loader2
-            className="size-4 animate-spin motion-reduce:animate-none"
-            aria-hidden="true"
-          />
-        ) : (
-          <Plus className="size-4" aria-hidden="true" />
-        )}
-        <span>{isSaving ? "Adding member..." : "Add member"}</span>
-      </Button>
-    </>
-  );
+    );
+  };
 
   return (
     <ResponsiveEditor
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !isSaving) {
-          resetForm();
+        if (!nextOpen && !isSaving && !isImporting) {
+          resetAddForm();
+          resetImportState();
           onClose();
         }
       }}
-      title="Add Member"
-      description="Create a new member profile for TMG Church."
-      footer={footer}
+      title="Manage Members"
+      description="Add members manually, or import and export member profiles."
+      mobileMinHeightClass="min-h-[85dvh]"
+      maxWidthClass="sm:max-w-2xl"
+      footer={renderFooter()}
     >
-      <form
-        id="create-member-form"
-        onSubmit={handleSubmit}
-        noValidate
-        className="space-y-4 py-2"
-      >
-        {errorMessage && (
-          <div
-            role="alert"
-            className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+      <div className="space-y-6 pt-1 pb-4">
+        {/* Segmented Tab Navigation: 3 tabs */}
+        <NavigationTabs aria-label="Manage members options" className="w-full">
+          <NavigationTabButton
+            active={tab === "add"}
+            onClick={() => setTab("add")}
+            icon={Plus}
           >
-            {errorMessage}
+            Add Member
+          </NavigationTabButton>
+          <NavigationTabButton
+            active={tab === "import"}
+            onClick={() => setTab("import")}
+            icon={Upload}
+          >
+            Import
+          </NavigationTabButton>
+          <NavigationTabButton
+            active={tab === "export"}
+            onClick={() => setTab("export")}
+            icon={Download}
+          >
+            Export
+          </NavigationTabButton>
+        </NavigationTabs>
+
+        {/* TAB 1: ADD MEMBER */}
+        {tab === "add" && (
+          <form
+            id="create-member-form"
+            onSubmit={handleAddSubmit}
+            noValidate
+            className="space-y-4 py-1"
+          >
+            {errorMessage && (
+              <div
+                role="alert"
+                className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+              >
+                {errorMessage}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="create-member-full-name">
+                Full name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="create-member-full-name"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                disabled={isSaving}
+                placeholder="e.g. John Doe"
+                aria-invalid={Boolean(fieldErrors.fullName?.[0])}
+                aria-describedby={
+                  fieldErrors.fullName?.[0]
+                    ? "create-member-full-name-error"
+                    : undefined
+                }
+                className="h-11 text-base"
+                required
+              />
+              {fieldErrors.fullName?.[0] && (
+                <p
+                  id="create-member-full-name-error"
+                  role="alert"
+                  className="text-destructive text-xs"
+                >
+                  {fieldErrors.fullName[0]}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-member-phone">Phone</Label>
+              <Input
+                id="create-member-phone"
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                disabled={isSaving}
+                placeholder="e.g. +84 901 234 567"
+                autoComplete="tel"
+                aria-invalid={Boolean(fieldErrors.phone?.[0])}
+                aria-describedby={
+                  fieldErrors.phone?.[0]
+                    ? "create-member-phone-error"
+                    : undefined
+                }
+                className="h-11 text-base"
+              />
+              {fieldErrors.phone?.[0] && (
+                <p
+                  id="create-member-phone-error"
+                  role="alert"
+                  className="text-destructive text-xs"
+                >
+                  {fieldErrors.phone[0]}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-member-birth-year">Birth year</Label>
+              <Input
+                id="create-member-birth-year"
+                type="number"
+                inputMode="numeric"
+                min={1900}
+                max={2100}
+                placeholder="e.g. 1995"
+                value={birthYear}
+                onChange={(event) => setBirthYear(event.target.value)}
+                disabled={isSaving}
+                aria-invalid={Boolean(fieldErrors.birthYear?.[0])}
+                aria-describedby={
+                  fieldErrors.birthYear?.[0]
+                    ? "create-member-birth-year-error"
+                    : undefined
+                }
+                className="h-11 text-base"
+              />
+              {fieldErrors.birthYear?.[0] && (
+                <p
+                  id="create-member-birth-year-error"
+                  role="alert"
+                  className="text-destructive text-xs"
+                >
+                  {fieldErrors.birthYear[0]}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-member-gender">Gender</Label>
+              <GenderDropdown
+                id="create-member-gender"
+                value={gender}
+                onChange={setGender}
+                disabled={isSaving}
+              />
+            </div>
+          </form>
+        )}
+
+        {/* TAB 2: IMPORT */}
+        {tab === "import" && (
+          <div className="space-y-6">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,.csv,.txt"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="import-member-file-input"
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+
+            {/* Strategy Card */}
+            <div className="space-y-2">
+              <Label className="text-foreground text-sm font-medium">
+                Import Strategy
+              </Label>
+              <div className="border-border/80 bg-card rounded-2xl border p-4">
+                <p className="text-foreground text-sm font-semibold">
+                  Merge and append
+                </p>
+                <p className="text-muted-foreground mt-0.5 text-xs leading-normal">
+                  Adds new members to your church directory. Existing members
+                  with matching phone numbers are automatically skipped to
+                  prevent duplicates.
+                </p>
+              </div>
+            </div>
+
+            {/* File Upload Button */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="import-member-file-button"
+                className="text-foreground text-sm font-medium"
+              >
+                Source Data
+              </Label>
+              <Button
+                id="import-member-file-button"
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="border-border/80 bg-card hover:bg-muted/40 text-foreground min-h-12 w-full gap-2.5 rounded-2xl text-sm font-semibold shadow-xs"
+              >
+                <Upload className="size-4" aria-hidden="true" />
+                <span>
+                  {importFileName
+                    ? `Change file (${importFileName})`
+                    : "Choose File (.json, .csv)"}
+                </span>
+              </Button>
+              {importFileName && (
+                <p className="text-muted-foreground font-mono text-xs">
+                  Loaded file: {importFileName}
+                </p>
+              )}
+            </div>
+
+            {/* Error banner */}
+            {importError && (
+              <div
+                role="alert"
+                className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
+              >
+                {importError}
+              </div>
+            )}
+
+            {/* Parsed Preview */}
+            {importParsed.valid.length > 0 && (
+              <div className="bg-muted/30 space-y-2.5 rounded-xl border p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    {importParsed.valid.length} valid members detected
+                  </span>
+                  {importParsed.skipped > 0 && (
+                    <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                      {importParsed.skipped} invalid / empty rows skipped
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 flex max-h-44 flex-col gap-1.5 overflow-y-auto pt-1">
+                  {importParsed.valid.slice(0, 50).map((m, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-card text-foreground flex items-center justify-between rounded-lg border px-3 py-2 text-xs"
+                    >
+                      <span className="font-semibold">{m.fullName}</span>
+                      <div className="text-muted-foreground flex items-center gap-2 font-mono text-[11px]">
+                        {m.gender && (
+                          <span className="capitalize">{m.gender}</span>
+                        )}
+                        {m.birthYear && <span>{m.birthYear}</span>}
+                        {m.phone && <span>{m.phone}</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {importParsed.valid.length > 50 && (
+                    <p className="text-muted-foreground py-1 text-center text-xs">
+                      + {importParsed.valid.length - 50} more members
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="create-member-full-name">
-            Full name <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="create-member-full-name"
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
-            disabled={isSaving}
-            placeholder="e.g. John Doe"
-            aria-invalid={Boolean(fieldErrors.fullName?.[0])}
-            aria-describedby={
-              fieldErrors.fullName?.[0]
-                ? "create-member-full-name-error"
-                : undefined
-            }
-            className="h-11"
-            required
-          />
-          {fieldErrors.fullName?.[0] && (
-            <p
-              id="create-member-full-name-error"
-              role="alert"
-              className="text-destructive text-xs"
-            >
-              {fieldErrors.fullName[0]}
-            </p>
-          )}
-        </div>
+        {/* TAB 3: EXPORT */}
+        {tab === "export" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-foreground text-sm font-medium">
+                Export Format
+              </Label>
+              <div className="space-y-3">
+                <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground text-sm font-semibold">
+                      JSON Format
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      Structured backup with full member directory and profiles.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleExportJson}
+                    disabled={isExporting}
+                    className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
+                  >
+                    {isExporting ? (
+                      <Loader2
+                        className="size-4 animate-spin motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Download className="size-4" aria-hidden="true" />
+                    )}
+                    <span>Export JSON</span>
+                  </Button>
+                </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="create-member-phone">Phone</Label>
-          <Input
-            id="create-member-phone"
-            type="tel"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            disabled={isSaving}
-            placeholder="e.g. +84 901 234 567"
-            autoComplete="tel"
-            aria-invalid={Boolean(fieldErrors.phone?.[0])}
-            aria-describedby={
-              fieldErrors.phone?.[0] ? "create-member-phone-error" : undefined
-            }
-            className="h-11"
-          />
-          {fieldErrors.phone?.[0] && (
-            <p
-              id="create-member-phone-error"
-              role="alert"
-              className="text-destructive text-xs"
-            >
-              {fieldErrors.phone[0]}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="create-member-birth-year">Birth year</Label>
-          <Input
-            id="create-member-birth-year"
-            type="number"
-            inputMode="numeric"
-            min={1900}
-            max={2100}
-            placeholder="e.g. 1995"
-            value={birthYear}
-            onChange={(event) => setBirthYear(event.target.value)}
-            disabled={isSaving}
-            aria-invalid={Boolean(fieldErrors.birthYear?.[0])}
-            aria-describedby={
-              fieldErrors.birthYear?.[0]
-                ? "create-member-birth-year-error"
-                : undefined
-            }
-            className="h-11"
-          />
-          {fieldErrors.birthYear?.[0] && (
-            <p
-              id="create-member-birth-year-error"
-              role="alert"
-              className="text-destructive text-xs"
-            >
-              {fieldErrors.birthYear[0]}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="create-member-gender">Gender</Label>
-          <GenderDropdown
-            id="create-member-gender"
-            value={gender}
-            onChange={setGender}
-            disabled={isSaving}
-          />
-        </div>
-      </form>
+                <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground text-sm font-semibold">
+                      CSV Format (Excel)
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      Spreadsheet-ready list (Name, Phone, Birth Year, Gender)
+                      with UTF-8 BOM encoding.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleExportCsv}
+                    disabled={isExporting}
+                    className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
+                  >
+                    {isExporting ? (
+                      <Loader2
+                        className="size-4 animate-spin motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Download className="size-4" aria-hidden="true" />
+                    )}
+                    <span>Export CSV</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </ResponsiveEditor>
   );
 }
@@ -1360,9 +1944,12 @@ export function MemberManagement({
         />
       </section>
 
-      {/* Floating Add Member Button */}
-      <FloatingCreateButton onClick={() => setIsCreating(true)}>
-        Add Member
+      {/* Floating Manage Members Button */}
+      <FloatingCreateButton
+        onClick={() => setIsCreating(true)}
+        icon={<FolderCog aria-hidden="true" className="size-5" />}
+      >
+        Manage Members
       </FloatingCreateButton>
 
       {/* Mobile Filter & Sort Sheet */}
@@ -1678,8 +2265,8 @@ export function MemberManagement({
         </SheetContent>
       </Sheet>
 
-      {/* Create Member Dialog */}
-      <MemberCreator
+      {/* Manage Members Drawer */}
+      <MemberManagerDrawer
         open={isCreating}
         onClose={() => setIsCreating(false)}
         onSuccess={(message) => {
