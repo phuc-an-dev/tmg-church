@@ -20,8 +20,6 @@ const seedSteps = [
     id: "church-settings",
     title: "1. Church settings",
     actionLabel: "Church settings",
-    description:
-      "Review the Church profile and sensitive administration settings.",
     href: "/admin/church",
     icon: Building2,
   },
@@ -29,7 +27,6 @@ const seedSteps = [
     id: "ministries-and-terms",
     title: "2. Ministries and terms",
     actionLabel: "Ministries and terms",
-    description: "Create a Ministry, then create and activate its Term.",
     href: "/admin/ministries",
     icon: Layers3,
   },
@@ -37,7 +34,6 @@ const seedSteps = [
     id: "members",
     title: "3. Members",
     actionLabel: "Members",
-    description: "Create member profiles and enroll members in an active Term.",
     href: "/admin/members",
     icon: Users,
   },
@@ -45,7 +41,6 @@ const seedSteps = [
     id: "groups-and-departments",
     title: "4. Groups and departments",
     actionLabel: "Groups and departments",
-    description: "Create the Term structure, then assign enrolled members.",
     href: "/admin/ministries",
     icon: UsersRound,
   },
@@ -53,8 +48,6 @@ const seedSteps = [
     id: "leadership-roles",
     title: "5. Leadership roles",
     actionLabel: "Leadership roles",
-    description:
-      "Assign Ministry roles and Group leadership from the relevant Term.",
     href: "/admin/ministries",
     icon: ShieldCheck,
   },
@@ -62,8 +55,6 @@ const seedSteps = [
     id: "sessions-and-assignments",
     title: "6. Sessions and assignments",
     actionLabel: "Sessions and assignments",
-    description:
-      "Create sessions, record attendance, and assign service roles.",
     href: "/admin/sessions",
     icon: CalendarDays,
   },
@@ -74,69 +65,70 @@ export function AdminSeedStepCards() {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {seedSteps.map(
-        ({ id, title, actionLabel, description, href, icon: Icon }) => {
-          const isOpen = openStepId === id;
+      {seedSteps.map(({ id, title, actionLabel, href, icon: Icon }) => {
+        const isOpen = openStepId === id;
 
-          return (
-            <article
-              key={id}
-              className="bg-card rounded-2xl border p-4 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] sm:p-5"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="bg-primary/10 text-primary flex size-11 shrink-0 items-center justify-center rounded-2xl">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 pt-0.5">
-                    <h2 className="text-base font-semibold">{title}</h2>
-                    <p className="text-muted-foreground mt-1 text-sm leading-6">
-                      {description}
-                    </p>
-                  </div>
+        return (
+          <article
+            key={id}
+            className="bg-card rounded-2xl border p-4 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] sm:p-5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <span className="border-primary/20 bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl border">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base font-semibold">{title}</h2>
                 </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={
+                  isOpen
+                    ? `Hide actions for ${actionLabel}`
+                    : `Show actions for ${actionLabel}`
+                }
+                aria-expanded={isOpen}
+                aria-controls={`seed-step-actions-${id}`}
+                onClick={() =>
+                  setOpenStepId((current) => (current === id ? null : id))
+                }
+                className={cn(
+                  "size-11 min-h-11 min-w-11 shrink-0 rounded-xl",
+                  isOpen && "bg-muted text-foreground",
+                )}
+                data-interactive="true"
+              >
+                <Ellipsis className="size-5" aria-hidden="true" />
+              </Button>
+            </div>
+
+            {isOpen && (
+              <div
+                id={`seed-step-actions-${id}`}
+                role="region"
+                aria-label={`Actions for ${actionLabel}`}
+                className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
+              >
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={
-                    isOpen
-                      ? `Hide actions for ${actionLabel}`
-                      : `Show actions for ${actionLabel}`
-                  }
-                  aria-expanded={isOpen}
-                  aria-controls={`seed-step-actions-${id}`}
-                  onClick={() =>
-                    setOpenStepId((current) => (current === id ? null : id))
-                  }
-                  className={cn(
-                    "size-11 min-h-11 min-w-11 shrink-0 rounded-xl",
-                    isOpen && "bg-muted text-foreground",
-                  )}
+                  asChild
+                  variant="outline"
+                  className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                  data-interactive="true"
                 >
-                  <Ellipsis className="size-5" aria-hidden="true" />
+                  <Link href={href}>
+                    <span>Open {actionLabel}</span>
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
                 </Button>
               </div>
-
-              {isOpen && (
-                <div
-                  id={`seed-step-actions-${id}`}
-                  role="region"
-                  aria-label={`Actions for ${actionLabel}`}
-                  className="border-border/70 animate-in fade-in-0 mt-4 border-t pt-4 duration-150 motion-reduce:animate-none"
-                >
-                  <Button asChild variant="outline" className="min-h-11 w-full">
-                    <Link href={href}>
-                      Open {actionLabel}
-                      <ArrowRight className="size-4" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </article>
-          );
-        },
-      )}
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }

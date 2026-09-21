@@ -15,10 +15,7 @@ export default async function AdminIconsPage() {
 
   return (
     <AdminPageContainer>
-      <AdminPageHeader
-        title="Icon Management"
-        description="Manage frequently used Lucide icons shared across all administrators."
-      />
+      <AdminPageHeader title="Icon Management" />
       <IconManagement frequentIcons={frequentIcons} />
     </AdminPageContainer>
   );

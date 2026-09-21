@@ -22,8 +22,27 @@ export const reorderFrequentIconsSchema = z.object({
   orderedIds: z.array(z.string().uuid("Invalid icon identifier.")).min(1),
 });
 
+export const importFrequentIconsSchema = z.object({
+  names: z
+    .array(
+      z
+        .string()
+        .trim()
+        .toLowerCase()
+        .regex(
+          iconNameRegex,
+          "Icon name must be a valid kebab-case Lucide identifier.",
+        ),
+    )
+    .min(1, "At least one valid icon name is required."),
+  mode: z.enum(["merge", "replace"]),
+});
+
 export type AddFrequentIconInput = z.infer<typeof addFrequentIconSchema>;
 export type RemoveFrequentIconInput = z.infer<typeof removeFrequentIconSchema>;
 export type ReorderFrequentIconsInput = z.infer<
   typeof reorderFrequentIconsSchema
+>;
+export type ImportFrequentIconsInput = z.infer<
+  typeof importFrequentIconsSchema
 >;

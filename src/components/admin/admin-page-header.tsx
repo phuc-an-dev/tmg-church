@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 interface AdminPageHeaderProps {
   title: string;
-  description: string;
+  description?: string;
   action?: ReactNode;
   backLink?: {
     href: string;
@@ -35,9 +35,11 @@ export function AdminPageHeader({
         <h1 className="text-foreground text-3xl font-bold tracking-tight sm:text-4xl">
           {title}
         </h1>
-        <p className="text-muted-foreground max-w-2xl text-sm leading-6 sm:text-base">
-          {description}
-        </p>
+        {description && (
+          <p className="text-muted-foreground max-w-2xl text-sm leading-6 sm:text-base">
+            {description}
+          </p>
+        )}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
