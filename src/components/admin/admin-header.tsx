@@ -16,11 +16,19 @@ import {
 interface AdminHeaderProps {
   activeChurch: { name: string; slug: string } | null;
   userEmail: string;
+  isMasterAdmin?: boolean;
 }
 
-export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
+export function AdminHeader({
+  activeChurch,
+  userEmail,
+  isMasterAdmin = false,
+}: AdminHeaderProps) {
   const pathname = usePathname();
-  const navigationItems = getAdminNavigationItems(Boolean(activeChurch));
+  const navigationItems = getAdminNavigationItems(
+    Boolean(activeChurch),
+    isMasterAdmin,
+  );
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
 
@@ -57,7 +65,10 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
               <Menu className="size-5" aria-hidden="true" />
             </Button>
             <div className="hidden items-center md:flex">
-              <AdminAccountMenu email={userEmail} />
+              <AdminAccountMenu
+                email={userEmail}
+                isMasterAdmin={isMasterAdmin}
+              />
             </div>
           </div>
         </div>
@@ -95,6 +106,7 @@ export function AdminHeader({ activeChurch, userEmail }: AdminHeaderProps) {
         onOpenChange={setSidebarOpen}
         activeChurch={activeChurch}
         userEmail={userEmail}
+        isMasterAdmin={isMasterAdmin}
         triggerRef={triggerRef}
       />
     </>

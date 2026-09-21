@@ -19,11 +19,15 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 
 interface AdminAccountMenuProps {
   email: string;
+  isMasterAdmin?: boolean;
 }
 
 const emptySubscribe = () => () => {};
 
-export function AdminAccountMenu({ email }: AdminAccountMenuProps) {
+export function AdminAccountMenu({
+  email,
+  isMasterAdmin = false,
+}: AdminAccountMenuProps) {
   const { setTheme, theme } = useTheme();
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
@@ -52,7 +56,9 @@ export function AdminAccountMenu({ email }: AdminAccountMenuProps) {
 
       <DropdownMenuContent align="end" className="w-72 rounded-xl p-2.5">
         <DropdownMenuLabel className="px-3 py-2 font-normal">
-          <p className="text-foreground text-sm font-semibold">Admin account</p>
+          <p className="text-foreground text-sm font-semibold">
+            {isMasterAdmin ? "Master Admin" : "Admin account"}
+          </p>
           <p className="text-muted-foreground mt-0.5 truncate text-xs">
             {email}
           </p>

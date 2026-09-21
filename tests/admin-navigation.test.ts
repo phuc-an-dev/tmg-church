@@ -32,4 +32,22 @@ describe("admin navigation", () => {
       ),
     ).toBe(false);
   });
+
+  it("includes Church in navigation when logged in as master admin", () => {
+    const adminItems = getAdminNavigationItems(true, false);
+    expect(adminItems.find((item) => item.label === "Church")).toBeUndefined();
+
+    const masterAdminItems = getAdminNavigationItems(true, true);
+    const churchItem = masterAdminItems.find((item) => item.label === "Church");
+    expect(churchItem).toBeDefined();
+    expect(churchItem?.href).toBe("/admin/church");
+
+    expect(
+      isAdminNavigationItemActive(
+        "/admin/church/advanced",
+        "/admin/church",
+        false,
+      ),
+    ).toBe(true);
+  });
 });

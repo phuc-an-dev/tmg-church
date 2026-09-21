@@ -54,15 +54,30 @@ const CHURCH_SETUP_NAVIGATION_ITEM = {
   exact: false,
 } as const;
 
+const CHURCH_NAVIGATION_ITEM = {
+  href: "/admin/church",
+  label: "Church",
+  icon: Church,
+  exact: false,
+} as const;
+
 /**
- * Church setup is onboarding, not an operational context selector. Once the
- * singleton church exists, every area automatically uses it and the setup
- * destination stays out of day-to-day navigation.
+ * Church setup is onboarding for unconfigured churches. Once configured,
+ * the Church destination is accessible to Master Admins in day-to-day navigation.
  */
-export function getAdminNavigationItems(hasConfiguredChurch: boolean) {
-  return hasConfiguredChurch
-    ? CORE_ADMIN_NAVIGATION_ITEMS
-    : [CHURCH_SETUP_NAVIGATION_ITEM, ...CORE_ADMIN_NAVIGATION_ITEMS];
+export function getAdminNavigationItems(
+  hasConfiguredChurch: boolean,
+  isMasterAdmin: boolean = false,
+) {
+  if (!hasConfiguredChurch) {
+    return [CHURCH_SETUP_NAVIGATION_ITEM, ...CORE_ADMIN_NAVIGATION_ITEMS];
+  }
+
+  if (isMasterAdmin) {
+    return [...CORE_ADMIN_NAVIGATION_ITEMS, CHURCH_NAVIGATION_ITEM];
+  }
+
+  return CORE_ADMIN_NAVIGATION_ITEMS;
 }
 
 export function isAdminNavigationItemActive(

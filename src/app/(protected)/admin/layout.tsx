@@ -26,9 +26,15 @@ export default async function ProtectedAdminLayout({
       ? { name: churchState.church.name, slug: churchState.church.slug }
       : null;
 
+  const isMasterAdmin = auth.systemRole.role === "master_admin";
+
   return (
     <div className="admin-canvas flex min-h-screen flex-col">
-      <AdminHeader activeChurch={activeChurch} userEmail={auth.email} />
+      <AdminHeader
+        activeChurch={activeChurch}
+        userEmail={auth.email}
+        isMasterAdmin={isMasterAdmin}
+      />
       <main className="flex-1">{children}</main>
     </div>
   );

@@ -26,6 +26,7 @@ interface MobileAdminSidebarProps {
   onOpenChange: (open: boolean) => void;
   activeChurch: { name: string; slug: string } | null;
   userEmail: string;
+  isMasterAdmin?: boolean;
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
@@ -36,6 +37,7 @@ export function MobileAdminSidebar({
   onOpenChange,
   activeChurch,
   userEmail,
+  isMasterAdmin = false,
   triggerRef,
 }: MobileAdminSidebarProps) {
   const pathname = usePathname();
@@ -67,7 +69,10 @@ export function MobileAdminSidebar({
   }, [onOpenChange]);
 
   const initial = userEmail.trim().charAt(0).toUpperCase() || "A";
-  const navigationItems = getAdminNavigationItems(Boolean(activeChurch));
+  const navigationItems = getAdminNavigationItems(
+    Boolean(activeChurch),
+    isMasterAdmin,
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -152,7 +157,7 @@ export function MobileAdminSidebar({
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-foreground text-xs font-semibold">
-                Admin account
+                {isMasterAdmin ? "Master Admin" : "Admin account"}
               </p>
               <p className="text-muted-foreground truncate text-xs">
                 {userEmail}
