@@ -53,7 +53,7 @@ async function createMemberWithUniqueSlug(input: {
   churchId: string;
   fullName: string;
   phone: string | null;
-  birthYear: number | null;
+  dateOfBirth: string | null;
   gender: "female" | "male" | null;
 }) {
   const supabase = await createClient();
@@ -66,10 +66,10 @@ async function createMemberWithUniqueSlug(input: {
         slug,
         full_name: input.fullName,
         phone: input.phone,
-        birth_year: input.birthYear,
+        date_of_birth: input.dateOfBirth,
         gender: input.gender,
       })
-      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
       .single();
     if (
       !result.error ||
@@ -103,12 +103,12 @@ export async function createMemberAction(
       };
     }
 
-    const { fullName, phone, birthYear, gender } = parsed.data;
+    const { fullName, phone, dateOfBirth, gender } = parsed.data;
     const { data, error } = await createMemberWithUniqueSlug({
       churchId: church.id,
       fullName,
       phone: normalizePhoneNumber(phone),
-      birthYear,
+      dateOfBirth: dateOfBirth ?? null,
       gender: gender ?? null,
     });
 
@@ -129,7 +129,7 @@ export async function createMemberAction(
         slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
-        birthYear: data.birth_year,
+        dateOfBirth: data.date_of_birth,
         gender: data.gender,
         archivedAt: data.archived_at,
       },
@@ -167,18 +167,18 @@ export async function updateMemberAction(
     }
 
     const supabase = await createClient();
-    const { id, fullName, phone, birthYear, gender } = parsed.data;
+    const { id, fullName, phone, dateOfBirth, gender } = parsed.data;
     const { data, error } = await supabase
       .from("member_profile")
       .update({
         full_name: fullName,
         phone: normalizePhoneNumber(phone),
-        birth_year: birthYear,
+        date_of_birth: dateOfBirth ?? null,
         ...(gender === undefined ? {} : { gender }),
       })
       .eq("id", id)
       .eq("church_id", church.id)
-      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -206,7 +206,7 @@ export async function updateMemberAction(
         slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
-        birthYear: data.birth_year,
+        dateOfBirth: data.date_of_birth,
         gender: data.gender,
         archivedAt: data.archived_at,
       },
@@ -245,7 +245,7 @@ export async function archiveMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .is("archived_at", null)
-      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -273,7 +273,7 @@ export async function archiveMemberAction(
         slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
-        birthYear: data.birth_year,
+        dateOfBirth: data.date_of_birth,
         gender: data.gender,
         archivedAt: data.archived_at,
       },
@@ -312,7 +312,7 @@ export async function restoreMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .not("archived_at", "is", null)
-      .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
       .maybeSingle();
 
     if (error) {
@@ -340,7 +340,7 @@ export async function restoreMemberAction(
         slug: data.slug,
         fullName: data.full_name,
         phone: data.phone,
-        birthYear: data.birth_year,
+        dateOfBirth: data.date_of_birth,
         gender: data.gender,
         archivedAt: data.archived_at,
       },
@@ -795,7 +795,7 @@ export async function importMembersAction(rawInput: unknown): Promise<{
     const toCreate: Array<{
       fullName: string;
       phone: string | null;
-      birthYear: number | null;
+      dateOfBirth: string | null;
       gender: "female" | "male" | null;
     }> = [];
 
@@ -820,7 +820,7 @@ export async function importMembersAction(rawInput: unknown): Promise<{
       toCreate.push({
         fullName: item.fullName,
         phone: normalizedPhone,
-        birthYear: item.birthYear ?? null,
+        dateOfBirth: item.dateOfBirth ?? null,
         gender: (item.gender as "female" | "male") || null,
       });
     }
@@ -840,7 +840,7 @@ export async function importMembersAction(rawInput: unknown): Promise<{
         churchId: church.id,
         fullName: member.fullName,
         phone: member.phone,
-        birthYear: member.birthYear,
+        dateOfBirth: member.dateOfBirth,
         gender: member.gender,
       });
       if (data && !error) {
@@ -870,7 +870,8 @@ export async function exportAllMembersAction(): Promise<{
     id: string;
     fullName: string;
     phone: string | null;
-    birthYear: number | null;
+    dateOfBirth: string | null;
+    birthYear?: number | null;
     gender: string | null;
     createdAt: string;
   }>;
@@ -883,7 +884,7 @@ export async function exportAllMembersAction(): Promise<{
 
     const { data, error } = await supabase
       .from("member_profile")
-      .select("id, full_name, phone, birth_year, gender, created_at")
+      .select("id, full_name, phone, date_of_birth, gender, created_at")
       .eq("church_id", church.id)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -901,7 +902,7 @@ export async function exportAllMembersAction(): Promise<{
         id: m.id,
         fullName: m.full_name,
         phone: m.phone,
-        birthYear: m.birth_year,
+        dateOfBirth: m.date_of_birth,
         gender: m.gender,
         createdAt: m.created_at,
       })),

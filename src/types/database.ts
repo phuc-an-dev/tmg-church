@@ -312,6 +312,7 @@ export type Database = {
           birth_year: number | null;
           church_id: string;
           created_at: string;
+          date_of_birth: string | null;
           email: string | null;
           full_name: string;
           gender: string | null;
@@ -326,6 +327,7 @@ export type Database = {
           birth_year?: number | null;
           church_id: string;
           created_at?: string;
+          date_of_birth?: string | null;
           email?: string | null;
           full_name: string;
           gender?: string | null;
@@ -340,6 +342,7 @@ export type Database = {
           birth_year?: number | null;
           church_id?: string;
           created_at?: string;
+          date_of_birth?: string | null;
           email?: string | null;
           full_name?: string;
           gender?: string | null;
@@ -1263,6 +1266,7 @@ export type Database = {
           church_id: string | null;
           church_name: string | null;
           church_slug: string | null;
+          date_of_birth: string | null;
           department_ids: string[] | null;
           department_names: string[] | null;
           full_name: string | null;

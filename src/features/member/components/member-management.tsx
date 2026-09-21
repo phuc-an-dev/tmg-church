@@ -81,7 +81,7 @@ interface MemberManagementProps {
   segments: SegmentItem[];
 }
 
-type SortColumn = "full_name" | "birth_year";
+type SortColumn = "full_name" | "date_of_birth";
 
 const MEMBER_STATUS_CHOICES = [
   { value: "active", label: "Active" },
@@ -92,8 +92,8 @@ const MEMBER_STATUS_CHOICES = [
 const MEMBER_SORT_CHOICES = [
   { value: "full_name-asc", label: "Name: A to Z" },
   { value: "full_name-desc", label: "Name: Z to A" },
-  { value: "birth_year-asc", label: "Birth year: oldest" },
-  { value: "birth_year-desc", label: "Birth year: youngest" },
+  { value: "date_of_birth-asc", label: "Birth year: oldest" },
+  { value: "date_of_birth-desc", label: "Birth year: youngest" },
 ];
 
 const ALL_SEGMENTS_VALUE = "all-segments";
@@ -1493,7 +1493,7 @@ export function MemberManagement({
     if (rawQ === "") patch.q = "";
     if (
       rawSort !== null &&
-      !(["full_name", "birth_year"] as const).includes(rawSort as SortColumn)
+      !(["full_name", "date_of_birth"] as const).includes(rawSort as SortColumn)
     ) {
       patch.sort = "full_name";
     }
@@ -1810,12 +1810,12 @@ export function MemberManagement({
                     <div role="columnheader">
                       <button
                         type="button"
-                        onClick={() => updateSort("birth_year")}
+                        onClick={() => updateSort("date_of_birth")}
                         className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
                       >
                         Birth year
                         <SortIcon
-                          active={query.sort === "birth_year"}
+                          active={query.sort === "date_of_birth"}
                           order={query.order}
                         />
                       </button>

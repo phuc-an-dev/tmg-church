@@ -35,7 +35,7 @@ function toMemberItem(row: {
   slug: string;
   full_name: string;
   phone: string | null;
-  birth_year: number | null;
+  date_of_birth: string | null;
   gender: string | null;
   archived_at: string | null;
 }): MemberItem {
@@ -44,7 +44,7 @@ function toMemberItem(row: {
     slug: row.slug,
     fullName: row.full_name,
     phone: row.phone,
-    birthYear: row.birth_year,
+    dateOfBirth: row.date_of_birth,
     gender: row.gender,
     archivedAt: row.archived_at,
     segmentIds: [],
@@ -53,7 +53,7 @@ function toMemberItem(row: {
 
 export async function getMembers(params: {
   q: string;
-  sort: "full_name" | "birth_year";
+  sort: "full_name" | "date_of_birth";
   order: "asc" | "desc";
   status?: "active" | "archived" | "all";
   segmentSlug?: string;
@@ -120,7 +120,7 @@ export async function getMembers(params: {
 
   let query = supabase
     .from("member_profile")
-    .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+    .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
     .eq("church_id", church.id);
 
   if (status === "active") {
@@ -184,7 +184,7 @@ export async function getMemberForEdit(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("member_profile")
-    .select("id, slug, full_name, phone, birth_year, gender, archived_at")
+    .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
     .eq("slug", memberSlug)
     .eq("church_id", ctx.church.id)
     .maybeSingle();
@@ -209,7 +209,7 @@ export async function getMemberDetail(
   const { data: profileRow, error: profileError } = await supabase
     .from("member_profile")
     .select(
-      "id, slug, full_name, phone, birth_year, gender, archived_at, created_at, updated_at",
+      "id, slug, full_name, phone, date_of_birth, gender, archived_at, created_at, updated_at",
     )
     .eq("slug", memberSlug)
     .eq("church_id", church.id)
@@ -224,7 +224,7 @@ export async function getMemberDetail(
     slug: profileRow.slug,
     fullName: profileRow.full_name,
     phone: profileRow.phone,
-    birthYear: profileRow.birth_year,
+    dateOfBirth: profileRow.date_of_birth,
     gender: profileRow.gender,
     archivedAt: profileRow.archived_at,
     createdAt: profileRow.created_at,

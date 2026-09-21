@@ -5,7 +5,8 @@ export interface MemberItem {
   slug: string;
   fullName: string;
   phone: string | null;
-  birthYear: number | null;
+  dateOfBirth: string | null;
+  birthYear?: number | null;
   gender: string | null;
   archivedAt: string | null;
   segmentIds?: string[];

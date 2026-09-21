@@ -2,6 +2,27 @@ import { z } from "zod";
 
 export const memberIdSchema = z.string().uuid("Invalid member ID.");
 
+const dateOfBirthSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date (YYYY-MM-DD).")
+  .refine((value) => {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    );
+  }, "Enter a real calendar date.")
+  .refine((value) => value >= "1900-01-01", "Birth date must be 1900 or later.")
+  .refine(
+    (value) => value <= new Date().toISOString().slice(0, 10),
+    "Birth date cannot be in the future.",
+  )
+  .nullable()
+  .optional();
+
 export const createMemberSchema = z.object({
   fullName: z
     .string()
@@ -12,12 +33,7 @@ export const createMemberSchema = z.object({
     .string()
     .trim()
     .max(30, "Phone number must be 30 characters or fewer."),
-  birthYear: z
-    .number()
-    .int("Enter a whole year.")
-    .min(1900, "Birth year must be 1900 or later.")
-    .max(2100, "Birth year must be 2100 or earlier.")
-    .nullable(),
+  dateOfBirth: dateOfBirthSchema,
   gender: z.enum(["female", "male"]).nullable().optional(),
 });
 
@@ -90,13 +106,7 @@ export const importMemberItemSchema = z.object({
     .max(30, "Phone number must be 30 characters or fewer.")
     .nullable()
     .optional(),
-  birthYear: z
-    .number()
-    .int("Enter a whole year.")
-    .min(1900, "Birth year must be 1900 or later.")
-    .max(2100, "Birth year must be 2100 or earlier.")
-    .nullable()
-    .optional(),
+  dateOfBirth: dateOfBirthSchema,
   gender: z.enum(["female", "male"]).nullable().optional(),
 });
 
