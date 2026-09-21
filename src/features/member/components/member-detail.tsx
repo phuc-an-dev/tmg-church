@@ -413,7 +413,7 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
           title="Member Details"
           description="Profile overview and ministry term enrollments."
           backLink={{
-            href: "/admin",
+            href: "/admin/members",
             label: "Members",
           }}
         />

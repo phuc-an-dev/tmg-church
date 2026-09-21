@@ -37,7 +37,7 @@ async function uniqueMemberSlug(churchId: string, fullName: string) {
 }
 
 async function revalidateMemberPaths(churchId: string, memberId: string) {
-  revalidatePath("/admin");
+  revalidatePath("/admin/members");
   const supabase = await createClient();
   const { data } = await supabase
     .from("member_profile")

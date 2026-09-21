@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   Church,
+  LayoutDashboard,
   Layers3,
   Sparkles,
   Tags,
@@ -10,9 +11,15 @@ import {
 const CORE_ADMIN_NAVIGATION_ITEMS = [
   {
     href: "/admin",
+    label: "Overview",
+    icon: LayoutDashboard,
+    exact: true,
+  },
+  {
+    href: "/admin/members",
     label: "Members",
     icon: Users,
-    exact: true,
+    exact: false,
   },
   {
     href: "/admin/ministries",

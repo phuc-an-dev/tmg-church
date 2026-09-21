@@ -125,3 +125,7 @@ Result: accepted locally after independent security review. Added member Departm
 ## 2026-09-18: Hosted authorization migration
 
 Result: applied successfully to production project `tmg-church` through migration `20260918000008`. The migration required a safe production backfill for legacy Department names (`Ban Kỹ Thuật` mapped to `worship`) and dynamic Master Admin bootstrap identity resolution; both changes were tested locally before retrying. Production verification confirmed all 32 migrations are recorded, fixed Department codes are populated, and exactly one `master_admin` assignment exists. No application deployment or hosted Auth setting changes were performed.
+
+## 2026-09-21: Admin overview landing
+
+Result: accepted after independent review. `/admin` is now a concise Master Admin/Admin seed-data overview, and the Member directory moved intact to `/admin/members`. Navigation, member-detail back links, and member mutation revalidation now use the new directory path. Direct local browser checks confirmed both routes; full test, lint, typecheck, format, diff, and production build checks passed. No authorization, database, hosted migration, or deployment changes were made.
