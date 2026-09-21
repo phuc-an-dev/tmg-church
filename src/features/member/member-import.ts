@@ -65,9 +65,18 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
       "name",
       "ten",
       "ho_ten",
+      "họ và tên",
+      "họ tên",
+      "ho ten",
     ]) ?? "",
   ).trim();
-  const rawPhone = value(normalized, ["phone", "sdt", "so_dien_thoai"]);
+  const rawPhone = value(normalized, [
+    "phone",
+    "sdt",
+    "so_dien_thoai",
+    "số điện thoại",
+    "so dien thoai",
+  ]);
   const phone = rawPhone ? String(rawPhone).trim() : null;
   const dateOfBirth = normalizeDateOfBirth(
     value(normalized, [

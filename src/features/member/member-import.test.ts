@@ -46,4 +46,22 @@ Invalid Date,2025-02-29,male`);
       skipped: 0,
     });
   });
+
+  test("preserves accented Vietnamese CSV headers", () => {
+    expect(
+      parseMemberImport(
+        "Họ và tên,Số điện thoại,Năm sinh,Giới tính\nNguyễn An,0901234567,1985,Nam",
+      ),
+    ).toEqual({
+      valid: [
+        {
+          fullName: "Nguyễn An",
+          phone: "0901234567",
+          dateOfBirth: "1985-01-01",
+          gender: "male",
+        },
+      ],
+      skipped: 0,
+    });
+  });
 });
