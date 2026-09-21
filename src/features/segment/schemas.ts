@@ -25,7 +25,12 @@ export const saveSegmentSchema = z.object({
     ),
 });
 export const deleteSegmentSchema = z.object({ id });
-const conditionField = z.enum(["gender", "birth_year", "full_name", "phone"]);
+const conditionField = z.enum([
+  "gender",
+  "date_of_birth",
+  "full_name",
+  "phone",
+]);
 const conditionOperator = z.enum([
   "equals",
   "not_equals",
@@ -61,16 +66,14 @@ export const segmentConditionSchema = z
       "contains",
     ]);
     if (
-      condition.field === "birth_year" &&
+      condition.field === "date_of_birth" &&
       (!numericOperators.has(condition.operator) ||
-        !/^[0-9]{4}$/.test(condition.value) ||
-        Number(condition.value) < 1900 ||
-        Number(condition.value) > 2100)
+        !isValidDateOfBirth(condition.value))
     ) {
       context.addIssue({
         code: "custom",
         path: ["value"],
-        message: "Use a year between 1900 and 2100.",
+        message: "Use a date between 1900-01-01 and 2100-12-31.",
       });
     }
     if (
@@ -95,6 +98,18 @@ export const segmentConditionSchema = z
       });
     }
   });
+
+function isValidDateOfBirth(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match || value < "1900-01-01" || value > "2100-12-31") return false;
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return (
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() === Number(month) - 1 &&
+    date.getUTCDate() === Number(day)
+  );
+}
 export const segmentConditionsSchema = z.object({
   segmentId: id,
   conditions: z

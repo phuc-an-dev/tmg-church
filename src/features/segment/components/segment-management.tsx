@@ -60,9 +60,9 @@ const CONDITION_FIELDS: Array<{
 }> = [
   { value: "gender", label: "Gender", placeholder: "Choose a gender" },
   {
-    value: "birth_year",
-    label: "Birth year",
-    placeholder: "For example, 2003",
+    value: "date_of_birth",
+    label: "Date of birth",
+    placeholder: "YYYY-MM-DD",
   },
   {
     value: "full_name",
@@ -80,7 +80,7 @@ const OPERATORS_BY_FIELD: Record<
     { value: "equals", label: "Equals" },
     { value: "not_equals", label: "Does not equal" },
   ],
-  birth_year: [
+  date_of_birth: [
     { value: "equals", label: "Equals" },
     { value: "not_equals", label: "Does not equal" },
     { value: "greater_than", label: "Greater than" },
@@ -460,7 +460,7 @@ export function SegmentDetailManagement({
   const [pending, startTransition] = React.useTransition();
   const [bulkSheetOpen, setBulkSheetOpen] = React.useState(false);
   const [conditions, setConditions] = React.useState<SegmentCondition[]>([
-    { field: "birth_year", operator: "equals", value: "" },
+    { field: "date_of_birth", operator: "equals", value: "" },
   ]);
   const [matchingCount, setMatchingCount] = React.useState<number | null>(null);
   const [bulkError, setBulkError] = React.useState<string | null>(null);
@@ -502,7 +502,7 @@ export function SegmentDetailManagement({
     setConditions(
       segment.conditions.length
         ? segment.conditions.map((condition) => ({ ...condition }))
-        : [{ field: "birth_year", operator: "equals", value: "" }],
+        : [{ field: "date_of_birth", operator: "equals", value: "" }],
     );
     setMatchingCount(null);
     setBulkError(null);
@@ -740,23 +740,18 @@ export function SegmentDetailManagement({
                           <Input
                             aria-label={`Condition ${index + 1} value`}
                             type={
-                              condition.field === "birth_year"
-                                ? "number"
+                              condition.field === "date_of_birth"
+                                ? "date"
                                 : "text"
                             }
-                            inputMode={
-                              condition.field === "birth_year"
-                                ? "numeric"
-                                : undefined
-                            }
                             min={
-                              condition.field === "birth_year"
-                                ? "1900"
+                              condition.field === "date_of_birth"
+                                ? "1900-01-01"
                                 : undefined
                             }
                             max={
-                              condition.field === "birth_year"
-                                ? "2100"
+                              condition.field === "date_of_birth"
+                                ? "2100-12-31"
                                 : undefined
                             }
                             value={condition.value}
@@ -783,7 +778,7 @@ export function SegmentDetailManagement({
                   setConditions((current) => [
                     ...current,
                     {
-                      field: "birth_year",
+                      field: "date_of_birth",
                       operator: "equals",
                       value: "",
                       connector: "and",

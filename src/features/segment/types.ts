@@ -8,7 +8,7 @@ export type SegmentItem = {
 };
 export type SegmentDetail = SegmentItem & { conditions: SegmentCondition[] };
 export type SegmentCondition = {
-  field: "gender" | "birth_year" | "full_name" | "phone";
+  field: "gender" | "date_of_birth" | "full_name" | "phone";
   operator:
     | "equals"
     | "not_equals"
