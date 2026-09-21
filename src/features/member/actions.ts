@@ -871,7 +871,6 @@ export async function exportAllMembersAction(): Promise<{
     fullName: string;
     phone: string | null;
     dateOfBirth: string | null;
-    birthYear?: number | null;
     gender: string | null;
     createdAt: string;
   }>;

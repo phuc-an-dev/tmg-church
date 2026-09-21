@@ -481,10 +481,10 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
             <div className="space-y-1">
               <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                 <Clock className="size-3.5" aria-hidden="true" />
-                Birth year
+                Date of birth
               </span>
               <div className="text-foreground text-sm font-semibold">
-                {data.profile.birthYear ?? "Not provided"}
+                {data.profile.dateOfBirth ?? "Not provided"}
               </div>
             </div>
 

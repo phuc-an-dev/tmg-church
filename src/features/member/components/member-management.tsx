@@ -70,6 +70,7 @@ import {
 } from "../actions";
 
 import { MEMBER_PAGE_SIZES, memberSearchParams } from "../search-params";
+import { parseMemberImport } from "../member-import";
 import type { MemberItem, MemberPageResult } from "../types";
 import type { SegmentItem } from "@/features/segment/types";
 
@@ -92,8 +93,8 @@ const MEMBER_STATUS_CHOICES = [
 const MEMBER_SORT_CHOICES = [
   { value: "full_name-asc", label: "Name: A to Z" },
   { value: "full_name-desc", label: "Name: Z to A" },
-  { value: "date_of_birth-asc", label: "Birth year: oldest" },
-  { value: "date_of_birth-desc", label: "Birth year: youngest" },
+  { value: "date_of_birth-asc", label: "Date of birth: oldest" },
+  { value: "date_of_birth-desc", label: "Date of birth: youngest" },
 ];
 
 const ALL_SEGMENTS_VALUE = "all-segments";
@@ -348,13 +349,13 @@ function MemberManagerDrawer({
   >({});
   const [fullName, setFullName] = React.useState("");
   const [phone, setPhone] = React.useState("");
-  const [birthYear, setBirthYear] = React.useState("");
+  const [dateOfBirth, setDateOfBirth] = React.useState("");
   const [gender, setGender] = React.useState("");
 
   const resetAddForm = () => {
     setFullName("");
     setPhone("");
-    setBirthYear("");
+    setDateOfBirth("");
     setGender("");
     setErrorMessage(null);
     setFieldErrors({});
@@ -366,13 +367,10 @@ function MemberManagerDrawer({
     setErrorMessage(null);
     setFieldErrors({});
 
-    const normalizedBirthYear = birthYear.trim()
-      ? Number(birthYear.trim())
-      : null;
     const result = await createMemberAction({
       fullName,
       phone,
-      birthYear: normalizedBirthYear,
+      dateOfBirth: dateOfBirth || null,
       gender: gender || null,
     });
 
@@ -397,7 +395,7 @@ function MemberManagerDrawer({
     valid: Array<{
       fullName: string;
       phone: string | null;
-      birthYear: number | null;
+      dateOfBirth: string | null;
       gender: "female" | "male" | null;
     }>;
     skipped: number;
@@ -412,6 +410,9 @@ function MemberManagerDrawer({
   };
 
   const processImportRaw = (text: string) => {
+    setImportParsed(parseMemberImport(text));
+    return;
+
     const trimmed = text.trim();
     if (!trimmed) {
       setImportParsed({ valid: [], skipped: 0 });
@@ -421,7 +422,7 @@ function MemberManagerDrawer({
     const valid: Array<{
       fullName: string;
       phone: string | null;
-      birthYear: number | null;
+      dateOfBirth: string | null;
       gender: "female" | "male" | null;
     }> = [];
     let skipped = 0;
@@ -459,7 +460,7 @@ function MemberManagerDrawer({
 
           const rawYear =
             item.birthYear || item.birth_year || item.nam_sinh || null;
-          const yearNum = rawYear ? parseInt(String(rawYear), 10) : null;
+          const yearNum = rawYear ? parseInt(String(rawYear), 10) : NaN;
           const birthYear =
             yearNum &&
             !Number.isNaN(yearNum) &&
@@ -483,7 +484,12 @@ function MemberManagerDrawer({
                 ? "male"
                 : null;
 
-          valid.push({ fullName: name, phone, birthYear, gender });
+          valid.push({
+            fullName: name,
+            phone,
+            dateOfBirth: birthYear ? `${birthYear}-01-01` : null,
+            gender,
+          });
         }
 
         setImportParsed({ valid, skipped });
@@ -575,7 +581,7 @@ function MemberManagerDrawer({
       const phone = rawPhone ? rawPhone.trim() : null;
 
       const rawYear = cols[yearIdx] ?? null;
-      const yearNum = rawYear ? parseInt(rawYear, 10) : null;
+      const yearNum = rawYear ? parseInt(rawYear, 10) : NaN;
       const birthYear =
         yearNum && !Number.isNaN(yearNum) && yearNum >= 1900 && yearNum <= 2100
           ? yearNum
@@ -594,7 +600,12 @@ function MemberManagerDrawer({
             ? "male"
             : null;
 
-      valid.push({ fullName: name, phone, birthYear, gender });
+      valid.push({
+        fullName: name,
+        phone,
+        dateOfBirth: birthYear ? `${birthYear}-01-01` : null,
+        gender,
+      });
     }
 
     setImportParsed({ valid, skipped });
@@ -662,11 +673,11 @@ function MemberManagerDrawer({
       return;
     }
 
-    const headers = "Full Name,Phone,Birth Year,Gender\n";
+    const headers = "Full Name,Phone,Date of birth,Gender\n";
     const rows = result.data
       .map(
         (m) =>
-          `"${m.fullName.replace(/"/g, '""')}","${m.phone ?? ""}","${m.birthYear ?? ""}","${m.gender ?? ""}"`,
+          `"${m.fullName.replace(/"/g, '""')}","${m.phone ?? ""}","${m.dateOfBirth ?? ""}","${m.gender ?? ""}"`,
       )
       .join("\n");
     const blob = new Blob(["\uFEFF" + headers + rows], {
@@ -891,32 +902,28 @@ function MemberManagerDrawer({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="create-member-birth-year">Birth year</Label>
+              <Label htmlFor="create-member-date-of-birth">Date of birth</Label>
               <Input
-                id="create-member-birth-year"
-                type="number"
-                inputMode="numeric"
-                min={1900}
-                max={2100}
-                placeholder="e.g. 1995"
-                value={birthYear}
-                onChange={(event) => setBirthYear(event.target.value)}
+                id="create-member-date-of-birth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(event) => setDateOfBirth(event.target.value)}
                 disabled={isSaving}
-                aria-invalid={Boolean(fieldErrors.birthYear?.[0])}
+                aria-invalid={Boolean(fieldErrors.dateOfBirth?.[0])}
                 aria-describedby={
-                  fieldErrors.birthYear?.[0]
-                    ? "create-member-birth-year-error"
+                  fieldErrors.dateOfBirth?.[0]
+                    ? "create-member-date-of-birth-error"
                     : undefined
                 }
                 className="h-11 text-base"
               />
-              {fieldErrors.birthYear?.[0] && (
+              {fieldErrors.dateOfBirth?.[0] && (
                 <p
-                  id="create-member-birth-year-error"
+                  id="create-member-date-of-birth-error"
                   role="alert"
                   className="text-destructive text-xs"
                 >
-                  {fieldErrors.birthYear[0]}
+                  {fieldErrors.dateOfBirth[0]}
                 </p>
               )}
             </div>
@@ -1028,7 +1035,7 @@ function MemberManagerDrawer({
                         {m.gender && (
                           <span className="capitalize">{m.gender}</span>
                         )}
-                        {m.birthYear && <span>{m.birthYear}</span>}
+                        {m.dateOfBirth && <span>{m.dateOfBirth}</span>}
                         {m.phone && <span>{m.phone}</span>}
                       </div>
                     </div>
@@ -1086,8 +1093,8 @@ function MemberManagerDrawer({
                       CSV Format (Excel)
                     </p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
-                      Spreadsheet-ready list (Name, Phone, Birth Year, Gender)
-                      with UTF-8 BOM encoding.
+                      Spreadsheet-ready list (Name, Phone, Date of birth,
+                      Gender) with UTF-8 BOM encoding.
                     </p>
                   </div>
                   <Button
@@ -1135,8 +1142,8 @@ function MemberEditor({
   >({});
   const [fullName, setFullName] = React.useState(member.fullName);
   const [phone, setPhone] = React.useState(member.phone ?? "");
-  const [birthYear, setBirthYear] = React.useState(
-    member.birthYear === null ? "" : String(member.birthYear),
+  const [dateOfBirth, setDateOfBirth] = React.useState(
+    member.dateOfBirth ?? "",
   );
   const [gender, setGender] = React.useState(member.gender ?? "");
 
@@ -1146,14 +1153,11 @@ function MemberEditor({
     setErrorMessage(null);
     setFieldErrors({});
 
-    const normalizedBirthYear = birthYear.trim()
-      ? Number(birthYear.trim())
-      : null;
     const result = await updateMemberAction({
       id: member.id,
       fullName,
       phone,
-      birthYear: normalizedBirthYear,
+      dateOfBirth: dateOfBirth || null,
       gender: gender || null,
     });
 
@@ -1264,29 +1268,28 @@ function MemberEditor({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="member-birth-year">Birth year</Label>
+          <Label htmlFor="member-date-of-birth">Date of birth</Label>
           <Input
-            id="member-birth-year"
-            type="number"
-            inputMode="numeric"
-            min={1900}
-            max={2100}
-            value={birthYear}
-            onChange={(event) => setBirthYear(event.target.value)}
+            id="member-date-of-birth"
+            type="date"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
             disabled={isSaving}
-            aria-invalid={Boolean(fieldErrors.birthYear?.[0])}
+            aria-invalid={Boolean(fieldErrors.dateOfBirth?.[0])}
             aria-describedby={
-              fieldErrors.birthYear?.[0] ? "member-birth-year-error" : undefined
+              fieldErrors.dateOfBirth?.[0]
+                ? "member-date-of-birth-error"
+                : undefined
             }
             className="h-11"
           />
-          {fieldErrors.birthYear?.[0] && (
+          {fieldErrors.dateOfBirth?.[0] && (
             <p
-              id="member-birth-year-error"
+              id="member-date-of-birth-error"
               role="alert"
               className="text-destructive text-xs"
             >
-              {fieldErrors.birthYear[0]}
+              {fieldErrors.dateOfBirth[0]}
             </p>
           )}
         </div>
@@ -1813,7 +1816,7 @@ export function MemberManagement({
                         onClick={() => updateSort("date_of_birth")}
                         className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
                       >
-                        Birth year
+                        Date of birth
                         <SortIcon
                           active={query.sort === "date_of_birth"}
                           order={query.order}
@@ -1873,8 +1876,8 @@ export function MemberManagement({
                               </span>
                               <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2 text-xs md:hidden">
                                 {member.phone && <span>{member.phone}</span>}
-                                {member.birthYear && (
-                                  <span>• Born {member.birthYear}</span>
+                                {member.dateOfBirth && (
+                                  <span>• Born {member.dateOfBirth}</span>
                                 )}
                                 {member.archivedAt && (
                                   <span className="font-medium text-amber-600 dark:text-amber-400">
@@ -1897,12 +1900,12 @@ export function MemberManagement({
                         {member.phone ?? "Not provided"}
                       </div>
 
-                      {/* Desktop Birth Year */}
+                      {/* Desktop Date of Birth */}
                       <div
                         role="cell"
                         className="text-muted-foreground hidden text-sm tabular-nums md:block"
                       >
-                        {member.birthYear ?? "Not provided"}
+                        {member.dateOfBirth ?? "Not provided"}
                       </div>
 
                       {/* Desktop Status */}

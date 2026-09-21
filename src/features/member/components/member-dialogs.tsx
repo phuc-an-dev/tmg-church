@@ -18,7 +18,7 @@ export interface EditableMember {
   id: string;
   fullName: string;
   phone?: string | null;
-  birthYear?: number | null;
+  dateOfBirth?: string | null;
   gender?: string | null;
   archivedAt?: string | null;
 }
@@ -63,10 +63,8 @@ function MemberEditorModal({
   >({});
   const [fullName, setFullName] = React.useState(member.fullName);
   const [phone, setPhone] = React.useState(member.phone ?? "");
-  const [birthYear, setBirthYear] = React.useState(
-    member.birthYear === null || member.birthYear === undefined
-      ? ""
-      : String(member.birthYear),
+  const [dateOfBirth, setDateOfBirth] = React.useState(
+    member.dateOfBirth ?? "",
   );
   const [gender, setGender] = React.useState(member.gender ?? "");
 
@@ -76,14 +74,11 @@ function MemberEditorModal({
     setErrorMessage(null);
     setFieldErrors({});
 
-    const normalizedBirthYear = birthYear.trim()
-      ? Number(birthYear.trim())
-      : null;
     const result = await updateMemberAction({
       id: member.id,
       fullName,
       phone,
-      birthYear: normalizedBirthYear,
+      dateOfBirth: dateOfBirth || null,
       gender: gender || null,
     });
 
@@ -194,29 +189,28 @@ function MemberEditorModal({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="member-birth-year">Birth year</Label>
+          <Label htmlFor="member-date-of-birth">Date of birth</Label>
           <Input
-            id="member-birth-year"
-            type="number"
-            inputMode="numeric"
-            min={1900}
-            max={2100}
-            value={birthYear}
-            onChange={(event) => setBirthYear(event.target.value)}
+            id="member-date-of-birth"
+            type="date"
+            value={dateOfBirth}
+            onChange={(event) => setDateOfBirth(event.target.value)}
             disabled={isSaving}
-            aria-invalid={Boolean(fieldErrors.birthYear?.[0])}
+            aria-invalid={Boolean(fieldErrors.dateOfBirth?.[0])}
             aria-describedby={
-              fieldErrors.birthYear?.[0] ? "member-birth-year-error" : undefined
+              fieldErrors.dateOfBirth?.[0]
+                ? "member-date-of-birth-error"
+                : undefined
             }
             className="h-11"
           />
-          {fieldErrors.birthYear?.[0] && (
+          {fieldErrors.dateOfBirth?.[0] && (
             <p
-              id="member-birth-year-error"
+              id="member-date-of-birth-error"
               role="alert"
               className="text-destructive text-xs"
             >
-              {fieldErrors.birthYear[0]}
+              {fieldErrors.dateOfBirth[0]}
             </p>
           )}
         </div>
