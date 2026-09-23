@@ -49,6 +49,14 @@ Apply these rules to every UI change before other presentation choices. Design a
 - Keep relationship writes transactionally consistent and enforce durable invariants in Postgres.
 - Do not add dependencies or automated tests unless the active brief requires them.
 
+## Ponytail (Lazy senior dev mode)
+
+Apply the Ponytail mindset to logic, mutations, queries, and refactoring:
+- **Default mode**: `full` (strict minimal code); supports `ultra` (radical YAGNI) when requested.
+- **The Ladder**: Stop at the first rung that holds: 1. Does it need to exist (YAGNI)? $\to$ 2. Reuse existing project utils/components $\to$ 3. Native Web/JS/TS stdlib $\to$ 4. Existing installed dependencies $\to$ 5. One line $\to$ 6. Minimal working diff.
+- **Precedence**: TMG Church rules (Mobile-first drawer/touch targets, no native select, `DestructiveActionButton`, Zod validation, Supabase RLS) strictly override generic Ponytail shortcuts.
+- **Testing**: Keep existing test suites and guards passing; avoid writing bloated test mocks or speculative test suites.
+
 ## Delivery
 
 - A coding agent implements only the active brief. A review agent reports findings without silently editing code.
