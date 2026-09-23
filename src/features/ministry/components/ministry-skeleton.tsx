@@ -21,25 +21,17 @@ export function MinistryManagementSkeleton({
       aria-hidden="true"
     >
       {/* Toolbar Skeleton */}
-      <div className="flex items-center gap-2 border-b pb-5">
-        <div className="relative min-w-0 flex-1">
-          <Skeleton className="h-12 w-full rounded-xl" />
+      {isMinistry && (
+        <div className="flex items-center gap-2 border-b pb-5">
+          <div className="relative min-w-0 flex-1">
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+          <Skeleton className="h-12 w-24 shrink-0 rounded-xl md:hidden" />
+          <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <Skeleton className="h-12 w-44 rounded-xl" />
+          </div>
         </div>
-        {(isMinistry || isTerm) && (
-          <>
-            <Skeleton className="h-12 w-24 shrink-0 rounded-xl md:hidden" />
-            <div className="hidden shrink-0 items-center gap-2 md:flex">
-              {isMinistry && <Skeleton className="h-12 w-44 rounded-xl" />}
-              {isTerm && (
-                <>
-                  <Skeleton className="h-12 w-36 rounded-xl" />
-                  <Skeleton className="h-12 w-44 rounded-xl" />
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+      )}
 
       {/* Collection List Skeleton: Mobile Cards / Desktop Table */}
       <div

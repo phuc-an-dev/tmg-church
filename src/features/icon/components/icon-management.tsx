@@ -36,7 +36,6 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { Input } from "@/components/ui/input";
@@ -51,14 +50,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-  NavigationTabs,
-  NavigationTabButton,
-} from "@/components/shared/navigation-tabs";
-import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { DynamicLucideIcon } from "@/features/ministry/components/dynamic-lucide-icon";
+import {
+  ManageCollectionDrawer,
+  type ManageCollectionTab,
+} from "@/components/shared/manage-collection-drawer";
+import {
+  ImportPanel,
+  ExportPanel,
+  downloadCsvFile,
+  downloadJsonFile,
+  useCollectionImport,
+  type TransferColumn,
+} from "@/components/shared/collection-transfer";
 import {
   addFrequentIconAction,
   importFrequentIconsAction,
@@ -68,6 +72,14 @@ import {
 import type { FrequentIconItem } from "../types";
 
 const MAX_SEARCH_RESULTS = 60;
+
+type ManageTab = "add" | "import" | "export";
+
+const MANAGE_TABS: ManageCollectionTab<ManageTab>[] = [
+  { key: "add", label: "Add Icon", icon: Plus },
+  { key: "import", label: "Import", icon: Upload },
+  { key: "export", label: "Export", icon: Download },
+];
 
 function formatIconLabel(name: string): string {
   return name
@@ -204,9 +216,7 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
 
   // Drawers and Toast state
   const [manageDrawerOpen, setManageDrawerOpen] = React.useState(false);
-  const [manageTab, setManageTab] = React.useState<"add" | "import" | "export">(
-    "add",
-  );
+  const [manageTab, setManageTab] = React.useState<ManageTab>("add");
   const [deleteConfirmIcon, setDeleteConfirmIcon] =
     React.useState<FrequentIconItem | null>(null);
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
@@ -222,130 +232,46 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
 
   const [pending, startTransition] = React.useTransition();
 
-  // Import / Export state inside Manage Icons drawer
-  const [importMode, setImportMode] = React.useState<"merge" | "replace">(
-    "merge",
-  );
-  const [importFileName, setImportFileName] = React.useState<string | null>(
-    null,
-  );
-  const [importParsedIcons, setImportParsedIcons] = React.useState<{
-    valid: string[];
-    skipped: string[];
-  }>({ valid: [], skipped: [] });
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  const handleOpenManageDrawer = (tab: "add" | "import" | "export" = "add") => {
-    setManageTab(tab);
-    setManageDrawerOpen(true);
-    if (tab === "import") {
-      setImportFileName(null);
-      setImportParsedIcons({ valid: [], skipped: [] });
-    }
-  };
-
   const lucideSet = React.useMemo(
     () => new Set(iconNames as readonly string[]),
     [],
   );
 
-  const processImportRaw = React.useCallback(
-    (raw: string) => {
-      const trimmed = raw.trim();
-      if (!trimmed) {
-        setImportParsedIcons({ valid: [], skipped: [] });
-        return;
-      }
-
-      let candidates: string[] = [];
-
-      try {
-        const parsedJson = JSON.parse(trimmed);
-        if (Array.isArray(parsedJson)) {
-          for (const item of parsedJson) {
-            if (typeof item === "string") {
-              candidates.push(item);
-            } else if (
-              item &&
-              typeof item === "object" &&
-              "name" in item &&
-              typeof item.name === "string"
-            ) {
-              candidates.push(item.name);
-            }
-          }
-        } else if (
-          parsedJson &&
-          typeof parsedJson === "object" &&
-          Array.isArray(parsedJson.icons)
-        ) {
-          for (const item of parsedJson.icons) {
-            if (typeof item === "string") {
-              candidates.push(item);
-            } else if (
-              item &&
-              typeof item === "object" &&
-              "name" in item &&
-              typeof item.name === "string"
-            ) {
-              candidates.push(item.name);
-            }
-          }
-        }
-      } catch {
-        candidates = trimmed
-          .split(/[\r\n,;\t]+/)
-          .map((s) => s.trim().replace(/^["']|["']$/g, ""))
-          .filter(Boolean);
-      }
-
-      const filtered = candidates.filter(
-        (c) =>
-          !["name", "display_order", "id", "icon", "created_at"].includes(
-            c.toLowerCase(),
-          ),
-      );
-
-      const valid: string[] = [];
-      const skipped: string[] = [];
-
-      for (const item of filtered) {
-        const clean = item.trim().toLowerCase();
-        if (!clean) continue;
-        if (lucideSet.has(clean)) {
-          if (!valid.includes(clean)) {
-            valid.push(clean);
-          }
-        } else {
-          if (!skipped.includes(clean)) {
-            skipped.push(clean);
-          }
-        }
-      }
-
-      setImportParsedIcons({ valid, skipped });
-    },
+  // Import / Export state inside Manage Icons drawer
+  const importColumns = React.useMemo<TransferColumn[]>(
+    () => [
+      {
+        key: "name",
+        label: "Name",
+        required: true,
+        transform: (value) => value.toLowerCase(),
+        validate: (value) => lucideSet.has(value),
+      },
+    ],
     [lucideSet],
   );
+  const {
+    importMode,
+    setImportMode,
+    fileName: importFileName,
+    parsed: importParsedIcons,
+    handleFileSelect,
+    resetImport,
+  } = useCollectionImport(importColumns);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setImportFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = (e.target?.result as string) ?? "";
-      processImportRaw(text);
-    };
-    reader.readAsText(file);
-    event.target.value = "";
+  const handleOpenManageDrawer = (tab: ManageTab = "add") => {
+    setManageTab(tab);
+    setManageDrawerOpen(true);
+    if (tab === "import") {
+      resetImport();
+    }
   };
 
   const handleImportSubmit = () => {
     if (importParsedIcons.valid.length === 0) return;
     startTransition(async () => {
       const result = await importFrequentIconsAction({
-        names: importParsedIcons.valid,
+        names: importParsedIcons.valid.map((row) => row.name),
         mode: importMode,
       });
       if (!result.success) {
@@ -353,44 +279,26 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
       } else {
         setToastMessage(result.message ?? "Icons imported successfully.");
         setManageDrawerOpen(false);
-        setImportFileName(null);
-        setImportParsedIcons({ valid: [], skipped: [] });
+        resetImport();
         router.refresh();
       }
     });
   };
 
   const handleExportJson = () => {
-    const data = {
+    downloadJsonFile("tmg-church-icons", {
       version: 1,
       exportedAt: new Date().toISOString(),
       icons: orderedIcons.map((i) => i.name),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
     });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tmg-church-icons-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleExportCsv = () => {
-    const headers = "name,display_order\n";
-    const rows = orderedIcons
-      .map((i, index) => `${i.name},${index}`)
-      .join("\n");
-    const blob = new Blob([headers + rows], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tmg-church-icons-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsvFile(
+      "tmg-church-icons",
+      ["name", "display_order"],
+      orderedIcons.map((i, index) => [i.name, String(index)]),
+    );
   };
 
   // Search trigger inside drawer
@@ -685,18 +593,20 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
       </Sheet>
 
       {/* Drawer: Manage Icons (Add Icon / Import / Export) */}
-      <ResponsiveEditor
+      <ManageCollectionDrawer
         open={manageDrawerOpen}
         onOpenChange={(open) => {
           setManageDrawerOpen(open);
           if (!open) {
-            setImportFileName(null);
-            setImportParsedIcons({ valid: [], skipped: [] });
+            resetImport();
           }
         }}
         title="Manage Icons"
         mobileMinHeightClass="min-h-[85dvh]"
         maxWidthClass="sm:max-w-2xl"
+        tabs={MANAGE_TABS}
+        activeTab={manageTab}
+        onTabChange={setManageTab}
         footer={
           manageTab === "import" && importParsedIcons.valid.length > 0 ? (
             <>
@@ -731,354 +641,194 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
           )
         }
       >
-        <div className="space-y-6 pt-1 pb-4">
-          {/* Segmented Tab Navigation: 3 tabs */}
-          <NavigationTabs aria-label="Manage icons options" className="w-full">
-            <NavigationTabButton
-              active={manageTab === "add"}
-              onClick={() => setManageTab("add")}
-              icon={Plus}
-            >
-              Add Icon
-            </NavigationTabButton>
-            <NavigationTabButton
-              active={manageTab === "import"}
-              onClick={() => setManageTab("import")}
-              icon={Upload}
-            >
-              Import
-            </NavigationTabButton>
-            <NavigationTabButton
-              active={manageTab === "export"}
-              onClick={() => setManageTab("export")}
-              icon={Download}
-            >
-              Export
-            </NavigationTabButton>
-          </NavigationTabs>
-
-          {/* TAB 1: ADD ICON */}
-          {manageTab === "add" && (
-            <div className="space-y-4">
-              <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search
-                    className="text-muted-foreground absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    type="text"
-                    value={queryInput}
-                    onChange={(e) => setQueryInput(e.target.value)}
-                    placeholder="Search keyword (e.g. user, church, book...)"
-                    aria-label="Search Lucide icon catalog"
-                    className="h-12 pr-10 pl-10 text-base"
-                  />
-                  {queryInput && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleClearSearch}
-                      aria-label="Clear search input"
-                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 size-11 min-h-[44px] min-w-[44px] -translate-y-1/2"
-                    >
-                      <X className="size-4" aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  disabled={isSearching || !queryInput.trim()}
-                  className="h-12 min-h-[44px] min-w-[44px] px-5 font-semibold"
-                >
-                  <Search className="size-4" aria-hidden="true" />
-                  <span>Search</span>
-                </Button>
-              </form>
-
-              {/* Initial State: No search performed yet */}
-              {!hasSearched && (
-                <div className="bg-muted/20 rounded-2xl border border-dashed p-10 text-center">
-                  <div className="bg-muted text-muted-foreground mx-auto flex size-12 items-center justify-center rounded-2xl">
-                    <Search className="size-6" aria-hidden="true" />
-                  </div>
-                  <h4 className="text-foreground mt-3 text-sm font-bold">
-                    Catalog Search
-                  </h4>
-                  <p className="text-muted-foreground mx-auto mt-1 max-w-xs text-xs">
-                    Enter an icon name or keyword above and press Search to find
-                    matching Lucide icons.
-                  </p>
-                </div>
-              )}
-
-              {/* Skeletons while searching */}
-              {isSearching && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-28 rounded-xl" />
-                  ))}
-                </div>
-              )}
-
-              {/* Search Results Display */}
-              {hasSearched && !isSearching && (
-                <div className="space-y-3">
-                  <div className="text-muted-foreground flex items-center justify-between text-xs">
-                    <span>
-                      Found {searchResults.length} result
-                      {searchResults.length === 1 ? "" : "s"} for &ldquo;
-                      {submittedQuery}&rdquo;
-                    </span>
-                    {searchResults.length === MAX_SEARCH_RESULTS && (
-                      <span>Showing top {MAX_SEARCH_RESULTS}</span>
-                    )}
-                  </div>
-
-                  {searchResults.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed p-8 text-center">
-                      <p className="text-foreground text-sm font-semibold">
-                        No matching icons
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        No Lucide icons matched &ldquo;{submittedQuery}&rdquo;.
-                        Try another keyword.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                      {searchResults.map((iconName) => {
-                        const isAlreadyFrequent =
-                          frequentNamesSet.has(iconName);
-
-                        return (
-                          <div
-                            key={iconName}
-                            className="bg-card hover:border-border hover:bg-muted/20 flex flex-col items-center justify-between gap-2 rounded-xl border p-3 text-center transition-colors"
-                          >
-                            <div className="bg-muted text-foreground flex size-11 items-center justify-center rounded-xl">
-                              <DynamicLucideIcon
-                                iconKey={iconName}
-                                className="size-5"
-                              />
-                            </div>
-
-                            <div className="w-full min-w-0">
-                              <p className="text-foreground truncate text-xs font-semibold">
-                                {formatIconLabel(iconName)}
-                              </p>
-                              <p className="text-muted-foreground truncate font-mono text-[11px]">
-                                {iconName}
-                              </p>
-                            </div>
-
-                            {isAlreadyFrequent ? (
-                              <div className="flex min-h-[44px] w-full items-center justify-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                <Check className="size-4" aria-hidden="true" />
-                                <span>Added</span>
-                              </div>
-                            ) : (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={pending}
-                                onClick={() => handleAdd(iconName)}
-                                className="min-h-[44px] w-full gap-1.5 text-xs font-semibold"
-                              >
-                                <Plus className="size-4" aria-hidden="true" />
-                                <span>Add</span>
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: IMPORT */}
-          {manageTab === "import" && (
-            <div className="space-y-7">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,.csv,.txt"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="import-icon-file-input"
-                aria-hidden="true"
-                tabIndex={-1}
-              />
-
-              {/* Strategy Selection with Switch */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="import-replace-mode-switch"
-                  className="text-foreground text-sm font-medium"
-                >
-                  Import Strategy
-                </Label>
-                <label
-                  htmlFor="import-replace-mode-switch"
-                  className={cn(
-                    "flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-colors",
-                    importMode === "replace"
-                      ? "border-destructive/40 bg-destructive/5"
-                      : "border-border/80 bg-card hover:bg-muted/30",
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground text-sm font-semibold">
-                      Replace all existing icons
-                    </p>
-                    <p className="text-muted-foreground mt-0.5 text-xs leading-normal">
-                      {importMode === "replace"
-                        ? "Clear current icons and replace with imported icons."
-                        : "Keep existing icons and append new ones."}
-                    </p>
-                  </div>
-                  <Switch
-                    id="import-replace-mode-switch"
-                    checked={importMode === "replace"}
-                    onCheckedChange={(checked) =>
-                      setImportMode(checked ? "replace" : "merge")
-                    }
-                    aria-label="Replace all existing icons"
-                  />
-                </label>
-                {importMode === "replace" && (
-                  <p className="text-destructive text-xs leading-normal">
-                    Warning: This will delete all currently saved icons and
-                    replace them with the imported list.
-                  </p>
+        {/* TAB 1: ADD ICON */}
+        {manageTab === "add" && (
+          <div className="space-y-4">
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search
+                  className="text-muted-foreground absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+                  aria-hidden="true"
+                />
+                <Input
+                  type="text"
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  placeholder="Search keyword (e.g. user, church, book...)"
+                  aria-label="Search Lucide icon catalog"
+                  className="h-12 pr-10 pl-10 text-base"
+                />
+                {queryInput && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleClearSearch}
+                    aria-label="Clear search input"
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 size-11 min-h-[44px] min-w-[44px] -translate-y-1/2"
+                  >
+                    <X className="size-4" aria-hidden="true" />
+                  </Button>
                 )}
               </div>
+              <Button
+                type="submit"
+                disabled={isSearching || !queryInput.trim()}
+                className="h-12 min-h-[44px] min-w-[44px] px-5 font-semibold"
+              >
+                <Search className="size-4" aria-hidden="true" />
+                <span>Search</span>
+              </Button>
+            </form>
 
-              {/* File Upload Only */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="import-file-button"
-                  className="text-foreground text-sm font-medium"
-                >
-                  Source Data
-                </Label>
-                <Button
-                  id="import-file-button"
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-border/80 bg-card hover:bg-muted/40 text-foreground min-h-12 w-full gap-2.5 rounded-2xl text-sm font-semibold shadow-xs"
-                >
-                  <Upload className="size-4" aria-hidden="true" />
+            {/* Initial State: No search performed yet */}
+            {!hasSearched && (
+              <div className="bg-muted/20 rounded-2xl border border-dashed p-10 text-center">
+                <div className="bg-muted text-muted-foreground mx-auto flex size-12 items-center justify-center rounded-2xl">
+                  <Search className="size-6" aria-hidden="true" />
+                </div>
+                <h4 className="text-foreground mt-3 text-sm font-bold">
+                  Catalog Search
+                </h4>
+                <p className="text-muted-foreground mx-auto mt-1 max-w-xs text-xs">
+                  Enter an icon name or keyword above and press Search to find
+                  matching Lucide icons.
+                </p>
+              </div>
+            )}
+
+            {/* Skeletons while searching */}
+            {isSearching && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))}
+              </div>
+            )}
+
+            {/* Search Results Display */}
+            {hasSearched && !isSearching && (
+              <div className="space-y-3">
+                <div className="text-muted-foreground flex items-center justify-between text-xs">
                   <span>
-                    {importFileName
-                      ? `Change file (${importFileName})`
-                      : "Choose File (.json, .csv)"}
+                    Found {searchResults.length} result
+                    {searchResults.length === 1 ? "" : "s"} for &ldquo;
+                    {submittedQuery}&rdquo;
                   </span>
-                </Button>
-                {importFileName && (
-                  <p className="text-muted-foreground font-mono text-xs">
-                    Loaded file: {importFileName}
-                  </p>
+                  {searchResults.length === MAX_SEARCH_RESULTS && (
+                    <span>Showing top {MAX_SEARCH_RESULTS}</span>
+                  )}
+                </div>
+
+                {searchResults.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed p-8 text-center">
+                    <p className="text-foreground text-sm font-semibold">
+                      No matching icons
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      No Lucide icons matched &ldquo;{submittedQuery}&rdquo;.
+                      Try another keyword.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {searchResults.map((iconName) => {
+                      const isAlreadyFrequent = frequentNamesSet.has(iconName);
+
+                      return (
+                        <div
+                          key={iconName}
+                          className="bg-card hover:border-border hover:bg-muted/20 flex flex-col items-center justify-between gap-2 rounded-xl border p-3 text-center transition-colors"
+                        >
+                          <div className="bg-muted text-foreground flex size-11 items-center justify-center rounded-xl">
+                            <DynamicLucideIcon
+                              iconKey={iconName}
+                              className="size-5"
+                            />
+                          </div>
+
+                          <div className="w-full min-w-0">
+                            <p className="text-foreground truncate text-xs font-semibold">
+                              {formatIconLabel(iconName)}
+                            </p>
+                            <p className="text-muted-foreground truncate font-mono text-[11px]">
+                              {iconName}
+                            </p>
+                          </div>
+
+                          {isAlreadyFrequent ? (
+                            <div className="flex min-h-[44px] w-full items-center justify-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                              <Check className="size-4" aria-hidden="true" />
+                              <span>Added</span>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={pending}
+                              onClick={() => handleAdd(iconName)}
+                              className="min-h-[44px] w-full gap-1.5 text-xs font-semibold"
+                            >
+                              <Plus className="size-4" aria-hidden="true" />
+                              <span>Add</span>
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
+            )}
+          </div>
+        )}
 
-              {/* Parsed summary & preview */}
-              {importParsedIcons.valid.length > 0 && (
-                <div className="bg-muted/30 space-y-2 rounded-xl border p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      {importParsedIcons.valid.length} valid icons detected
-                    </span>
-                    {importParsedIcons.skipped.length > 0 && (
-                      <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                        {importParsedIcons.skipped.length} invalid skipped
-                      </span>
-                    )}
-                  </div>
+        {/* TAB 2: IMPORT */}
+        {manageTab === "import" && (
+          <ImportPanel
+            entityLabel="icons"
+            chipField="name"
+            fileInputId="import-icon-file-input"
+            importMode={importMode}
+            onImportModeChange={setImportMode}
+            fileName={importFileName}
+            parsed={importParsedIcons}
+            onFileSelect={handleFileSelect}
+            replaceLabel="Replace all existing icons"
+            renderChip={(row) => (
+              <>
+                <DynamicLucideIcon iconKey={row.name} className="size-3.5" />
+                <span className="font-mono">{row.name}</span>
+              </>
+            )}
+          />
+        )}
 
-                  <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto pt-1">
-                    {importParsedIcons.valid.map((name) => (
-                      <span
-                        key={name}
-                        className="bg-card text-foreground inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs"
-                      >
-                        <DynamicLucideIcon
-                          iconKey={name}
-                          className="size-3.5"
-                        />
-                        <span className="font-mono">{name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: EXPORT */}
-          {manageTab === "export" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-foreground text-sm font-medium">
-                  Export Format
-                </Label>
-                <div className="space-y-3">
-                  <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground text-sm font-semibold">
-                        JSON Format
-                      </p>
-                      <p className="text-muted-foreground mt-0.5 text-xs">
-                        Structured backup with metadata ({orderedIcons.length}{" "}
-                        {orderedIcons.length === 1 ? "icon" : "icons"}).
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleExportJson}
-                      disabled={orderedIcons.length === 0}
-                      className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
-                    >
-                      <Download className="size-4" aria-hidden="true" />
-                      <span>Export JSON</span>
-                    </Button>
-                  </div>
-
-                  <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground text-sm font-semibold">
-                        CSV Format (Excel)
-                      </p>
-                      <p className="text-muted-foreground mt-0.5 text-xs">
-                        Spreadsheet-ready list with display order (
-                        {orderedIcons.length}{" "}
-                        {orderedIcons.length === 1 ? "icon" : "icons"}).
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleExportCsv}
-                      disabled={orderedIcons.length === 0}
-                      className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
-                    >
-                      <Download className="size-4" aria-hidden="true" />
-                      <span>Export CSV</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </ResponsiveEditor>
+        {/* TAB 3: EXPORT */}
+        {manageTab === "export" && (
+          <ExportPanel
+            formats={[
+              {
+                title: "JSON Format",
+                description: `Structured backup with metadata (${orderedIcons.length} ${orderedIcons.length === 1 ? "icon" : "icons"}).`,
+                buttonLabel: "Export JSON",
+                icon: <Download className="size-4" aria-hidden="true" />,
+                disabled: orderedIcons.length === 0,
+                onClick: handleExportJson,
+              },
+              {
+                title: "CSV Format (Excel)",
+                description: `Spreadsheet-ready list with display order (${orderedIcons.length} ${orderedIcons.length === 1 ? "icon" : "icons"}).`,
+                buttonLabel: "Export CSV",
+                icon: <Download className="size-4" aria-hidden="true" />,
+                disabled: orderedIcons.length === 0,
+                onClick: handleExportCsv,
+              },
+            ]}
+          />
+        )}
+      </ManageCollectionDrawer>
 
       {/* Confirmation Bottom Drawer for Deletion */}
       <ConfirmationSheet

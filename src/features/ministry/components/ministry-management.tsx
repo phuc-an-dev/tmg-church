@@ -4,13 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
-  ChevronDown,
   CalendarDays,
   Check,
+  ChevronDown,
+  Download,
+  FolderCog,
   Layers3,
+  Plus,
   Rows3,
   Search,
   SlidersHorizontal,
+  Upload,
   X,
 } from "lucide-react";
 import { RadioGroup as RadixRadioGroup } from "radix-ui";
@@ -28,6 +32,15 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { ManageCollectionDrawer } from "@/components/shared/manage-collection-drawer";
+import {
+  ExportPanel,
+  ImportPanel,
+  downloadCsvFile,
+  downloadJsonFile,
+  useCollectionImport,
+  type TransferColumn,
+} from "@/components/shared/collection-transfer";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
@@ -53,6 +66,10 @@ import {
   deleteMinistryAction,
   deleteStructureAction,
   deleteTermAction,
+  exportCollectionAction,
+  importMinistriesAction,
+  importStructuresAction,
+  importTermsAction,
   saveMinistryAction,
   saveStructureAction,
   saveTermAction,
@@ -103,6 +120,67 @@ const getInitialDraft = (mode: Mode) => {
       return "Ban ";
   }
 };
+const pluralFor = (mode: Mode) =>
+  mode === "ministries"
+    ? "Ministries"
+    : mode === "terms"
+      ? "Terms"
+      : mode === "groups"
+        ? "Groups"
+        : "Departments";
+
+const TERM_LIFECYCLE_VALUES = ["draft", "active", "closed"];
+
+function importColumnsForMode(mode: Mode): TransferColumn[] {
+  const name: TransferColumn = { key: "name", label: "Name", required: true };
+  const slug: TransferColumn = { key: "slug", label: "Slug" };
+  const accentColor: TransferColumn = {
+    key: "accentColor",
+    label: "Accent color",
+    aliases: ["accent", "color", "accent color", "accent_color"],
+    validate: (value) => /^#[0-9a-fA-F]{6}$/.test(value),
+  };
+  const iconKey: TransferColumn = {
+    key: "iconKey",
+    label: "Icon",
+    aliases: ["icon", "icon key", "icon_key"],
+    transform: (value) => value.trim().toLowerCase(),
+    validate: (value) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+  };
+  if (mode === "terms") {
+    return [
+      name,
+      slug,
+      {
+        key: "startDate",
+        label: "Start date",
+        aliases: ["start date", "start_date"],
+        validate: (value) => /^\d{4}-\d{2}-\d{2}$/.test(value),
+      },
+      {
+        key: "endDate",
+        label: "End date",
+        aliases: ["end date", "end_date"],
+        validate: (value) => /^\d{4}-\d{2}-\d{2}$/.test(value),
+      },
+      {
+        key: "lifecycle",
+        label: "Lifecycle",
+        aliases: ["status"],
+        transform: (value) => value.trim().toLowerCase(),
+        validate: (value) => TERM_LIFECYCLE_VALUES.includes(value),
+      },
+    ];
+  }
+  return [name, slug, accentColor, iconKey];
+}
+
+const EXPORT_COLUMNS: Record<Mode, string[]> = {
+  ministries: ["name", "slug", "accentColor", "iconKey"],
+  terms: ["name", "slug", "startDate", "endDate", "lifecycle"],
+  groups: ["name", "slug", "accentColor", "iconKey"],
+  departments: ["name", "slug", "accentColor", "iconKey"],
+};
 function isTerm(item: Item): item is TermItem {
   return "startDate" in item;
 }
@@ -116,19 +194,6 @@ function hasVisualIdentity(item: Item): item is MinistryItem | StructureItem {
 const MINISTRY_SORT_CHOICES = [
   { value: "name-asc", label: "Name: A to Z" },
   { value: "name-desc", label: "Name: Z to A" },
-];
-
-const TERM_LIFECYCLE_CHOICES = [
-  { value: "all", label: "All lifecycles" },
-  { value: "draft", label: "Draft" },
-  { value: "active", label: "Active" },
-  { value: "closed", label: "Closed" },
-];
-
-const TERM_SORT_CHOICES = [
-  { value: "start-desc", label: "Start date: newest" },
-  { value: "start-asc", label: "Start date: oldest" },
-  { value: "name-asc", label: "Name: A to Z" },
 ];
 
 interface ChoiceMenuProps {
@@ -266,7 +331,7 @@ export function MinistryManagement({
   frequentIcons = [],
 }: Props) {
   const label = labelFor(mode);
-  const supportsSearchAndPagination = mode === "ministries" || mode === "terms";
+  const supportsSearchAndPagination = mode === "ministries";
   const supportsVisualIdentity = mode !== "terms";
   const parsers =
     mode === "ministries"
@@ -280,7 +345,21 @@ export function MinistryManagement({
   const [searchDraft, setSearchDraft] = React.useState(
     supportsSearchAndPagination ? (query.q ?? "") : "",
   );
-  const [editor, setEditor] = React.useState<Item | "create" | null>(null);
+  const [editor, setEditor] = React.useState<Item | null>(null);
+  const [manageOpen, setManageOpen] = React.useState(false);
+  const [manageTab, setManageTab] = React.useState<"add" | "import" | "export">(
+    "add",
+  );
+  const plural = pluralFor(mode);
+  const importColumns = React.useMemo(() => importColumnsForMode(mode), [mode]);
+  const {
+    importMode,
+    setImportMode,
+    fileName: importFileName,
+    parsed: importParsed,
+    handleFileSelect,
+    resetImport,
+  } = useCollectionImport(importColumns);
   const [contextualSession, setContextualSession] = React.useState<{
     ministryTermId: string;
     groupId?: string;
@@ -301,7 +380,6 @@ export function MinistryManagement({
   const [termLifecycle, setTermLifecycle] =
     React.useState<TermItem["lifecycle"]>("draft");
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
-  const [draftLifecycle, setDraftLifecycle] = React.useState<string>("all");
   const [draftSort, setDraftSort] = React.useState<string>("name-asc");
   const filterButtonRef = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
@@ -316,53 +394,28 @@ export function MinistryManagement({
     void setQuery({ ...value, page: 1 } as never);
 
   function openFilterSheet() {
-    if (mode === "terms") {
-      setDraftLifecycle(
-        (query as unknown as { lifecycle?: string }).lifecycle ?? "all",
-      );
-      setDraftSort(query.sort ?? "start-desc");
-    } else if (mode === "ministries") {
-      setDraftSort(query.sort ?? "name-asc");
-    }
+    setDraftSort(query.sort ?? "name-asc");
     setFilterSheetOpen(true);
   }
 
   function applyFilters() {
-    if (mode === "terms") {
-      update({ lifecycle: draftLifecycle, sort: draftSort });
-    } else if (mode === "ministries") {
-      update({ sort: draftSort });
-    }
+    update({ sort: draftSort });
     setFilterSheetOpen(false);
   }
 
   function resetDraftFilters() {
-    if (mode === "terms") {
-      setDraftLifecycle("all");
-      setDraftSort("start-desc");
-    } else if (mode === "ministries") {
-      setDraftSort("name-asc");
-    }
+    setDraftSort("name-asc");
   }
 
   const activeFilterCount =
-    mode === "terms"
-      ? ((query as unknown as { lifecycle?: string }).lifecycle &&
-        (query as unknown as { lifecycle?: string }).lifecycle !== "all"
-          ? 1
-          : 0) + (query.sort && (query.sort as string) !== "start-desc" ? 1 : 0)
-      : mode === "ministries"
-        ? query.sort && (query.sort as string) !== "name-asc"
-          ? 1
-          : 0
-        : 0;
+    mode === "ministries"
+      ? query.sort && (query.sort as string) !== "name-asc"
+        ? 1
+        : 0
+      : 0;
 
   const hasDraftFilterChanges =
-    mode === "terms"
-      ? draftLifecycle !== "all" || draftSort !== "start-desc"
-      : mode === "ministries"
-        ? draftSort !== "name-asc"
-        : false;
+    mode === "ministries" ? draftSort !== "name-asc" : false;
 
   const detailHref = (item: Item) =>
     mode === "ministries"
@@ -377,9 +430,8 @@ export function MinistryManagement({
             ? `/admin/ministries/${ministrySlug}/terms/${termSlug}/groups/${item.slug}`
             : undefined;
 
-  function openEditor(item: Item | "create") {
-    const identityItem =
-      item !== "create" && hasVisualIdentity(item) ? item : null;
+  function resetIdentityDrafts(item: Item | null) {
+    const identityItem = item && hasVisualIdentity(item) ? item : null;
     setAccentColor(
       identityItem
         ? normalizeMinistryColor(identityItem.accentColor)
@@ -391,16 +443,26 @@ export function MinistryManagement({
         DEFAULT_MINISTRY_ICON_KEY,
     );
     setCustomColorOpen(false);
-    setIdentityNameDraft(item !== "create" ? item.name : getInitialDraft(mode));
-    const term = item !== "create" && isTerm(item) ? item : null;
+    setIdentityNameDraft(item ? item.name : getInitialDraft(mode));
+    const term = item && isTerm(item) ? item : null;
     setTermStartDate(term?.startDate ?? "");
     setTermEndDate(term?.endDate ?? "");
     setTermLifecycle(term?.lifecycle ?? "draft");
     setFormError(null);
+  }
+
+  function openCreate() {
+    resetIdentityDrafts(null);
+    setManageTab("add");
+    setManageOpen(true);
+  }
+
+  function openEditor(item: Item) {
+    resetIdentityDrafts(item);
     setEditor(item);
   }
 
-  function submit(form: FormData) {
+  function persist(item: Item | null, form: FormData) {
     setFormError(null);
     if (
       supportsVisualIdentity &&
@@ -409,7 +471,6 @@ export function MinistryManagement({
       setFormError("Use a six-digit hex color.");
       return;
     }
-    const item = editor === "create" ? null : editor;
     const payload: Record<string, unknown> = {
       id: item?.id,
       name: form.get("name"),
@@ -424,7 +485,7 @@ export function MinistryManagement({
         ministryId,
         startDate: form.get("startDate") || null,
         endDate: form.get("endDate") || null,
-        lifecycle: termLifecycle,
+        lifecycle: item ? termLifecycle : "draft",
       });
     else
       action = saveStructureAction(
@@ -437,8 +498,78 @@ export function MinistryManagement({
         setFormError(response.error ?? "Unable to save this record.");
         return;
       }
-      setEditor(null);
+      if (item) setEditor(null);
+      else setManageOpen(false);
       setFeedback(response.message ?? `${label} saved successfully.`);
+    });
+  }
+
+  function submitEdit(form: FormData) {
+    if (editor) persist(editor, form);
+  }
+
+  function submitCreate(form: FormData) {
+    persist(null, form);
+  }
+
+  function submitImport() {
+    if (importParsed.valid.length === 0) return;
+    const rows = importParsed.valid;
+    let action: Promise<{ success: boolean; message?: string; error?: string }>;
+    if (mode === "ministries")
+      action = importMinistriesAction({ mode: importMode, rows });
+    else if (mode === "terms")
+      action = importTermsAction({ ministryId, mode: importMode, rows });
+    else
+      action = importStructuresAction(mode, {
+        ministryId,
+        termId,
+        mode: importMode,
+        rows,
+      });
+    startTransition(async () => {
+      const response = await action;
+      if (!response.success) {
+        setFeedback(
+          response.error ?? `Unable to import ${plural.toLowerCase()}.`,
+        );
+        return;
+      }
+      setManageOpen(false);
+      resetImport();
+      setFeedback(response.message ?? `${plural} imported successfully.`);
+    });
+  }
+
+  function submitExport(format: "json" | "csv") {
+    startTransition(async () => {
+      const response = await exportCollectionAction({
+        section: mode,
+        ministryId,
+        termId,
+      });
+      if (!response.success) {
+        setFeedback(
+          response.error ?? `Unable to export ${plural.toLowerCase()}.`,
+        );
+        return;
+      }
+      const columns = EXPORT_COLUMNS[mode];
+      if (format === "json") {
+        downloadJsonFile(`tmg-church-${mode}`, {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          [mode]: response.data.rows,
+        });
+        return;
+      }
+      downloadCsvFile(
+        `tmg-church-${mode}`,
+        columns,
+        response.data.rows.map((row) =>
+          columns.map((column) => row[column] ?? ""),
+        ),
+      );
     });
   }
   function remove() {
@@ -481,7 +612,17 @@ export function MinistryManagement({
         aria-label={title}
       >
         <p className="sr-only">{description}</p>
-        {mode !== "groups" && mode !== "departments" && (
+        <div className="flex items-center justify-end gap-2.5">
+          <Button
+            type="button"
+            onClick={openCreate}
+            className="hidden min-h-12 items-center gap-2 rounded-xl px-4 font-semibold sm:flex"
+          >
+            <FolderCog className="size-4" aria-hidden="true" />
+            <span>Manage {plural}</span>
+          </Button>
+        </div>
+        {mode === "ministries" && (
           <div className="flex items-center gap-2 border-b pb-5">
             <div className="relative min-w-0 flex-1">
               <Search
@@ -505,67 +646,42 @@ export function MinistryManagement({
                 placeholder={`Search ${title.toLowerCase()}`}
               />
             </div>
-            {(mode === "ministries" || mode === "terms") && (
-              <>
-                <Button
-                  ref={filterButtonRef}
-                  type="button"
-                  variant="outline"
-                  onClick={openFilterSheet}
-                  className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
-                  aria-label={
-                    activeFilterCount > 0
-                      ? `Filter ${title.toLowerCase()} (${activeFilterCount} active)`
-                      : `Filter ${title.toLowerCase()}`
-                  }
-                >
-                  <SlidersHorizontal
-                    className="text-muted-foreground size-4"
-                    aria-hidden="true"
-                  />
-                  <span>Filter</span>
-                  {activeFilterCount > 0 && (
-                    <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </Button>
-                <div className="hidden shrink-0 items-center gap-2 md:flex">
-                  {mode === "ministries" && (
-                    <ChoiceMenu
-                      label="Sort ministries"
-                      value={query.sort}
-                      onChange={(value) => update({ sort: value })}
-                      icon="filter"
-                      choices={MINISTRY_SORT_CHOICES}
-                    />
-                  )}
-                  {mode === "terms" && (
-                    <>
-                      <ChoiceMenu
-                        label="Filter lifecycle"
-                        value={
-                          (query as unknown as { lifecycle: string }).lifecycle
-                        }
-                        onChange={(value) => update({ lifecycle: value })}
-                        icon="filter"
-                        choices={TERM_LIFECYCLE_CHOICES}
-                      />
-                      <ChoiceMenu
-                        label="Sort terms"
-                        value={query.sort}
-                        onChange={(value) => update({ sort: value })}
-                        choices={TERM_SORT_CHOICES}
-                      />
-                    </>
-                  )}
-                </div>
-              </>
-            )}
+            <Button
+              ref={filterButtonRef}
+              type="button"
+              variant="outline"
+              onClick={openFilterSheet}
+              className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
+              aria-label={
+                activeFilterCount > 0
+                  ? `Filter ${title.toLowerCase()} (${activeFilterCount} active)`
+                  : `Filter ${title.toLowerCase()}`
+              }
+            >
+              <SlidersHorizontal
+                className="text-muted-foreground size-4"
+                aria-hidden="true"
+              />
+              <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              <ChoiceMenu
+                label="Sort ministries"
+                value={query.sort}
+                onChange={(value) => update({ sort: value })}
+                icon="filter"
+                choices={MINISTRY_SORT_CHOICES}
+              />
+            </div>
           </div>
         )}
         {result.items.length === 0 ? (
-          <div className="admin-surface py-12 text-center">
+          <div className="border-border/70 bg-card rounded-xl border py-12 text-center shadow-xs">
             <p className="font-medium">
               {query.q
                 ? `No ${title.toLowerCase()} match this search.`
@@ -576,6 +692,16 @@ export function MinistryManagement({
                 ? "Clear or change your search to see more records."
                 : `Create the first ${label.toLowerCase()} to get started.`}
             </p>
+            {!query.q && (
+              <Button
+                type="button"
+                onClick={openCreate}
+                className="mt-4 min-h-11 gap-2 rounded-xl"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                <span>Add {label}</span>
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -872,18 +998,14 @@ export function MinistryManagement({
           />
         )}
       </section>
-      <FloatingCreateButton
-        onClick={() => {
-          openEditor("create");
-        }}
-      >
-        Add {label}
+      <FloatingCreateButton onClick={openCreate}>
+        Manage {plural}
       </FloatingCreateButton>
       {editor && (
         <ResponsiveEditor
           open
           onOpenChange={(open) => !open && setEditor(null)}
-          title={`${editor === "create" ? "Add" : "Edit"} ${label}`}
+          title={`Edit ${label}`}
           description={
             mode === "groups" || mode === "departments"
               ? "Names and slugs must be unique within this term."
@@ -910,11 +1032,11 @@ export function MinistryManagement({
             </>
           }
         >
-          <form id="ministry-editor" action={submit} className="space-y-5">
+          <form id="ministry-editor" action={submitEdit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="edit-name">Name</Label>
               <Input
-                id="name"
+                id="edit-name"
                 name="name"
                 required
                 value={identityNameDraft}
@@ -950,16 +1072,11 @@ export function MinistryManagement({
                   from the name.
                 </p>
                 <div className="mt-3 space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
+                  <Label htmlFor="edit-slug">Slug</Label>
                   <Input
-                    id="slug"
+                    id="edit-slug"
                     name="slug"
-                    defaultValue={
-                      editor === "create"
-                        ? ""
-                        : (editor as MinistryItem | TermItem | StructureItem)
-                            .slug
-                    }
+                    defaultValue={editor.slug}
                     className="h-12 font-mono text-base"
                   />
                 </div>
@@ -1011,7 +1128,213 @@ export function MinistryManagement({
           </form>
         </ResponsiveEditor>
       )}
-      {(mode === "ministries" || mode === "terms") && (
+      <ManageCollectionDrawer
+        open={manageOpen}
+        onOpenChange={(open) => {
+          setManageOpen(open);
+          if (!open) resetImport();
+        }}
+        title={`Manage ${plural}`}
+        mobileMinHeightClass="min-h-[85dvh]"
+        maxWidthClass="sm:max-w-2xl"
+        tabs={[
+          { key: "add", label: "Add", icon: Plus },
+          { key: "import", label: "Import", icon: Upload },
+          { key: "export", label: "Export", icon: Download },
+        ]}
+        activeTab={manageTab}
+        onTabChange={setManageTab}
+        footer={
+          manageTab === "add" ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 font-semibold"
+                onClick={() => setManageOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="ministry-create"
+                disabled={pending}
+                className="min-h-11 font-semibold"
+              >
+                {pending ? "Saving..." : `Save ${label}`}
+              </Button>
+            </>
+          ) : manageTab === "import" && importParsed.valid.length > 0 ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 font-semibold"
+                onClick={() => setManageOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={submitImport}
+                className="min-h-11 font-semibold"
+              >
+                {pending
+                  ? "Importing..."
+                  : `Import ${importParsed.valid.length} Rows`}
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="col-span-2 min-h-11 w-full font-semibold"
+              onClick={() => setManageOpen(false)}
+            >
+              Cancel
+            </Button>
+          )
+        }
+      >
+        {manageTab === "add" && (
+          <form
+            id="ministry-create"
+            action={submitCreate}
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="create-name">Name</Label>
+              <Input
+                id="create-name"
+                name="name"
+                required
+                value={identityNameDraft}
+                onChange={(event) => setIdentityNameDraft(event.target.value)}
+                className="h-12 text-base"
+              />
+            </div>
+            {supportsVisualIdentity && (
+              <IdentityPicker
+                entityLabel={label}
+                accentColor={accentColor}
+                iconKey={iconKey}
+                customColorOpen={customColorOpen}
+                colorError={
+                  /^#[0-9a-f]{6}$/.test(accentColor.trim().toLowerCase())
+                    ? null
+                    : "Use a six-digit hex color."
+                }
+                previewName={identityNameDraft || getInitialDraft(mode)}
+                frequentIcons={frequentIcons}
+                onAccentColorChange={setAccentColor}
+                onIconKeyChange={setIconKey}
+                onCustomColorOpenChange={setCustomColorOpen}
+              />
+            )}
+            {(mode === "groups" || mode === "departments") && (
+              <details className="admin-surface p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Advanced link settings
+                </summary>
+                <p className="text-muted-foreground mt-2 text-xs">
+                  Leave the slug blank when creating a record to generate one
+                  from the name.
+                </p>
+                <div className="mt-3 space-y-2">
+                  <Label htmlFor="create-slug">Slug</Label>
+                  <Input
+                    id="create-slug"
+                    name="slug"
+                    defaultValue=""
+                    className="h-12 font-mono text-base"
+                  />
+                </div>
+              </details>
+            )}
+            {mode === "terms" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="create-lifecycle">Lifecycle</Label>
+                  <input type="hidden" name="lifecycle" value="draft" />
+                  <div
+                    id="create-lifecycle"
+                    className="bg-muted/40 border-border/70 text-muted-foreground flex h-12 items-center justify-between rounded-xl border px-3.5 text-sm"
+                  >
+                    <span className="text-foreground font-medium">Draft</span>
+                    <span className="bg-muted text-muted-foreground rounded-md px-2 py-0.5 text-xs font-medium">
+                      Initial status
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    New terms start as Draft. You can activate this term after
+                    creation.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-start-date">Start date</Label>
+                  <DatePicker
+                    id="create-start-date"
+                    name="startDate"
+                    value={termStartDate}
+                    onChange={setTermStartDate}
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="create-end-date">End date</Label>
+                  <DatePicker
+                    id="create-end-date"
+                    name="endDate"
+                    value={termEndDate}
+                    onChange={setTermEndDate}
+                    min={termStartDate || undefined}
+                    placeholder="Select end date"
+                  />
+                </div>
+              </div>
+            )}
+            {formError && (
+              <p className="text-destructive text-sm" role="alert">
+                {formError}
+              </p>
+            )}
+          </form>
+        )}
+        {manageTab === "import" && (
+          <ImportPanel
+            entityLabel={plural.toLowerCase()}
+            chipField="name"
+            fileInputId={`import-${mode}-file-input`}
+            importMode={importMode}
+            onImportModeChange={setImportMode}
+            fileName={importFileName}
+            parsed={importParsed}
+            onFileSelect={handleFileSelect}
+          />
+        )}
+        {manageTab === "export" && (
+          <ExportPanel
+            formats={[
+              {
+                title: "JSON Format",
+                description: `Structured backup with metadata for all ${plural.toLowerCase()}.`,
+                buttonLabel: "Export JSON",
+                icon: <Download className="size-4" aria-hidden="true" />,
+                onClick: () => submitExport("json"),
+              },
+              {
+                title: "CSV Format (Excel)",
+                description: `Spreadsheet-ready list of every ${label.toLowerCase()} in this scope.`,
+                buttonLabel: "Export CSV",
+                icon: <Download className="size-4" aria-hidden="true" />,
+                onClick: () => submitExport("csv"),
+              },
+            ]}
+          />
+        )}
+      </ManageCollectionDrawer>
+      {mode === "ministries" && (
         <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
           <SheetContent
             side="bottom"
@@ -1033,7 +1356,7 @@ export function MinistryManagement({
               <SheetHeader className="p-0 text-left">
                 <div className="flex items-center gap-2">
                   <SheetTitle className="text-foreground text-lg font-bold">
-                    {mode === "terms" ? "Filter & sort" : "Sort options"}
+                    Sort options
                   </SheetTitle>
                   {hasDraftFilterChanges && (
                     <button
@@ -1046,9 +1369,7 @@ export function MinistryManagement({
                   )}
                 </div>
                 <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
-                  {mode === "terms"
-                    ? "Filter by lifecycle and adjust sort order."
-                    : "Adjust ministry sort order."}
+                  Adjust ministry sort order.
                 </SheetDescription>
               </SheetHeader>
 
@@ -1064,44 +1385,6 @@ export function MinistryManagement({
             </div>
 
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
-              {mode === "terms" && (
-                <div className="space-y-2">
-                  <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
-                    Lifecycle
-                  </span>
-                  <RadixRadioGroup.Root
-                    className="divide-border/60 border-border/60 bg-muted/20 divide-y overflow-hidden rounded-xl border"
-                    aria-label="Lifecycle filter"
-                    value={draftLifecycle}
-                    onValueChange={setDraftLifecycle}
-                  >
-                    {TERM_LIFECYCLE_CHOICES.map((choice) => {
-                      const selected = draftLifecycle === choice.value;
-                      return (
-                        <RadixRadioGroup.Item
-                          key={choice.value}
-                          value={choice.value}
-                          className={cn(
-                            "focus-visible:ring-ring flex min-h-[44px] w-full items-center justify-between px-3.5 py-2.5 text-sm transition-colors first:rounded-t-[11px] last:rounded-b-[11px] focus-visible:ring-2 focus-visible:outline-hidden",
-                            selected
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "hover:bg-muted/50 text-foreground",
-                          )}
-                        >
-                          <span>{choice.label}</span>
-                          {selected && (
-                            <Check
-                              className="text-primary size-4 shrink-0"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </RadixRadioGroup.Item>
-                      );
-                    })}
-                  </RadixRadioGroup.Root>
-                </div>
-              )}
-
               <div className="space-y-2">
                 <span className="text-muted-foreground block text-xs font-semibold tracking-wider uppercase">
                   Sort by
@@ -1112,10 +1395,7 @@ export function MinistryManagement({
                   value={draftSort}
                   onValueChange={setDraftSort}
                 >
-                  {(mode === "terms"
-                    ? TERM_SORT_CHOICES
-                    : MINISTRY_SORT_CHOICES
-                  ).map((choice) => {
+                  {MINISTRY_SORT_CHOICES.map((choice) => {
                     const selected = draftSort === choice.value;
                     return (
                       <RadixRadioGroup.Item

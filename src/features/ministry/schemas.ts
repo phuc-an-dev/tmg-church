@@ -103,3 +103,68 @@ export const unassignDepartmentMembersSchema = z.object({
     .array(id)
     .min(1, "Select at least one member to remove from this department"),
 });
+
+const importMode = z.enum(["merge", "replace"]);
+const importRowName = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(120, "Name cannot exceed 120 characters");
+const optionalHexColor = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^#[0-9a-f]{6}$/, "Use a six-digit hex color")
+  .optional();
+const importRows = <T extends z.ZodTypeAny>(rowSchema: T) =>
+  z
+    .array(rowSchema)
+    .min(1, "Import at least one row")
+    .max(500, "Import at most 500 rows per file");
+
+const ministryImportRowSchema = z.object({
+  name: importRowName,
+  slug: optionalSlug,
+  accentColor: optionalHexColor,
+  iconKey: iconKey.optional(),
+});
+
+export const importMinistriesSchema = z.object({
+  mode: importMode,
+  rows: importRows(ministryImportRowSchema),
+});
+
+export const importTermsSchema = z.object({
+  ministryId: id,
+  mode: importMode,
+  rows: importRows(
+    z
+      .object({
+        name: importRowName,
+        slug: optionalSlug,
+        startDate: date,
+        endDate: date,
+        lifecycle: termLifecycle.optional(),
+      })
+      .refine(
+        (row) => !row.startDate || !row.endDate || row.endDate >= row.startDate,
+        {
+          message: "End date cannot be before start date",
+          path: ["endDate"],
+        },
+      ),
+  ),
+});
+
+export const importStructuresSchema = z.object({
+  ministryId: id,
+  termId: id,
+  mode: importMode,
+  rows: importRows(ministryImportRowSchema),
+});
+
+export const exportCollectionSchema = z.object({
+  section: z.enum(["ministries", "terms", "groups", "departments"]),
+  ministryId: id.optional(),
+  termId: id.optional(),
+});
