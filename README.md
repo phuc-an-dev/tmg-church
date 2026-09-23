@@ -1,30 +1,28 @@
 # TMG Church
 
-TMG Church is a mobile-first church management application for public member information and authenticated leader administration. The production domain is `tmgchurch.website`.
+TMG Church là ứng dụng quản lý thông tin hội thánh ưu tiên thiết bị di động (mobile-first)
 
-Foundation, database, authentication, Church administration, and Ministry administration are complete. `docs/NEXT_AGENT_TASK.md` is the only source for the next authorized task.
+## Công nghệ sử dụng (Tech Stack)
 
-## Stack
-
-- Next.js App Router with TypeScript
-- React and Tailwind CSS
-- shadcn/ui with Radix primitives
+- Next.js App Router với TypeScript
+- React và Tailwind CSS
+- shadcn/ui với các primitive của Radix
 - Lucide icons
-- Supabase Postgres, Auth, Row Level Security, and `@supabase/ssr`
-- `nuqs` for URL query state
-- React Hook Form and Zod for forms and validation
-- TanStack Table for the desktop administration table
-- Vercel deployment
+- Supabase Postgres, Auth, Row Level Security (RLS) và `@supabase/ssr`
+- `nuqs` để quản lý trạng thái query URL
+- React Hook Form và Zod cho biểu mẫu và xác thực dữ liệu
+- TanStack Table cho bảng quản trị trên màn hình máy tính (desktop)
+- Triển khai trên Vercel
 - pnpm
 
-## Local setup
+## Cài đặt môi trường cục bộ (Local Setup)
 
-Requirements:
+Yêu cầu hệ thống:
 
-- Node.js 22.13 or newer
-- pnpm 11 or newer
+- Node.js 22.13 trở lên
+- pnpm 11 trở lên
 
-Install dependencies and create the local environment file:
+Cài đặt dependencies và tạo file môi trường cục bộ:
 
 ```bash
 pnpm install
@@ -32,44 +30,28 @@ cp .env.local.example .env.local
 pnpm dev
 ```
 
-The app is available at `http://localhost:3000`.
+Ứng dụng sẽ chạy tại địa chỉ `http://localhost:3000`.
 
-## Environment variables
+## Biến môi trường (Environment Variables)
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-Only publishable browser credentials belong in `NEXT_PUBLIC_*` variables. Never add a Supabase service-role key to this application or expose it to the browser.
+Chỉ đặt các thông tin publishable dùng trên trình duyệt vào biến `NEXT_PUBLIC_*`. Tuyệt đối không thêm `SUPABASE_SERVICE_ROLE_KEY` vào ứng dụng này hoặc để lộ cho trình duyệt.
 
-## Commands
+## Các câu lệnh thường dùng (Commands)
 
 ```bash
 pnpm dev
+pnpm test
 pnpm lint
 pnpm typecheck
 pnpm format:check
 pnpm build
 ```
 
-## Documentation
+## Phạm vi hiện tại (Current Scope)
 
-- [Project brief](docs/PROJECT_BRIEF.md)
-- [Engineering rules](docs/ENGINEERING_RULES.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database design](docs/DATABASE.md)
-- [Security model](docs/SECURITY.md)
-- [Design system](docs/DESIGN_SYSTEM.md)
-- [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
-- [Next coding-agent task](docs/NEXT_AGENT_TASK.md)
-- [Plan and review workflow](docs/WORKFLOW.md)
-- [Review checklist](docs/REVIEW_CHECKLIST.md)
-- [Decision log](docs/decisions/0001-foundation.md)
-- [Review log](docs/reviews/REVIEW_LOG.md)
-
-## Current scope
-
-The first implementation sequence creates the complete database schema, authentication boundary, and administration shell. The first usable administration modules are Church, Ministry, Ministry Term, Term Group, and Term Department. Member management follows immediately after those structures because member assignment depends on them.
-
-Public announcements and schedules may appear as clearly marked interface placeholders until their tables and workflows are implemented. They must not pretend to be live data.
+Quản lý cốt lõi Hội thánh và Ban ngành, vòng đời thành viên, phân quyền RBAC, contextual sessions và cổng thông tin theo năng lực (`/portal`) dành cho các vai trò lãnh đạo đã hoàn thành. Thông báo và lịch trình công khai tạm thời hiển thị dưới dạng placeholder cho đến khi các module tương ứng được kích hoạt.
