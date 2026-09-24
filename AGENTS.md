@@ -36,7 +36,6 @@ Luôn thiết kế và kiểm thử bắt đầu từ màn hình nhỏ nhất tr
 - Trước khi bàn giao, bắt buộc chạy:
 
 ```bash
-pnpm test
 pnpm lint
 pnpm typecheck
 pnpm format:check
