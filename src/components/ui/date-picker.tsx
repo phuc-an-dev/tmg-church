@@ -11,6 +11,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsDesktop } from "@/components/shared/responsive-editor";
 
 export interface DatePickerProps {
   id?: string;
@@ -89,6 +96,8 @@ export function DatePicker({
     defaultValue ?? "",
   );
   const [open, setOpen] = React.useState(false);
+  const [draftDate, setDraftDate] = React.useState<Date | undefined>(undefined);
+  const [hasSelectedDate, setHasSelectedDate] = React.useState(false);
 
   const isControlled = controlledValue !== undefined;
   const currentValue = isControlled
@@ -109,12 +118,14 @@ export function DatePicker({
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
+      setDraftDate(selectedDate);
+      setHasSelectedDate(false);
       setMonth(selectedDate ?? minDate ?? new Date());
     }
     setOpen(nextOpen);
   }
 
-  function handleSelect(date?: Date) {
+  function commitDate(date?: Date) {
     const formatted = formatDate(date);
     if (!isControlled) {
       setUncontrolledValue(formatted);
@@ -123,13 +134,71 @@ export function DatePicker({
     setOpen(false);
   }
 
-  function handleClear(event: React.MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
+  const isDesktop = useIsDesktop();
+
+  function handleCalendarSelect(date?: Date) {
+    if (isDesktop === false) {
+      setDraftDate(date);
+      setHasSelectedDate(true);
+    } else {
+      commitDate(date);
+    }
+  }
+
+  function handleClear(event?: React.MouseEvent<HTMLButtonElement>) {
+    event?.stopPropagation();
     if (!isControlled) {
       setUncontrolledValue("");
     }
     onChange?.("");
   }
+
+  const calendarNode = (
+    <Calendar
+      mode="single"
+      selected={isDesktop === false ? draftDate : selectedDate}
+      onSelect={handleCalendarSelect}
+      month={month}
+      onMonthChange={setMonth}
+      startMonth={startMonth ?? minDate ?? new Date(1950, 0)}
+      endMonth={endMonth ?? maxDate ?? new Date(2050, 11)}
+      captionLayout="dropdown"
+      dropdownMaxHeight={dropdownMaxHeight}
+      disabled={(date) => {
+        if (minDate && date < minDate) return true;
+        if (maxDate && date > maxDate) return true;
+        return false;
+      }}
+    />
+  );
+
+  const triggerButton = (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={disabled}
+      onClick={isDesktop === false ? () => handleOpenChange(true) : undefined}
+      aria-label={
+        ariaLabel ??
+        (selectedDate
+          ? `Selected date: ${format(selectedDate, dateFormat)}`
+          : placeholder)
+      }
+      className={cn(
+        "bg-card hover:bg-card h-12 min-h-[44px] w-full justify-start px-3 text-left text-base font-normal sm:text-sm",
+        selectedDate && !disabled ? "pr-12" : "",
+        !selectedDate && "text-muted-foreground",
+      )}
+    >
+      <CalendarIcon
+        className="text-muted-foreground mr-2 size-4 shrink-0"
+        aria-hidden="true"
+      />
+      <span className="truncate">
+        {selectedDate ? format(selectedDate, dateFormat) : placeholder}
+      </span>
+    </Button>
+  );
 
   return (
     <div className={cn("relative flex w-full items-center", className)}>
@@ -142,56 +211,69 @@ export function DatePicker({
           disabled={disabled}
         />
       )}
-      <Popover open={open} onOpenChange={handleOpenChange}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            aria-label={
-              ariaLabel ??
-              (selectedDate
-                ? `Selected date: ${format(selectedDate, dateFormat)}`
-                : placeholder)
-            }
-            className={cn(
-              "bg-card hover:bg-card h-12 min-h-[44px] w-full justify-start px-3 text-left text-base font-normal sm:text-sm",
-              selectedDate && !disabled ? "pr-12" : "",
-              !selectedDate && "text-muted-foreground",
-            )}
+      {isDesktop === false ? (
+        <>
+          {triggerButton}
+          <Sheet open={open} onOpenChange={handleOpenChange}>
+            <SheetContent
+              side="bottom"
+              className="border-border/80 bg-card inset-x-0 bottom-0 z-[70] flex max-h-[90dvh] flex-col rounded-t-2xl border-t p-0 shadow-2xl focus:outline-none"
+            >
+              <div
+                className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
+                aria-hidden="true"
+              />
+              <SheetHeader className="border-border/60 border-b px-5 pt-3 pb-3 text-left">
+                <SheetTitle className="text-foreground text-base font-bold">
+                  {ariaLabel ?? placeholder}
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-4">
+                <div className="border-border/80 bg-card w-fit rounded-2xl border p-2 shadow-lg">
+                  {calendarNode}
+                </div>
+              </div>
+              <div
+                className={cn(
+                  "border-border/70 bg-muted/30 shrink-0 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]",
+                  hasSelectedDate && draftDate
+                    ? "grid grid-cols-2 gap-3 [&>*]:w-full"
+                    : "",
+                )}
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 min-h-[44px] w-full text-base font-medium"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+                {hasSelectedDate && draftDate && (
+                  <Button
+                    type="button"
+                    className="h-11 min-h-[44px] w-full text-base font-medium"
+                    onClick={() => commitDate(draftDate)}
+                  >
+                    Confirm
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      ) : (
+        <Popover open={open} onOpenChange={handleOpenChange}>
+          <PopoverTrigger asChild>{triggerButton}</PopoverTrigger>
+          <PopoverContent
+            className="z-[60] w-auto p-0"
+            align="start"
+            sideOffset={6}
           >
-            <CalendarIcon
-              className="text-muted-foreground mr-2 size-4 shrink-0"
-              aria-hidden="true"
-            />
-            <span className="truncate">
-              {selectedDate ? format(selectedDate, dateFormat) : placeholder}
-            </span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="z-[60] w-auto p-0"
-          align="start"
-          sideOffset={6}
-        >
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleSelect}
-            month={month}
-            onMonthChange={setMonth}
-            startMonth={startMonth ?? minDate ?? new Date(1950, 0)}
-            endMonth={endMonth ?? maxDate ?? new Date(2050, 11)}
-            captionLayout="dropdown"
-            dropdownMaxHeight={dropdownMaxHeight}
-            disabled={(date) => {
-              if (minDate && date < minDate) return true;
-              if (maxDate && date > maxDate) return true;
-              return false;
-            }}
-          />
-        </PopoverContent>
-      </Popover>
+            {calendarNode}
+          </PopoverContent>
+        </Popover>
+      )}
       {selectedDate && !disabled && (
         <Button
           type="button"
@@ -199,7 +281,7 @@ export function DatePicker({
           size="icon"
           aria-label="Clear date"
           onClick={handleClear}
-          className="text-muted-foreground hover:text-foreground hover:bg-muted absolute right-1 size-9 min-h-[36px] min-w-[36px] shrink-0 rounded-md"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted absolute right-1 z-10 size-9 min-h-[36px] min-w-[36px] shrink-0 rounded-md"
         >
           <X className="size-4" aria-hidden="true" />
         </Button>

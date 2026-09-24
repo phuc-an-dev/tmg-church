@@ -60,12 +60,41 @@ export const termSchema = z
         message: "End date cannot be before start date",
       });
   });
+export const DEPARTMENT_CODES = [
+  "social_support",
+  "small_groups",
+  "pastoral",
+  "music",
+  "worship",
+  "visitation_care",
+  "evangelism",
+] as const;
+
+export type DepartmentCode = (typeof DEPARTMENT_CODES)[number];
+
+export const DEPARTMENT_CODE_OPTIONS = [
+  { value: null, label: "None (General Department)" },
+  { value: "pastoral", label: "Pastoral" },
+  { value: "worship", label: "Worship" },
+  { value: "music", label: "Music" },
+  { value: "evangelism", label: "Evangelism" },
+  { value: "visitation_care", label: "Visitation Care" },
+  { value: "social_support", label: "Social Support" },
+  { value: "small_groups", label: "Small Groups" },
+] as const;
+
 export const structureSchema = z.object({
   id: id.optional(),
   ministryId: id,
   termId: id,
   name,
   slug: optionalSlug,
+  departmentCode: z
+    .enum(DEPARTMENT_CODES)
+    .nullable()
+    .optional()
+    .or(z.literal(""))
+    .transform((val) => (val === "" || val === undefined ? null : val)),
   accentColor: z
     .string()
     .trim()

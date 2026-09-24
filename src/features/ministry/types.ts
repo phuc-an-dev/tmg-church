@@ -38,6 +38,7 @@ export type StructureItem = {
   slug: string;
   accentColor: string;
   iconKey: string;
+  departmentCode?: string | null;
   roleCount?: number;
   memberCount?: number;
 };

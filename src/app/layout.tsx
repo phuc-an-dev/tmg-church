@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const geist = Geist({
@@ -35,8 +33,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           disableTransitionOnChange
         >
           <NuqsAdapter>{children}</NuqsAdapter>
-          <SpeedInsights />
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
-    exclude: ["**/node_modules/**", "tests/authorization/**"],
+    exclude: ["**/node_modules/**"],
     setupFiles: ["./vitest.setup.ts"],
     globals: true,
   },

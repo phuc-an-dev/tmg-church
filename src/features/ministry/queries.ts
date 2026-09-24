@@ -224,7 +224,7 @@ export async function getStructure(
     const { data, error } = await supabase
       .from("term_department")
       .select(
-        "id, name, slug, accent_color, icon_key, department_service_role(count), ministry_assignment(count)",
+        "id, name, slug, accent_color, icon_key, department_code, department_service_role(count), ministry_assignment(count)",
       )
       .eq("ministry_term_id", context.term.id)
       .order("name")
@@ -236,6 +236,7 @@ export async function getStructure(
       slug: row.slug,
       accentColor: row.accent_color,
       iconKey: row.icon_key,
+      departmentCode: row.department_code ?? null,
       roleCount:
         (
           row as unknown as {

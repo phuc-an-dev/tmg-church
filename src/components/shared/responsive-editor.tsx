@@ -46,7 +46,7 @@ function getServerSnapshot() {
 
 const emptySubscribe = () => () => {};
 
-function useIsDesktop() {
+export function useIsDesktop() {
   const mounted = React.useSyncExternalStore(
     emptySubscribe,
     () => true,

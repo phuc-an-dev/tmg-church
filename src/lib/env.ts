@@ -58,14 +58,3 @@ export function getSiteUrl(): string {
     ? "https://tmgchurch.website"
     : "http://localhost:3000";
 }
-
-/**
- * Aggregate helper for server-side initialization.
- */
-export function getPublicEnv() {
-  return {
-    supabaseUrl: getPublicSupabaseUrl(),
-    supabasePublishableKey: getPublicSupabasePublishableKey(),
-    siteUrl: getSiteUrl(),
-  };
-}

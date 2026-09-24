@@ -402,7 +402,7 @@ export async function saveStructureAction(
       .maybeSingle();
     if (!term)
       return resultError("NOT_FOUND", "The requested term was not found.");
-    const values = {
+    const baseValues = {
       name: parsed.data.name,
       accent_color: parsed.data.accentColor,
       icon_key: parsed.data.iconKey,
@@ -428,16 +428,31 @@ export async function saveStructureAction(
             existing.id,
           )
         : existing.slug;
+      const values =
+        section === "departments"
+          ? {
+              ...baseValues,
+              department_code: parsed.data.departmentCode ?? null,
+              slug,
+            }
+          : { ...baseValues, slug };
       const { error } = await supabase
         .from(table)
-        .update({ ...values, slug })
+        .update(values)
         .eq("id", existing.id)
         .eq("ministry_term_id", term.id);
-      if (error)
+      if (error) {
+        if ((error as { code?: string }).code === "23505") {
+          return resultError(
+            "CONFLICT",
+            `A department with this functional role already exists in this term.`,
+          );
+        }
         return dbError(
           error,
           `Unable to update this ${section === "groups" ? "group" : "department"}.`,
         );
+      }
       await paths(term.ministry_id, term.id);
       return {
         success: true,
@@ -451,16 +466,32 @@ export async function saveStructureAction(
       parsed.data.name,
       parsed.data.slug,
     );
+    const values =
+      section === "departments"
+        ? {
+            ministry_term_id: term.id,
+            ...baseValues,
+            department_code: parsed.data.departmentCode ?? null,
+            slug,
+          }
+        : { ministry_term_id: term.id, ...baseValues, slug };
     const { data, error } = await supabase
       .from(table)
-      .insert({ ministry_term_id: term.id, ...values, slug })
+      .insert(values)
       .select("id")
       .single();
-    if (error || !data)
+    if (error || !data) {
+      if (error && (error as { code?: string }).code === "23505") {
+        return resultError(
+          "CONFLICT",
+          `A department with this functional role or name already exists in this term.`,
+        );
+      }
       return dbError(
         error,
         `Unable to create this ${section === "groups" ? "group" : "department"}.`,
       );
+    }
     await paths(term.ministry_id, term.id);
     return {
       success: true,

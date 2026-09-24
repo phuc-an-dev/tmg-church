@@ -8,6 +8,8 @@ Luôn thiết kế và kiểm thử bắt đầu từ màn hình nhỏ nhất tr
 - Vùng chạm (touch targets) tối thiểu 44 x 44 px.
 - Không sử dụng thẻ mặc định của trình duyệt (ví dụ: select input calendar,...).
 - Trên mobile, hiển thị danh sách dạng thẻ (card). Mở các tác vụ tạo mới, chỉnh sửa, chi tiết, bộ lọc và xác nhận trong ngăn kéo đáy (bottom drawer). Tuyệt đối không dùng modal/dialog căn giữa trên mobile.
+- Các item trong danh sách lựa chọn (list items / option cards) trong bottom drawer phải đảm bảo chiều cao tối thiểu `min-h-14` (56 px) và bo góc `rounded-xl`.
+- Mọi bottom drawer phải có thanh hành động cố định ở đáy (sticky bottom footer) hỗ trợ `env(safe-area-inset-bottom)` với ít nhất 1 nút (`Cancel` / `Done`) hoặc nhóm nút (`Cancel & Save`, `Clear & Cancel`,...); vùng chạm mỗi nút tối thiểu 44 x 44 px.
 - Tái sử dụng lại component để giao diện được đồng bộ
 
 ## Tác vụ huỷ hoại dữ liệu (Destructive actions)

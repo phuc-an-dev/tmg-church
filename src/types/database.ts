@@ -1038,7 +1038,7 @@ export type Database = {
         Row: {
           accent_color: string;
           created_at: string;
-          department_code: string;
+          department_code: string | null;
           icon_key: string;
           id: string;
           ministry_term_id: string;
@@ -1049,7 +1049,7 @@ export type Database = {
         Insert: {
           accent_color?: string;
           created_at?: string;
-          department_code: string;
+          department_code?: string | null;
           icon_key?: string;
           id?: string;
           ministry_term_id: string;
@@ -1060,7 +1060,7 @@ export type Database = {
         Update: {
           accent_color?: string;
           created_at?: string;
-          department_code?: string;
+          department_code?: string | null;
           icon_key?: string;
           id?: string;
           ministry_term_id?: string;
