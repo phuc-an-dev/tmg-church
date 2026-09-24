@@ -5,6 +5,7 @@ import { cn } from "cn";
 import {
   DayPicker,
   getDefaultClassNames,
+  useDayPicker,
   type DayButton,
   type Locale,
 } from "react-day-picker";
@@ -48,11 +49,17 @@ const MonthYearContext = React.createContext<{
     type: "month" | "year",
     props: CalendarDropdownProps,
   ) => void;
+  registerGoToMonth: (fn: (date: Date) => void) => void;
+  monthProps: CalendarDropdownProps | null;
+  yearProps: CalendarDropdownProps | null;
 }>({
   isDesktop: true,
   open: false,
   setOpen: () => {},
   registerDropdown: () => {},
+  registerGoToMonth: () => {},
+  monthProps: null,
+  yearProps: null,
 });
 
 function CalendarDropdownNav({
@@ -60,241 +67,62 @@ function CalendarDropdownNav({
   children,
   ...props
 }: React.ComponentProps<"div">) {
-  const isDesktop = useIsDesktop();
-  const [open, setOpen] = React.useState(false);
-  const [monthProps, setMonthProps] =
-    React.useState<CalendarDropdownProps | null>(null);
-  const [yearProps, setYearProps] =
-    React.useState<CalendarDropdownProps | null>(null);
-  const [draftMonthVal, setDraftMonthVal] = React.useState<
-    number | string | readonly string[] | undefined
-  >(undefined);
-  const [draftYearVal, setDraftYearVal] = React.useState<
-    number | string | readonly string[] | undefined
-  >(undefined);
-  const yearListRef = React.useRef<HTMLDivElement>(null);
-
-  const registerDropdown = React.useCallback(
-    (type: "month" | "year", p: CalendarDropdownProps) => {
-      if (type === "month") {
-        setMonthProps((prev) =>
-          prev?.value === p.value &&
-          prev?.options === p.options &&
-          prev?.onChange === p.onChange
-            ? prev
-            : p,
-        );
-      } else {
-        setYearProps((prev) =>
-          prev?.value === p.value &&
-          prev?.options === p.options &&
-          prev?.onChange === p.onChange
-            ? prev
-            : p,
-        );
-      }
-    },
-    [],
-  );
-
-  function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) {
-      setDraftMonthVal(monthProps?.value);
-      setDraftYearVal(yearProps?.value);
-    }
-    setOpen(nextOpen);
-  }
+  const { isDesktop, setOpen, registerGoToMonth, monthProps, yearProps } =
+    React.useContext(MonthYearContext);
+  const { goToMonth } = useDayPicker();
 
   React.useEffect(() => {
-    if (!open) return;
-    const scrollSelected = () => {
-      const container = yearListRef.current;
-      if (!container) return;
-      const selectedEl = container.querySelector<HTMLElement>(
-        '[data-selected="true"]',
-      );
-      if (selectedEl) {
-        container.scrollTop = Math.max(
-          0,
-          selectedEl.offsetTop -
-            container.clientHeight / 2 +
-            selectedEl.clientHeight / 2,
-        );
-        selectedEl.scrollIntoView({
-          block: "center",
-          behavior: "instant" as ScrollBehavior,
-        });
-      }
-    };
-    const t1 = setTimeout(scrollSelected, 60);
-    const t2 = setTimeout(scrollSelected, 180);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [open]);
+    registerGoToMonth(goToMonth);
+  }, [registerGoToMonth, goToMonth]);
+
+  const monthLabel =
+    monthProps?.options?.find(
+      (opt) => String(opt.value) === String(monthProps.value),
+    )?.label ?? "";
+  const yearLabel =
+    yearProps?.options?.find(
+      (opt) => String(opt.value) === String(yearProps.value),
+    )?.label ?? (yearProps?.value ? String(yearProps.value) : "");
 
   return (
-    <MonthYearContext.Provider
-      value={{ isDesktop, open, setOpen, registerDropdown }}
-    >
-      <div className={className} {...props}>
-        {isDesktop === false ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(true);
-              }}
-              aria-label="Select month and year"
-              className="border-border/80 bg-card hover:bg-muted/80 text-foreground relative z-30 h-11 min-h-[44px] cursor-pointer touch-manipulation rounded-xl px-4 text-sm font-semibold shadow-xs transition-colors"
-            >
-              <span>Select Month & Year</span>
-            </Button>
-            <div className="hidden" aria-hidden="true">
-              {children}
-            </div>
-          </>
-        ) : (
-          children
-        )}
-      </div>
-      {isDesktop === false && (
-        <Sheet open={open} onOpenChange={handleOpenChange}>
-          <SheetContent
-            side="bottom"
-            className="border-border/80 bg-card inset-x-0 bottom-0 z-[80] flex max-h-[85vh] flex-col rounded-t-2xl border-t p-0 shadow-2xl focus:outline-none"
+    <div className={className} {...props}>
+      {isDesktop === false ? (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(true);
+            }}
+            aria-label="Select month and year"
+            className="hover:bg-muted/80 text-foreground relative z-30 flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-semibold transition-colors"
           >
-            <div
-              className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
-              aria-hidden="true"
-            />
-            <SheetHeader className="border-border/60 border-b px-5 pt-3 pb-3 text-left">
-              <SheetTitle className="text-foreground text-lg font-bold">
-                Select Month & Year
-              </SheetTitle>
-              <SheetDescription className="text-muted-foreground text-xs">
-                Pick a month and year to navigate calendar.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="divide-border/60 flex max-h-[50vh] min-h-[300px] flex-1 divide-x overflow-hidden">
-              {/* Left Column: Months */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="bg-muted/40 border-border/40 text-muted-foreground border-b px-3 py-2 text-[11px] font-bold tracking-wider uppercase">
-                  Month
-                </div>
-                <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                  {monthProps?.options?.map((option) => {
-                    const isSelected =
-                      String(option.value) === String(draftMonthVal);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setDraftMonthVal(option.value);
-                        }}
-                        className={cn(
-                          "flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left text-sm font-medium transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary/5 text-primary font-semibold"
-                            : "border-border/60 hover:bg-muted/60 text-foreground",
-                        )}
-                      >
-                        <span className="truncate">{option.label}</span>
-                        {isSelected && (
-                          <CheckIcon
-                            className="text-primary size-4 shrink-0"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Right Column: Years */}
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="bg-muted/40 border-border/40 text-muted-foreground border-b px-3 py-2 text-[11px] font-bold tracking-wider uppercase">
-                  Year
-                </div>
-                <div
-                  ref={yearListRef}
-                  className="relative flex-1 space-y-2 overflow-y-auto p-3"
-                >
-                  {yearProps?.options?.map((option) => {
-                    const isSelected =
-                      String(option.value) === String(draftYearVal);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        data-selected={isSelected}
-                        onClick={() => {
-                          setDraftYearVal(option.value);
-                        }}
-                        className={cn(
-                          "flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left text-sm font-medium transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary/5 text-primary font-semibold"
-                            : "border-border/60 hover:bg-muted/60 text-foreground",
-                        )}
-                      >
-                        <span className="truncate">{option.label}</span>
-                        {isSelected && (
-                          <CheckIcon
-                            className="text-primary size-4 shrink-0"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom sticky footer with safe-area padding */}
-            <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 min-h-[44px] w-full text-base font-medium"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="h-11 min-h-[44px] w-full text-base font-medium"
-                onClick={() => {
-                  if (draftMonthVal !== undefined && monthProps?.onChange) {
-                    const num = Number(draftMonthVal);
-                    monthProps.onChange({
-                      target: { value: isNaN(num) ? draftMonthVal : num },
-                    } as unknown as React.ChangeEvent<HTMLSelectElement>);
-                  }
-                  if (draftYearVal !== undefined && yearProps?.onChange) {
-                    const num = Number(draftYearVal);
-                    yearProps.onChange({
-                      target: { value: isNaN(num) ? draftYearVal : num },
-                    } as unknown as React.ChangeEvent<HTMLSelectElement>);
-                  }
-                  setOpen(false);
-                }}
-              >
-                Confirm
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+            <span>
+              {monthLabel} {yearLabel}
+            </span>
+          </button>
+          <div className="hidden" aria-hidden="true">
+            {children}
+          </div>
+        </>
+      ) : (
+        children
       )}
-    </MonthYearContext.Provider>
+    </div>
+  );
+}
+
+function isSameOptions(
+  a?: Array<{ value: number; label: string }>,
+  b?: Array<{ value: number; label: string }>,
+) {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  return (
+    a[0]?.value === b[0]?.value &&
+    a[a.length - 1]?.value === b[b.length - 1]?.value
   );
 }
 
@@ -333,9 +161,8 @@ function CalendarDropdown({
   }, [
     registerDropdown,
     dropdownType,
-    options,
     value,
-    onChange,
+    options?.length,
     disabled,
     dropdownMaxHeight,
     ariaLabel,
@@ -507,171 +334,425 @@ function Calendar({
   ...props
 }: CalendarProps) {
   const defaultClassNames = getDefaultClassNames();
+  const isDesktop = useIsDesktop();
+  const [open, setOpen] = React.useState(false);
+  const [monthProps, setMonthProps] =
+    React.useState<CalendarDropdownProps | null>(null);
+  const [yearProps, setYearProps] =
+    React.useState<CalendarDropdownProps | null>(null);
+  const [draftMonthVal, setDraftMonthVal] = React.useState<
+    number | string | readonly string[] | undefined
+  >(undefined);
+  const [draftYearVal, setDraftYearVal] = React.useState<
+    number | string | readonly string[] | undefined
+  >(undefined);
+  const yearListRef = React.useRef<HTMLDivElement>(null);
+  const monthPropsRef = React.useRef<CalendarDropdownProps | null>(null);
+  const yearPropsRef = React.useRef<CalendarDropdownProps | null>(null);
+
+  const goToMonthRef = React.useRef<((date: Date) => void) | null>(null);
+  const registerGoToMonth = React.useCallback((fn: (date: Date) => void) => {
+    goToMonthRef.current = fn;
+  }, []);
+
+  const registerDropdown = React.useCallback(
+    (type: "month" | "year", p: CalendarDropdownProps) => {
+      if (type === "month") {
+        monthPropsRef.current = p;
+        setMonthProps((prev) => {
+          if (
+            prev &&
+            prev.value === p.value &&
+            isSameOptions(prev.options, p.options)
+          ) {
+            return prev;
+          }
+          return p;
+        });
+      } else {
+        yearPropsRef.current = p;
+        setYearProps((prev) => {
+          if (
+            prev &&
+            prev.value === p.value &&
+            isSameOptions(prev.options, p.options)
+          ) {
+            return prev;
+          }
+          return p;
+        });
+      }
+    },
+    [],
+  );
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setDraftMonthVal(monthProps?.value);
+      setDraftYearVal(yearProps?.value);
+    }
+    setOpen(nextOpen);
+  };
+
+  React.useEffect(() => {
+    if (!open) return;
+    const scrollInitialYear = () => {
+      const container = yearListRef.current;
+      if (!container) return;
+      const initialYear = yearProps?.value ?? new Date().getFullYear();
+      const targetEl =
+        container.querySelector<HTMLElement>(`[data-year="${initialYear}"]`) ||
+        container.querySelector<HTMLElement>('[data-selected="true"]');
+      if (targetEl) {
+        targetEl.scrollIntoView({
+          block: "center",
+          behavior: "instant" as ScrollBehavior,
+        });
+      }
+    };
+    const t1 = setTimeout(scrollInitialYear, 60);
+    const t2 = setTimeout(scrollInitialYear, 180);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [open, yearProps?.value]);
 
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn(
-        "group/calendar bg-card p-2 [--cell-radius:var(--radius-md)] [--cell-size:2.75rem] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
-        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
-        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
-        className,
-      )}
-      captionLayout={captionLayout}
-      locale={locale}
-      formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString(locale?.code, { month: "short" }),
-        ...formatters,
+    <MonthYearContext.Provider
+      value={{
+        isDesktop,
+        open,
+        setOpen: handleOpenChange,
+        registerDropdown,
+        registerGoToMonth,
+        monthProps,
+        yearProps,
       }}
-      classNames={{
-        root: cn("w-fit", defaultClassNames.root),
-        months: cn(
-          "relative flex flex-col gap-4 md:flex-row",
-          defaultClassNames.months,
-        ),
-        month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
-        nav: cn(
-          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 pointer-events-none z-10",
-          defaultClassNames.nav,
-        ),
-        button_previous: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) min-h-[44px] min-w-[44px] p-0 select-none aria-disabled:opacity-50 pointer-events-auto cursor-pointer",
-          defaultClassNames.button_previous,
-        ),
-        button_next: cn(
-          buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) min-h-[44px] min-w-[44px] p-0 select-none aria-disabled:opacity-50 pointer-events-auto cursor-pointer",
-          defaultClassNames.button_next,
-        ),
-        month_caption: cn(
-          "flex min-h-(--cell-size) w-full items-center justify-center px-12 relative z-0",
-          defaultClassNames.month_caption,
-        ),
-        dropdowns: cn(
-          "flex min-h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium relative z-20 pointer-events-auto",
-          defaultClassNames.dropdowns,
-        ),
-        dropdown_root: cn(
-          "relative inline-flex items-center rounded-md",
-          defaultClassNames.dropdown_root,
-        ),
-        dropdown: cn(
-          "absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0",
-          defaultClassNames.dropdown,
-        ),
-        caption_label: cn(
-          "font-medium select-none",
-          captionLayout === "label"
-            ? "text-sm"
-            : "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-semibold hover:bg-muted/80 transition-colors [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
-          defaultClassNames.caption_label,
-        ),
-        month_grid: cn("w-full flex flex-col", defaultClassNames.month_grid),
-        weekdays: cn(
-          "flex w-full mb-3 pb-2 border-b border-border/40",
-          defaultClassNames.weekdays,
-        ),
-        weekday: cn(
-          "flex-1 rounded-(--cell-radius) text-[0.85rem] font-semibold text-muted-foreground select-none text-center",
-          defaultClassNames.weekday,
-        ),
-        weeks: cn("flex flex-col gap-1.5 mt-2.5", defaultClassNames.weeks),
-        week: cn("flex w-full", defaultClassNames.week),
-        week_number_header: cn(
-          "w-(--cell-size) select-none",
-          defaultClassNames.week_number_header,
-        ),
-        week_number: cn(
-          "text-[0.8rem] text-muted-foreground select-none",
-          defaultClassNames.week_number,
-        ),
-        day: cn(
-          "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
-          props.showWeekNumber
-            ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
-            : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
-          defaultClassNames.day,
-        ),
-        range_start: cn(
-          "relative isolate z-0 rounded-l-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-muted",
-          defaultClassNames.range_start,
-        ),
-        range_middle: cn("rounded-none", defaultClassNames.range_middle),
-        range_end: cn(
-          "relative isolate z-0 rounded-r-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:left-0 after:w-4 after:bg-muted",
-          defaultClassNames.range_end,
-        ),
-        today: cn(
-          "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
-          defaultClassNames.today,
-        ),
-        outside: cn(
-          "text-muted-foreground aria-selected:text-muted-foreground",
-          defaultClassNames.outside,
-        ),
-        disabled: cn(
-          "text-muted-foreground opacity-50",
-          defaultClassNames.disabled,
-        ),
-        hidden: cn("invisible", defaultClassNames.hidden),
-        ...classNames,
-      }}
-      components={{
-        DropdownNav: (navProps) => <CalendarDropdownNav {...navProps} />,
-        Dropdown: (dropdownProps) => (
-          <CalendarDropdown
-            {...dropdownProps}
-            dropdownMaxHeight={dropdownMaxHeight}
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div
+          className={cn(
+            "w-fit",
+            isDesktop === false &&
+              "border-border/80 bg-card rounded-2xl border p-2 shadow",
+          )}
+        >
+          <DayPicker
+            showOutsideDays={showOutsideDays}
+            className={cn(
+              "group/calendar bg-card p-2 [--cell-radius:var(--radius-md)] [--cell-size:2.75rem] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
+              String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+              String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+              className,
+            )}
+            captionLayout={captionLayout}
+            locale={locale}
+            formatters={{
+              formatMonthDropdown: (date) =>
+                date.toLocaleString(locale?.code, { month: "short" }),
+              ...formatters,
+            }}
+            classNames={{
+              root: cn("w-fit", defaultClassNames.root),
+              months: cn(
+                "relative flex flex-col gap-4 md:flex-row",
+                defaultClassNames.months,
+              ),
+              month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
+              nav: cn(
+                "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 pointer-events-none z-10",
+                defaultClassNames.nav,
+              ),
+              button_previous: cn(
+                buttonVariants({ variant: buttonVariant }),
+                "size-(--cell-size) min-h-[44px] min-w-[44px] p-0 select-none aria-disabled:opacity-50 pointer-events-auto cursor-pointer",
+                defaultClassNames.button_previous,
+              ),
+              button_next: cn(
+                buttonVariants({ variant: buttonVariant }),
+                "size-(--cell-size) min-h-[44px] min-w-[44px] p-0 select-none aria-disabled:opacity-50 pointer-events-auto cursor-pointer",
+                defaultClassNames.button_next,
+              ),
+              month_caption: cn(
+                "flex min-h-(--cell-size) w-full items-center justify-center px-12 relative z-0",
+                defaultClassNames.month_caption,
+              ),
+              dropdowns: cn(
+                "flex min-h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium relative z-20 pointer-events-auto",
+                defaultClassNames.dropdowns,
+              ),
+              dropdown_root: cn(
+                "relative inline-flex items-center rounded-md",
+                defaultClassNames.dropdown_root,
+              ),
+              dropdown: cn(
+                "absolute inset-0 z-10 w-full h-full cursor-pointer opacity-0",
+                defaultClassNames.dropdown,
+              ),
+              caption_label: cn(
+                "font-medium select-none",
+                captionLayout === "label"
+                  ? "text-sm"
+                  : "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-semibold hover:bg-muted/80 transition-colors [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+                defaultClassNames.caption_label,
+              ),
+              month_grid: cn(
+                "w-full flex flex-col",
+                defaultClassNames.month_grid,
+              ),
+              weekdays: cn(
+                "flex w-full mb-3 pb-2 border-b border-border/40",
+                defaultClassNames.weekdays,
+              ),
+              weekday: cn(
+                "flex-1 rounded-(--cell-radius) text-[0.85rem] font-semibold text-muted-foreground select-none text-center",
+                defaultClassNames.weekday,
+              ),
+              weeks: cn(
+                "flex flex-col gap-1.5 mt-2.5",
+                defaultClassNames.weeks,
+              ),
+              week: cn("flex w-full", defaultClassNames.week),
+              week_number_header: cn(
+                "w-(--cell-size) select-none",
+                defaultClassNames.week_number_header,
+              ),
+              week_number: cn(
+                "text-[0.8rem] text-muted-foreground select-none",
+                defaultClassNames.week_number,
+              ),
+              day: cn(
+                "group/day relative aspect-square h-full w-full rounded-(--cell-radius) p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-(--cell-radius)",
+                props.showWeekNumber
+                  ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-(--cell-radius)"
+                  : "[&:first-child[data-selected=true]_button]:rounded-l-(--cell-radius)",
+                defaultClassNames.day,
+              ),
+              range_start: cn(
+                "relative isolate z-0 rounded-l-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-muted",
+                defaultClassNames.range_start,
+              ),
+              range_middle: cn("rounded-none", defaultClassNames.range_middle),
+              range_end: cn(
+                "relative isolate z-0 rounded-r-(--cell-radius) bg-muted after:absolute after:inset-y-0 after:left-0 after:w-4 after:bg-muted",
+                defaultClassNames.range_end,
+              ),
+              today: cn(
+                "rounded-(--cell-radius) bg-muted text-foreground data-[selected=true]:rounded-none",
+                defaultClassNames.today,
+              ),
+              outside: cn(
+                "text-muted-foreground aria-selected:text-muted-foreground",
+                defaultClassNames.outside,
+              ),
+              disabled: cn(
+                "text-muted-foreground opacity-50",
+                defaultClassNames.disabled,
+              ),
+              hidden: cn("invisible", defaultClassNames.hidden),
+              ...classNames,
+            }}
+            components={{
+              DropdownNav: (navProps) => <CalendarDropdownNav {...navProps} />,
+              Dropdown: (dropdownProps) => (
+                <CalendarDropdown
+                  {...dropdownProps}
+                  dropdownMaxHeight={dropdownMaxHeight}
+                />
+              ),
+              Root: ({ className, rootRef, ...props }) => {
+                return (
+                  <div
+                    data-slot="calendar"
+                    ref={rootRef}
+                    className={cn(className)}
+                    {...props}
+                  />
+                );
+              },
+              Chevron: ({ className, orientation, ...props }) => {
+                if (orientation === "left") {
+                  return (
+                    <ChevronLeftIcon
+                      className={cn("size-4", className)}
+                      {...props}
+                    />
+                  );
+                }
+
+                if (orientation === "right") {
+                  return (
+                    <ChevronRightIcon
+                      className={cn("size-4", className)}
+                      {...props}
+                    />
+                  );
+                }
+
+                return (
+                  <ChevronDownIcon
+                    className={cn("size-4", className)}
+                    {...props}
+                  />
+                );
+              },
+              DayButton: ({ ...props }) => (
+                <CalendarDayButton locale={locale} {...props} />
+              ),
+              WeekNumber: ({ children, ...props }) => {
+                return (
+                  <td {...props}>
+                    <div className="flex size-(--cell-size) items-center justify-center text-center">
+                      {children}
+                    </div>
+                  </td>
+                );
+              },
+              ...components,
+            }}
+            {...props}
           />
-        ),
-        Root: ({ className, rootRef, ...props }) => {
-          return (
+        </div>
+      </div>
+      {isDesktop === false && (
+        <Sheet open={open} onOpenChange={handleOpenChange}>
+          <SheetContent
+            side="bottom"
+            className="border-border/80 bg-card inset-x-0 bottom-0 z-[80] flex max-h-[85vh] flex-col rounded-t-2xl border-t p-0 shadow-2xl focus:outline-none"
+          >
             <div
-              data-slot="calendar"
-              ref={rootRef}
-              className={cn(className)}
-              {...props}
+              className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
+              aria-hidden="true"
             />
-          );
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            );
-          }
-
-          if (orientation === "right") {
-            return (
-              <ChevronRightIcon
-                className={cn("size-4", className)}
-                {...props}
-              />
-            );
-          }
-
-          return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          );
-        },
-        DayButton: ({ ...props }) => (
-          <CalendarDayButton locale={locale} {...props} />
-        ),
-        WeekNumber: ({ children, ...props }) => {
-          return (
-            <td {...props}>
-              <div className="flex size-(--cell-size) items-center justify-center text-center">
-                {children}
+            <SheetHeader className="border-border/60 border-b px-5 pt-3 pb-3 text-left">
+              <SheetTitle className="text-foreground text-lg font-bold">
+                Select Month & Year
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground text-xs">
+                Pick a month and year to navigate calendar.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="divide-border/60 flex max-h-[50vh] min-h-[300px] flex-1 divide-x overflow-hidden">
+              {/* Left Column: Months */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="bg-muted/40 border-border/40 text-muted-foreground border-b px-3 py-2 text-[11px] font-bold tracking-wider uppercase">
+                  Month
+                </div>
+                <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                  {monthProps?.options?.map((option) => {
+                    const isSelected =
+                      String(option.value) === String(draftMonthVal);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setDraftMonthVal(option.value);
+                        }}
+                        className={cn(
+                          "flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left text-sm font-medium transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary/5 text-primary font-semibold"
+                            : "border-border/60 hover:bg-muted/60 text-foreground",
+                        )}
+                      >
+                        <span className="truncate">{option.label}</span>
+                        {isSelected && (
+                          <CheckIcon
+                            className="text-primary size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </td>
-          );
-        },
-        ...components,
-      }}
-      {...props}
-    />
+
+              {/* Right Column: Years */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="bg-muted/40 border-border/40 text-muted-foreground border-b px-3 py-2 text-[11px] font-bold tracking-wider uppercase">
+                  Year
+                </div>
+                <div
+                  ref={yearListRef}
+                  className="relative flex-1 space-y-2 overflow-y-auto p-3"
+                >
+                  {yearProps?.options?.map((option) => {
+                    const isSelected =
+                      String(option.value) === String(draftYearVal);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        data-selected={isSelected}
+                        data-year={option.value}
+                        onClick={() => {
+                          setDraftYearVal(option.value);
+                        }}
+                        className={cn(
+                          "flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left text-sm font-medium transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary/5 text-primary font-semibold"
+                            : "border-border/60 hover:bg-muted/60 text-foreground",
+                        )}
+                      >
+                        <span className="truncate">{option.label}</span>
+                        {isSelected && (
+                          <CheckIcon
+                            className="text-primary size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom sticky footer with safe-area padding */}
+            <div className="border-border/70 bg-muted/30 grid shrink-0 grid-cols-2 gap-3 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:w-full">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 min-h-[44px] w-full text-base font-medium"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="h-11 min-h-[44px] w-full text-base font-medium"
+                onClick={() => {
+                  const targetYear = Number(
+                    draftYearVal !== undefined
+                      ? draftYearVal
+                      : (yearProps?.value ?? new Date().getFullYear()),
+                  );
+                  const targetMonth = Number(
+                    draftMonthVal !== undefined
+                      ? draftMonthVal
+                      : (monthProps?.value ?? new Date().getMonth()),
+                  );
+                  const targetDate = new Date(targetYear, targetMonth, 1);
+
+                  if (goToMonthRef.current) {
+                    goToMonthRef.current(targetDate);
+                  }
+                  props.onMonthChange?.(targetDate);
+
+                  setOpen(false);
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+    </MonthYearContext.Provider>
   );
 }
 

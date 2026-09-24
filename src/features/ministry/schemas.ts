@@ -133,6 +133,11 @@ export const unassignDepartmentMembersSchema = z.object({
     .min(1, "Select at least one member to remove from this department"),
 });
 
+export const enrollTermMembersSchema = z.object({
+  ministryTermId: id,
+  memberIds: z.array(id).min(1, "Select at least one member to add"),
+});
+
 const importMode = z.enum(["merge", "replace"]);
 const importRowName = z
   .string()

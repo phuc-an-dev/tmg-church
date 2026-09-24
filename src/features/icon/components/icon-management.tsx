@@ -27,7 +27,6 @@ import {
   Check,
   Copy,
   Download,
-  FolderCog,
   GripVertical,
   Plus,
   Search,
@@ -409,18 +408,6 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
 
   return (
     <div className="relative space-y-6 pb-20">
-      {/* Toolbar: Manage Icons on desktop */}
-      <div className="flex items-center justify-end gap-2.5">
-        <Button
-          type="button"
-          onClick={() => handleOpenManageDrawer("add")}
-          className="hidden min-h-12 items-center gap-2 rounded-xl px-4 font-semibold sm:flex"
-        >
-          <FolderCog className="size-4" aria-hidden="true" />
-          <span>Manage Icons</span>
-        </Button>
-      </div>
-
       {/* Main List of Frequently Used Icons (Rendered as Cards) */}
       <section aria-label="Frequently used icons list" className="space-y-4">
         {orderedIcons.length === 0 ? (

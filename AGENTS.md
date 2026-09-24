@@ -33,7 +33,7 @@ Luôn thiết kế và kiểm thử bắt đầu từ màn hình nhỏ nhất tr
 
 ## Quy trình bàn giao (Delivery)
 
-- Trước khi bàn giao, bắt buộc chạy:
+- Chỉ chạy các lệnh kiểm tra chất lượng sau khi người dùng yêu cầu commit:
 
 ```bash
 pnpm lint

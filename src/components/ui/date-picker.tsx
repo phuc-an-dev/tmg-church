@@ -229,9 +229,7 @@ export function DatePicker({
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto p-4">
-                <div className="border-border/80 bg-card w-fit rounded-2xl border p-2 shadow-lg">
-                  {calendarNode}
-                </div>
+                <div className="w-fit max-w-full">{calendarNode}</div>
               </div>
               <div
                 className={cn(

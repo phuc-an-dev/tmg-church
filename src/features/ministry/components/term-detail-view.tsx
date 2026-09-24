@@ -20,6 +20,7 @@ import {
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
@@ -28,11 +29,8 @@ import { Input } from "@/components/ui/input";
 import { StatusToast } from "@/components/ui/status-toast";
 import { deleteSessionAction } from "@/features/session/actions";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
-import {
-  enrollMemberWithAssignmentsAction,
-  removeMinistryMembershipAction,
-} from "@/features/member/actions";
-import { TermRoleManagement } from "./term-role-management";
+import { removeMinistryMembershipAction } from "@/features/member/actions";
+import { enrollTermMembersAction } from "../actions";
 import type {
   EligibleTermMember,
   TermDetailData,
@@ -101,26 +99,35 @@ export function TermDetailView({
   }
 
   async function addMembers() {
+    if (selectedMemberIds.length === 0) return;
     setMemberPending(true);
-    for (const memberId of selectedMemberIds) {
-      const result = await enrollMemberWithAssignmentsAction({
-        memberId,
+    console.log("[TermDetailView] Submitting addMembers:", {
+      termId,
+      selectedCount: selectedMemberIds.length,
+      selectedMemberIds,
+    });
+    try {
+      const result = await enrollTermMembersAction({
         ministryTermId: termId,
-        termGroupId: null,
-        departmentIds: [],
+        memberIds: selectedMemberIds,
       });
+      console.log("[TermDetailView] enrollTermMembersAction response:", result);
+      setMemberPending(false);
       if (!result.success) {
-        setMemberPending(false);
-        setToast(result.error ?? "Unable to add member to this term.");
+        console.error("[TermDetailView] Action returned failure:", result);
+        setToast(result.error ?? "Unable to add members to this term.");
         return;
       }
+      setMemberDrawerOpen(false);
+      setSelectedMemberIds([]);
+      setMemberSearch("");
+      setToast(result.message ?? "Members added to this ministry term.");
+      router.refresh();
+    } catch (err) {
+      console.error("[TermDetailView] Exception in addMembers:", err);
+      setMemberPending(false);
+      setToast("An unexpected error occurred while adding members.");
     }
-    setMemberPending(false);
-    setMemberDrawerOpen(false);
-    setSelectedMemberIds([]);
-    setMemberSearch("");
-    setToast("Members added to this ministry term.");
-    router.refresh();
   }
 
   async function removeMember() {
@@ -158,138 +165,155 @@ export function TermDetailView({
     <>
       {section === "members" ? (
         <section className="pb-24">
-          <TermRoleManagement
-            termId={termId}
-            members={data.members}
-            assignments={data.termRoles}
-          />
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold">Members</h2>
-              <p className="text-muted-foreground text-sm">
-                Active members enrolled in this term.
-              </p>
-            </div>
-            <span className="text-muted-foreground text-sm">
-              {data.members.length}
-            </span>
-          </div>
-          <ExpandableCoordinatorProvider>
-            <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
-              {visibleMembers.map((member) => (
-                <ExpandableActionItem
-                  key={member.membershipId}
-                  id={member.membershipId}
-                  name={member.memberName}
-                  onDelete={() => setRemovingMember(member)}
-                  deleteLabel="Remove from term"
-                  deleteIcon={UserMinus}
-                  className="p-4 md:grid md:grid-cols-[1fr_160px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+          {data.members.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No members yet"
+              description="No members are enrolled in this ministry term yet."
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMemberDrawerOpen(true)}
+                  className="bg-card hover:bg-card min-h-11 gap-2 px-4"
                 >
-                  <div className="flex min-w-0 items-center justify-between gap-3">
-                    <Link
-                      href={`/admin/members/${member.memberSlug}`}
-                      className="flex min-w-0 items-center gap-3"
+                  Add member
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <ExpandableCoordinatorProvider>
+                <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
+                  {visibleMembers.map((member) => (
+                    <ExpandableActionItem
+                      key={member.membershipId}
+                      id={member.membershipId}
+                      name={member.memberName}
+                      onDelete={() => setRemovingMember(member)}
+                      deleteLabel="Remove from term"
+                      deleteIcon={UserMinus}
+                      className="p-4 md:grid md:grid-cols-[1fr_160px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
                     >
-                      <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <Users className="size-5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold">
-                          {member.memberName}
-                        </span>
-                        <span className="text-muted-foreground block truncate text-xs">
-                          /{member.memberSlug}
-                        </span>
-                      </span>
-                    </Link>
-                    <ExpandableActionItem.Trigger className="md:hidden" />
-                  </div>
-                  <ExpandableActionItem.MobileActions />
-                  <div className="text-muted-foreground hidden font-mono text-xs md:block">
-                    /{member.memberSlug}
-                  </div>
-                  <div className="hidden justify-end md:flex">
-                    <ExpandableActionItem.DesktopActions />
-                  </div>
-                </ExpandableActionItem>
-              ))}
-            </div>
-          </ExpandableCoordinatorProvider>
-          <PaginationCard
-            page={memberPage}
-            pageSize={memberPageSize}
-            count={data.members.length}
-            itemLabel="members"
-            onPageChange={setMemberPage}
-            className="mt-4"
-          />
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <Link
+                          href={`/admin/members/${member.memberSlug}`}
+                          className="flex min-w-0 items-center gap-3"
+                        >
+                          <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                            <Users className="size-5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-semibold">
+                              {member.memberName}
+                            </span>
+                            <span className="text-muted-foreground block truncate text-xs">
+                              /{member.memberSlug}
+                            </span>
+                          </span>
+                        </Link>
+                        <ExpandableActionItem.Trigger className="md:hidden" />
+                      </div>
+                      <ExpandableActionItem.MobileActions />
+                      <div className="text-muted-foreground hidden font-mono text-xs md:block">
+                        /{member.memberSlug}
+                      </div>
+                      <div className="hidden justify-end md:flex">
+                        <ExpandableActionItem.DesktopActions />
+                      </div>
+                    </ExpandableActionItem>
+                  ))}
+                </div>
+              </ExpandableCoordinatorProvider>
+              <PaginationCard
+                page={memberPage}
+                pageSize={memberPageSize}
+                count={data.members.length}
+                itemLabel="members"
+                onPageChange={setMemberPage}
+                className="mt-4"
+              />
+            </>
+          )}
           <FloatingCreateButton onClick={() => setMemberDrawerOpen(true)}>
             Add member
           </FloatingCreateButton>
         </section>
       ) : (
         <section className="pb-24">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold">Sessions</h2>
-              <p className="text-muted-foreground text-sm">
-                Term-wide sessions for active term members.
-              </p>
-            </div>
-            <span className="text-muted-foreground text-sm">
-              {data.sessions.length}
-            </span>
-          </div>
-          <ExpandableCoordinatorProvider>
-            <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
-              {data.sessions.map((session) => (
-                <ExpandableActionItem
-                  key={session.id}
-                  id={session.id}
-                  name={session.title}
-                  onEdit={() => {
-                    setEditingSession(session);
+          {data.sessions.length === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="No sessions yet"
+              description="No term-wide sessions have been created for this term yet."
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingSession(null);
                     setSessionDrawerOpen(true);
                   }}
-                  onDelete={
-                    session.canDelete
-                      ? () => setDeletingSession(session)
-                      : undefined
-                  }
-                  className="p-4 md:grid md:grid-cols-[1fr_180px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                  className="bg-card hover:bg-card min-h-11 gap-2 px-4"
                 >
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <Link
-                      href={`/admin/sessions/${session.slug}`}
-                      className="flex min-w-0 flex-1 items-center gap-3"
-                    >
-                      <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <CalendarDays className="size-5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold">
-                          {session.title}
+                  Create session
+                </Button>
+              }
+            />
+          ) : (
+            <ExpandableCoordinatorProvider>
+              <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
+                {data.sessions.map((session) => (
+                  <ExpandableActionItem
+                    key={session.id}
+                    id={session.id}
+                    name={session.title}
+                    onEdit={() => {
+                      setEditingSession(session);
+                      setSessionDrawerOpen(true);
+                    }}
+                    onDelete={
+                      session.canDelete
+                        ? () => setDeletingSession(session)
+                        : undefined
+                    }
+                    className="p-4 md:grid md:grid-cols-[1fr_180px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <Link
+                        href={`/admin/sessions/${session.slug}`}
+                        className="flex min-w-0 flex-1 items-center gap-3"
+                      >
+                        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                          <CalendarDays className="size-5" />
                         </span>
-                        <span className="text-muted-foreground block text-xs">
-                          {format(parseISO(session.sessionDate), "MMM d, yyyy")}{" "}
-                          · {session.participantCount} participants
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {session.title}
+                          </span>
+                          <span className="text-muted-foreground block text-xs">
+                            {format(
+                              parseISO(session.sessionDate),
+                              "MMM d, yyyy",
+                            )}{" "}
+                            · {session.participantCount} participants
+                          </span>
                         </span>
-                      </span>
-                    </Link>
-                    <ExpandableActionItem.Trigger className="md:hidden" />
-                  </div>
-                  <ExpandableActionItem.MobileActions />
-                  <div className="text-muted-foreground hidden text-sm md:block">
-                    {format(parseISO(session.sessionDate), "MMM d, yyyy")}
-                  </div>
-                  <div className="hidden justify-end md:flex">
-                    <ExpandableActionItem.DesktopActions />
-                  </div>
-                </ExpandableActionItem>
-              ))}
-            </div>
-          </ExpandableCoordinatorProvider>
+                      </Link>
+                      <ExpandableActionItem.Trigger className="md:hidden" />
+                    </div>
+                    <ExpandableActionItem.MobileActions />
+                    <div className="text-muted-foreground hidden text-sm md:block">
+                      {format(parseISO(session.sessionDate), "MMM d, yyyy")}
+                    </div>
+                    <div className="hidden justify-end md:flex">
+                      <ExpandableActionItem.DesktopActions />
+                    </div>
+                  </ExpandableActionItem>
+                ))}
+              </div>
+            </ExpandableCoordinatorProvider>
+          )}
           <FloatingCreateButton
             onClick={() => {
               setEditingSession(null);

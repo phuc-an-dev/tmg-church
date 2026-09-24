@@ -8,13 +8,13 @@ import {
   Check,
   ChevronDown,
   Download,
-  FolderCog,
   Layers3,
   Plus,
   Rows3,
   Search,
   SlidersHorizontal,
   Upload,
+  Users,
   X,
 } from "lucide-react";
 import { RadioGroup as RadixRadioGroup } from "radix-ui";
@@ -47,6 +47,7 @@ import {
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { EmptyState } from "@/components/shared/empty-state";
 import { OptionPickerSheet } from "@/components/shared/option-picker-sheet";
 import { StatusToast } from "@/components/ui/status-toast";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
@@ -724,16 +725,6 @@ export function MinistryManagement({
         aria-label={title}
       >
         <p className="sr-only">{description}</p>
-        <div className="flex items-center justify-end gap-2.5">
-          <Button
-            type="button"
-            onClick={openCreate}
-            className="hidden min-h-12 items-center gap-2 rounded-xl px-4 font-semibold sm:flex"
-          >
-            <FolderCog className="size-4" aria-hidden="true" />
-            <span>Manage {plural}</span>
-          </Button>
-        </div>
         {mode === "ministries" && (
           <div className="flex items-center gap-2 border-b pb-5">
             <div className="relative min-w-0 flex-1">
@@ -793,28 +784,40 @@ export function MinistryManagement({
           </div>
         )}
         {result.items.length === 0 ? (
-          <div className="border-border/70 bg-card rounded-xl border py-12 text-center shadow-xs">
-            <p className="font-medium">
-              {query.q
+          <EmptyState
+            icon={
+              mode === "groups"
+                ? Users
+                : mode === "departments"
+                  ? Layers3
+                  : mode === "terms"
+                    ? CalendarDays
+                    : Rows3
+            }
+            title={
+              query.q
                 ? `No ${title.toLowerCase()} match this search.`
-                : `No ${title.toLowerCase()} yet.`}
-            </p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {query.q
+                : `No ${title.toLowerCase()} yet.`
+            }
+            description={
+              query.q
                 ? "Clear or change your search to see more records."
-                : `Create the first ${label.toLowerCase()} to get started.`}
-            </p>
-            {!query.q && (
-              <Button
-                type="button"
-                onClick={openCreate}
-                className="mt-4 min-h-11 gap-2 rounded-xl"
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                <span>Add {label}</span>
-              </Button>
-            )}
-          </div>
+                : `Create the first ${label.toLowerCase()} to get started.`
+            }
+            action={
+              !query.q ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openCreate}
+                  className="bg-card hover:bg-card min-h-11 gap-2 px-4"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  <span>Add {label}</span>
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             <p className="sr-only">

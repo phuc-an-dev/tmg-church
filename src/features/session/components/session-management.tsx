@@ -29,6 +29,7 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { StatusToast } from "@/components/ui/status-toast";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
@@ -149,16 +150,22 @@ export function SessionManagement({
         ))}
       </div>
       {result.items.length === 0 ? (
-        <div className="admin-surface py-12 text-center">
-          <p className="font-medium">
-            {query.q ? "No sessions match this search." : "No sessions yet."}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {query.q
+        <EmptyState
+          icon={CalendarDays}
+          title={query.q ? "No sessions match this search" : "No sessions yet"}
+          description={
+            query.q
               ? "Clear or change your search to see more records."
-              : "Create the first one-off session to begin attendance."}
-          </p>
-        </div>
+              : "Create the first one-off session to begin attendance."
+          }
+          action={
+            !query.q ? (
+              <Button variant="outline" onClick={() => open("new")}>
+                Add session
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
           <ExpandableCoordinatorProvider

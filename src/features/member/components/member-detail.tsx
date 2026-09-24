@@ -9,8 +9,8 @@ import {
   Loader2,
   Phone,
   RotateCcw,
+  User,
   UserMinus,
-  Users,
 } from "lucide-react";
 import { cn } from "cn";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
@@ -439,8 +439,17 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-              <span className="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-2xl sm:size-14">
-                <Users className="size-6 sm:size-7" aria-hidden="true" />
+              <span
+                className={cn(
+                  "flex size-12 shrink-0 items-center justify-center rounded-2xl sm:size-14",
+                  data.profile.gender === "male"
+                    ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                    : data.profile.gender === "female"
+                      ? "bg-pink-500/10 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400"
+                      : "bg-primary/10 text-primary",
+                )}
+              >
+                <User className="size-6 sm:size-7" aria-hidden="true" />
               </span>
               <div className="min-w-0 space-y-1">
                 <h1 className="text-foreground truncate text-xl font-semibold tracking-tight sm:text-2xl">

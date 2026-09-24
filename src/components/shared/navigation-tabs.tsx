@@ -18,16 +18,63 @@ export function NavigationTabs({
   "aria-label": ariaLabel,
   ...props
 }: NavigationTabsProps) {
+  const navRef = React.useRef<HTMLElement>(null);
+  const [indicator, setIndicator] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const updateIndicator = () => {
+      const activeTab = nav.querySelector<HTMLElement>(
+        '[aria-selected="true"]',
+      );
+      if (activeTab) {
+        setIndicator({
+          left: activeTab.offsetLeft,
+          top: activeTab.offsetTop,
+          width: activeTab.offsetWidth,
+          height: activeTab.offsetHeight,
+        });
+      }
+    };
+
+    updateIndicator();
+
+    const observer = new ResizeObserver(updateIndicator);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [children]);
+
   return (
     <nav
+      ref={navRef}
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "bg-muted/60 border-border/50 inline-flex w-full items-center gap-1 rounded-xl border p-1 sm:w-auto",
+        "bg-muted/60 border-border/50 relative inline-flex w-full items-center gap-1 rounded-xl border p-1 sm:w-auto",
         className,
       )}
       {...props}
     >
+      {indicator && (
+        <span
+          className="bg-card pointer-events-none absolute rounded-lg shadow-xs transition-all duration-200 ease-out"
+          style={{
+            transform: `translate3d(${indicator.left}px, ${indicator.top}px, 0)`,
+            width: indicator.width,
+            height: indicator.height,
+            left: 0,
+            top: 0,
+          }}
+          aria-hidden="true"
+        />
+      )}
       {children}
     </nav>
   );
@@ -57,10 +104,10 @@ export function NavigationTabLink({
       role="tab"
       aria-selected={active}
       className={cn(
-        "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-all select-none sm:min-h-10 sm:flex-initial",
+        "relative z-10 inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial",
         active
-          ? "bg-card text-foreground font-semibold shadow-xs"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
+          ? "text-foreground font-semibold"
+          : "text-muted-foreground hover:text-foreground",
         className,
       )}
       {...props}
@@ -70,7 +117,7 @@ export function NavigationTabLink({
       {badge !== undefined && (
         <span
           className={cn(
-            "ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold",
+            "ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold transition-colors",
             active
               ? "bg-primary/10 text-primary"
               : "bg-muted text-muted-foreground",
@@ -107,10 +154,10 @@ export function NavigationTabButton({
       role="tab"
       aria-selected={active}
       className={cn(
-        "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-all select-none sm:min-h-10 sm:flex-initial",
+        "relative z-10 inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial",
         active
-          ? "bg-card text-foreground font-semibold shadow-xs"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
+          ? "text-foreground font-semibold"
+          : "text-muted-foreground hover:text-foreground",
         className,
       )}
       {...props}
@@ -120,7 +167,7 @@ export function NavigationTabButton({
       {badge !== undefined && (
         <span
           className={cn(
-            "ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold",
+            "ml-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold transition-colors",
             active
               ? "bg-primary/10 text-primary"
               : "bg-muted text-muted-foreground",

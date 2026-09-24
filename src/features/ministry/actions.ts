@@ -17,6 +17,7 @@ import {
   structureSchema,
   termSchema,
   unassignDepartmentMembersSchema,
+  enrollTermMembersSchema,
 } from "./schemas";
 import { getDepartmentServiceStructure } from "./queries";
 import {
@@ -881,6 +882,148 @@ export async function unassignDepartmentMembersAction(
     return resultError(
       "DATABASE_ERROR",
       "Unable to remove department assignment.",
+    );
+  }
+}
+
+export async function enrollTermMembersAction(
+  rawInput: unknown,
+): Promise<ActionResult<{ enrolledCount: number }>> {
+  const ctx = await requireOperationalContext();
+  try {
+    const parsed = enrollTermMembersSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      console.error(
+        "[enrollTermMembersAction] Validation failed:",
+        parsed.error.format(),
+      );
+      return invalid(parsed.error);
+    }
+
+    const { ministryTermId, memberIds } = parsed.data;
+    const supabase = await createClient();
+
+    const { data: term, error: termError } = await supabase
+      .from("ministry_term")
+      .select("id, slug, ministry:ministry_id (id, slug, church_id)")
+      .eq("id", ministryTermId)
+      .maybeSingle();
+
+    const termMinistry = Array.isArray(term?.ministry)
+      ? term?.ministry[0]
+      : term?.ministry;
+
+    if (termError || !term || termMinistry?.church_id !== ctx.church.id) {
+      console.error("[enrollTermMembersAction] Term lookup failed:", {
+        ministryTermId,
+        termError,
+        term,
+        termMinistry,
+        activeChurchId: ctx.church.id,
+      });
+      return resultError("NOT_FOUND", "Ministry term was not found.");
+    }
+
+    const { data: validMembers, error: memberError } = await supabase
+      .from("member_profile")
+      .select("id")
+      .eq("church_id", ctx.church.id)
+      .is("archived_at", null)
+      .in("id", memberIds);
+
+    if (memberError) {
+      console.error(
+        "[enrollTermMembersAction] Member lookup query failed:",
+        memberError,
+      );
+      return dbError(memberError, "Failed to validate members.");
+    }
+
+    if (!validMembers || validMembers.length === 0) {
+      console.error(
+        "[enrollTermMembersAction] No active members found for IDs:",
+        memberIds,
+      );
+      return resultError(
+        "VALIDATION_FAILED",
+        "No active members found to add.",
+      );
+    }
+
+    // Filter out members who are already in this ministry term to prevent constraint conflicts
+    const { data: existingMemberships, error: existingError } = await supabase
+      .from("ministry_membership")
+      .select("member_profile_id")
+      .eq("ministry_term_id", ministryTermId);
+
+    if (existingError) {
+      console.error(
+        "[enrollTermMembersAction] Failed to check existing memberships:",
+        existingError,
+      );
+    }
+
+    const existingSet = new Set(
+      (existingMemberships ?? []).map((m) => m.member_profile_id),
+    );
+    const membersToInsert = validMembers.filter((m) => !existingSet.has(m.id));
+
+    console.log("[enrollTermMembersAction] Enrolling members:", {
+      totalSelected: memberIds.length,
+      validFound: validMembers.length,
+      alreadyEnrolled: existingSet.size,
+      insertingCount: membersToInsert.length,
+    });
+
+    if (membersToInsert.length === 0) {
+      return {
+        success: true,
+        data: { enrolledCount: 0 },
+        message: "All selected members are already in this term.",
+      };
+    }
+
+    const rows = membersToInsert.map((m) => ({
+      ministry_term_id: ministryTermId,
+      member_profile_id: m.id,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("ministry_membership")
+      .insert(rows);
+
+    if (insertError) {
+      console.error("[enrollTermMembersAction] insertError:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+      });
+      return dbError(
+        insertError,
+        insertError.message || "Failed to enroll members into this term.",
+      );
+    }
+
+    revalidatePath(`/admin/ministries/${termMinistry.slug}/terms/${term.slug}`);
+    revalidatePath("/admin/members");
+
+    const count = membersToInsert.length;
+    console.log(
+      `[enrollTermMembersAction] Successfully enrolled ${count} members.`,
+    );
+    return {
+      success: true,
+      data: { enrolledCount: count },
+      message: `Added ${count} member${count === 1 ? "" : "s"} to this term.`,
+    };
+  } catch (err) {
+    console.error("[enrollTermMembersAction] Unexpected exception:", err);
+    return resultError(
+      "DATABASE_ERROR",
+      err instanceof Error
+        ? err.message
+        : "Unable to enroll members into this term.",
     );
   }
 }

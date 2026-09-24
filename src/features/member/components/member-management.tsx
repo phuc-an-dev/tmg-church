@@ -20,13 +20,14 @@ import {
   SlidersHorizontal,
   Tags,
   Upload,
-  Users,
+  User,
   X,
 } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
 import { RadioGroup as RadixRadioGroup } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { EmptyState } from "@/components/shared/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1566,22 +1567,22 @@ export function MemberManagement({
           aria-busy={pending}
         >
           {result.items.length === 0 ? (
-            <div className="admin-surface rounded-2xl py-12 text-center">
-              <p className="font-medium">
-                {query.q
+            <EmptyState
+              title={
+                query.q
                   ? "No members match this search."
                   : query.status === "archived"
                     ? "No archived members."
-                    : "No members yet."}
-              </p>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {query.q
+                    : "No members yet."
+              }
+              description={
+                query.q
                   ? "Clear or change your search to see more records."
                   : query.status === "archived"
                     ? "Archived members will appear here."
-                    : "Create the first member to get started."}
-              </p>
-            </div>
+                    : "Create the first member to get started."
+              }
+            />
           ) : (
             <>
               <p className="sr-only">
@@ -1669,8 +1670,20 @@ export function MemberManagement({
                             href={`/admin/members/${member.slug}`}
                             className="group/item flex min-w-0 flex-1 items-center gap-3 outline-hidden"
                           >
-                            <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl md:hidden">
-                              <Users className="size-5" aria-hidden="true" />
+                            <span
+                              className={cn(
+                                "flex size-10 shrink-0 items-center justify-center rounded-xl md:size-9 md:rounded-lg",
+                                member.gender === "male"
+                                  ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                                  : member.gender === "female"
+                                    ? "bg-pink-500/10 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400"
+                                    : "bg-primary/10 text-primary",
+                              )}
+                            >
+                              <User
+                                className="size-5 md:size-4.5"
+                                aria-hidden="true"
+                              />
                             </span>
                             <div className="min-w-0 flex-1">
                               <span className="text-foreground text-base font-semibold group-hover/item:underline">
