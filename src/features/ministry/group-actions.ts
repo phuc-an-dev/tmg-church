@@ -40,6 +40,7 @@ export async function assignGroupMemberAction(
   });
 
   if (error) {
+    console.error("[assignGroupMemberAction] Error:", error);
     if (error.code === "23505" || error.message?.includes("already")) {
       return {
         success: false,
@@ -76,6 +77,7 @@ export async function assignGroupMembersAction(
   await requireOperationalContext();
   const parsed = assignGroupMembersSchema.safeParse(rawInput);
   if (!parsed.success) {
+    console.error("[assignGroupMembersAction] Validation error:", parsed.error);
     return {
       success: false,
       code: "VALIDATION_FAILED",
@@ -94,6 +96,11 @@ export async function assignGroupMembersAction(
     });
 
     if (error) {
+      console.error(
+        "[assignGroupMembersAction] RPC assign_group_member error for membershipId:",
+        membershipId,
+        error,
+      );
       if (error.code === "23505" || error.message?.includes("already")) {
         continue;
       }
@@ -143,6 +150,7 @@ export async function updateGroupMemberRoleAction(
   });
 
   if (error) {
+    console.error("[updateGroupMemberRoleAction] Error:", error);
     if (
       error.code === "23505" ||
       error.message?.includes("already held by another active member")
@@ -180,6 +188,10 @@ export async function updateGroupMemberStatusAction(
   await requireOperationalContext();
   const parsed = updateGroupMemberStatusSchema.safeParse(rawInput);
   if (!parsed.success) {
+    console.error(
+      "[updateGroupMemberStatusAction] Validation error:",
+      parsed.error,
+    );
     return {
       success: false,
       code: "VALIDATION_FAILED",
@@ -194,6 +206,7 @@ export async function updateGroupMemberStatusAction(
   });
 
   if (error) {
+    console.error("[updateGroupMemberStatusAction] Error:", error);
     if (
       error.code === "23505" ||
       error.message?.includes("already held by another active member")
@@ -237,6 +250,7 @@ export async function leaveGroupAction(
   await requireOperationalContext();
   const parsed = leaveGroupSchema.safeParse(rawInput);
   if (!parsed.success) {
+    console.error("[leaveGroupAction] Validation error:", parsed.error);
     return {
       success: false,
       code: "VALIDATION_FAILED",
@@ -250,6 +264,7 @@ export async function leaveGroupAction(
   });
 
   if (error) {
+    console.error("[leaveGroupAction] Error:", error);
     return {
       success: false,
       code: "LEAVE_FAILED",

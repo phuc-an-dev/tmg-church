@@ -41,6 +41,8 @@ export type SessionItem = {
   termName: string;
   ministryName: string;
   scopeLabel: string;
+  groupId?: string | null;
+  departmentId?: string | null;
   participantCount: number;
   canDelete: boolean;
 };
@@ -100,11 +102,31 @@ export type SessionDepartmentOption = {
   roles: Array<{ id: string; name: string }>;
 };
 
+export type SessionGroupAssignmentRole = "worship_guide" | "lesson_guide";
+
+export type SessionGroupMember = {
+  membershipId: string;
+  memberName: string;
+  memberSlug: string;
+};
+
+export type SessionGroupAssignment = {
+  id: string;
+  role: SessionGroupAssignmentRole;
+  ministryMembershipId: string;
+  memberId: string;
+  memberName: string;
+  memberSlug: string;
+};
+
 export type SessionServiceAssignmentData = {
   session: SessionItem;
   ministrySlug: string;
   termSlug: string;
-  departments: SessionDepartmentOption[];
-  assignments: SessionServiceAssignment[];
-  enrolledMembers: SessionEnrolledMember[];
+  scope: "ministry" | "group";
+  departments?: SessionDepartmentOption[];
+  assignments?: SessionServiceAssignment[];
+  enrolledMembers?: SessionEnrolledMember[];
+  groupMembers?: SessionGroupMember[];
+  groupAssignments?: SessionGroupAssignment[];
 };

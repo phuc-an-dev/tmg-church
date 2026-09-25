@@ -1,6 +1,11 @@
 import { cn } from "cn";
 import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
 
 interface MinistryManagementSkeletonProps {
   mode?: "ministries" | "terms" | "groups" | "departments";
@@ -34,39 +39,28 @@ export function MinistryManagementSkeleton({
       )}
 
       {/* Collection List Skeleton: Mobile Cards / Desktop Table */}
-      <div
-        role="table"
-        aria-label="Loading table"
-        className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-      >
+      <ListTable label="Loading table">
         {/* Desktop Table Header */}
-        <div role="rowgroup">
-          <div
-            role="row"
-            className={cn(
-              "bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:items-center md:border-b md:px-4 md:py-3",
-              isMinistry
+        <ListTableHeader
+          gridClassName={
+            isMinistry
+              ? "md:grid-cols-[1fr_180px_120px_180px]"
+              : isTerm
                 ? "md:grid-cols-[1fr_180px_120px_180px]"
-                : isTerm
-                  ? "md:grid-cols-[1fr_180px_120px_180px]"
-                  : "md:grid-cols-[1fr_180px]",
-            )}
-          >
-            <div role="columnheader">Name</div>
-            {hasSlug && <div role="columnheader">Slug</div>}
-            {isMinistry && <div role="columnheader">Terms</div>}
-            {isTerm && <div role="columnheader">Status</div>}
-            <div role="columnheader" className="text-right">
-              Actions
-            </div>
+                : "md:grid-cols-[1fr_180px]"
+          }
+        >
+          <div role="columnheader">Name</div>
+          {hasSlug && <div role="columnheader">Slug</div>}
+          {isMinistry && <div role="columnheader">Terms</div>}
+          {isTerm && <div role="columnheader">Status</div>}
+          <div role="columnheader" className="text-right">
+            Actions
           </div>
-        </div>
+        </ListTableHeader>
 
         {/* Rows: Mobile Stack / Desktop Rows */}
-        <div
-          role="rowgroup"
-          className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-        >
+        <ListTableBody>
           {Array.from({ length: rowCount }).map((_, index) => (
             <div
               key={index}
@@ -136,8 +130,8 @@ export function MinistryManagementSkeleton({
               </div>
             </div>
           ))}
-        </div>
-      </div>
+        </ListTableBody>
+      </ListTable>
 
       {/* Pagination Skeleton */}
       <div className="border-border/70 bg-card overflow-hidden rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_55%,transparent)]">

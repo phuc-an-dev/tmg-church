@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useQueryStates } from "nuqs";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -334,7 +335,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
     }
   }
 
-  const activeStatus = (query.status as SessionFilterStatus) || "pending";
+  const activeStatus = (query.status as SessionFilterStatus) || "all";
 
   return (
     <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
@@ -374,7 +375,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
         </Button>
       </header>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs (department-scoped sessions have no service assignments) */}
       <NavigationTabs aria-label="Session views">
         <NavigationTabLink
           href={`/admin/sessions/${session.slug}`}
@@ -382,38 +383,40 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
         >
           Attendance
         </NavigationTabLink>
-        <NavigationTabLink
-          href={`/admin/sessions/${session.slug}?tab=assignments`}
-          active={false}
-        >
-          Service Assignments
-        </NavigationTabLink>
+        {!session.departmentId && (
+          <NavigationTabLink
+            href={`/admin/sessions/${session.slug}?tab=assignments`}
+            active={false}
+          >
+            Service Assignments
+          </NavigationTabLink>
+        )}
       </NavigationTabs>
 
       {/* 2. Summary Stat Grid (2-col on mobile, 4-col on desktop) */}
       <section aria-label="Attendance summary">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="border-border/80 bg-card rounded-xl border p-3.5 shadow-2xs">
-            <p className="text-xs font-medium tracking-wider text-emerald-700 uppercase dark:text-emerald-400">
+            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
               Present
             </p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-emerald-800 dark:text-emerald-300">
+            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
               {session.summary.presentCount}
             </p>
           </div>
           <div className="border-border/80 bg-card rounded-xl border p-3.5 shadow-2xs">
-            <p className="text-xs font-medium tracking-wider text-rose-700 uppercase dark:text-rose-400">
+            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
               Absent
             </p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-rose-800 dark:text-rose-300">
+            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
               {session.summary.absentCount}
             </p>
           </div>
           <div className="border-border/80 bg-card rounded-xl border p-3.5 shadow-2xs">
-            <p className="text-xs font-medium tracking-wider text-amber-700 uppercase dark:text-amber-400">
+            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
               Excused
             </p>
-            <p className="mt-1 text-2xl font-bold tracking-tight text-amber-800 dark:text-amber-300">
+            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
               {session.summary.excusedCount}
             </p>
           </div>
@@ -429,99 +432,91 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
       </section>
 
       {/* 3. Search, Filter & Bulk Controls Toolbar */}
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search field */}
-          <div className="relative min-w-[200px] flex-1">
-            <Search
-              className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <Input
-              className="bg-card h-11 pl-9 text-base shadow-2xs"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search member name..."
-              aria-label="Search members"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm("");
-                  void setQuery({ q: "", page: 1 });
-                }}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 p-1"
-                aria-label="Clear search"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Filter button (opens bottom drawer) */}
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 min-w-[100px] gap-2 px-3.5"
-            onClick={() => {
-              setDraftStatus(activeStatus);
-              setFilterDrawerOpen(true);
-            }}
-            aria-label={`Filter attendance status, current: ${FILTER_LABELS[activeStatus]}`}
-          >
-            <Filter className="size-4" />
-            <span>{FILTER_LABELS[activeStatus]}</span>
-          </Button>
-
-          {/* Selection mode toggle */}
-          <Button
-            type="button"
-            variant={isSelectionMode ? "secondary" : "outline"}
-            className="h-11 gap-2 px-3.5"
-            onClick={() => {
-              setIsSelectionMode(!isSelectionMode);
-              if (isSelectionMode) setSelectedMemberIds([]);
-            }}
-          >
-            <CheckSquare className="size-4" />
-            <span>{isSelectionMode ? "Cancel" : "Select"}</span>
-          </Button>
-
-          {/* Mark all present button (applies to all filtered members across pages) */}
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 gap-1.5 px-3.5 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
-            disabled={session.filteredMemberIds.length === 0}
-            onClick={() =>
-              triggerBulkAction("present", session.filteredMemberIds, true)
-            }
-          >
-            <Users className="size-4" />
-            <span className="hidden sm:inline">Mark all present</span>
-            <span className="sm:hidden">All present</span>
-          </Button>
-        </div>
-
-        {/* Selection mode toolbar helper */}
-        {isSelectionMode && (
-          <div className="border-border/80 bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-1.5 text-sm">
-            <button
-              type="button"
-              onClick={toggleSelectAllCurrentPage}
-              className="hover:text-primary hover:bg-card/80 active:bg-card flex min-h-[44px] items-center gap-2.5 rounded-lg px-3.5 py-2 font-medium transition-colors"
-            >
-              {allCurrentPageSelected ? (
-                <CheckSquare className="text-primary size-5" />
-              ) : (
-                <Square className="text-muted-foreground size-5" />
+      <section>
+        {session.summary.enrolledCount >= 20 ||
+        Boolean(query.q) ||
+        query.status !== "all" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search field */}
+            <div className="relative min-w-[200px] flex-1">
+              <Search
+                className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <Input
+                className="bg-card h-11 pl-9 text-base shadow-2xs"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search member name..."
+                aria-label="Search members"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    void setQuery({ q: "", page: 1 });
+                  }}
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 p-1"
+                  aria-label="Clear search"
+                >
+                  <X className="size-4" />
+                </button>
               )}
-              <span className="text-sm font-semibold">Select all on page</span>
-            </button>
-            <span className="text-muted-foreground px-3.5 py-2 text-xs font-medium">
-              {selectedMemberIds.length} selected total
-            </span>
+            </div>
+
+            {/* Filter button (opens bottom drawer) */}
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 min-w-[100px] gap-2 px-3.5"
+              onClick={() => {
+                setDraftStatus(activeStatus);
+                setFilterDrawerOpen(true);
+              }}
+              aria-label={`Filter attendance status, current: ${FILTER_LABELS[activeStatus]}`}
+            >
+              <Filter className="size-4" />
+              <span>{FILTER_LABELS[activeStatus]}</span>
+            </Button>
+
+            {/* Selection mode toggle */}
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "border-border/80 bg-background text-foreground hover:bg-muted/80 h-11 gap-2 px-3.5 shadow-2xs",
+                isSelectionMode && "bg-muted font-semibold",
+              )}
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                if (isSelectionMode) setSelectedMemberIds([]);
+              }}
+            >
+              <CheckSquare className="size-4" />
+              <span>{isSelectionMode ? "Cancel" : "Select"}</span>
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
+              Members ({session.summary.enrolledCount})
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "border-border/80 bg-background text-foreground hover:bg-muted/80 h-11 gap-2 px-3.5 shadow-2xs",
+                isSelectionMode && "bg-muted font-semibold",
+              )}
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                if (isSelectionMode) setSelectedMemberIds([]);
+              }}
+            >
+              <CheckSquare className="size-4" />
+              <span>{isSelectionMode ? "Cancel" : "Select"}</span>
+            </Button>
           </div>
         )}
       </section>
@@ -588,22 +583,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                     {/* Status badge and 3-dots action in top right */}
                     <div className="flex shrink-0 items-center gap-1.5">
                       {p.status === "present" && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                           Present
                         </span>
                       )}
                       {p.status === "absent" && (
-                        <span className="inline-flex items-center rounded-full border border-rose-300 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
+                        <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
                           Absent
                         </span>
                       )}
                       {p.status === "excused" && (
-                        <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                           Excused
                         </span>
                       )}
                       {!p.status && (
-                        <span className="border-border text-muted-foreground inline-flex items-center rounded-full border bg-transparent px-2.5 py-0.5 text-xs font-normal">
+                        <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
                           Pending
                         </span>
                       )}
@@ -622,23 +617,29 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                     </div>
                   </div>
 
-                  {/* 3 Segmented attendance controls (outline buttons without icons, >=44px) */}
+                  {/* 3 Segmented attendance controls (outline buttons with status dots, >=44px) */}
                   {(!p.status || expandedMemberIds.has(p.memberId)) && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       <button
                         type="button"
                         disabled={isSavingThis}
                         onClick={() => handleSetStatus(p, "present")}
-                        className={`flex min-h-[44px] items-center justify-center rounded-lg border text-sm font-medium transition-all ${
+                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
                           p.status === "present"
-                            ? "border-2 border-emerald-600 bg-emerald-100 font-semibold text-emerald-800 shadow-xs dark:border-emerald-500 dark:bg-emerald-950/60 dark:text-emerald-200"
-                            : "border-emerald-300/80 bg-emerald-50/20 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-50 dark:border-emerald-800/80 dark:bg-emerald-950/10 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                            ? "border-emerald-500/40 bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300"
+                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                         } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                       >
                         {isSavingThis ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          "Present"
+                          <>
+                            <span
+                              className="size-2 shrink-0 rounded-full bg-emerald-500"
+                              aria-hidden="true"
+                            />
+                            <span>Present</span>
+                          </>
                         )}
                       </button>
 
@@ -646,16 +647,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                         type="button"
                         disabled={isSavingThis}
                         onClick={() => handleSetStatus(p, "absent")}
-                        className={`flex min-h-[44px] items-center justify-center rounded-lg border text-sm font-medium transition-all ${
+                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
                           p.status === "absent"
-                            ? "border-2 border-rose-600 bg-rose-100 font-semibold text-rose-800 shadow-xs dark:border-rose-500 dark:bg-rose-950/60 dark:text-rose-200"
-                            : "border-rose-300/80 bg-rose-50/20 text-rose-700 hover:border-rose-400 hover:bg-rose-50 dark:border-rose-800/80 dark:bg-rose-950/10 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                            ? "border-rose-500/40 bg-rose-500/10 font-semibold text-rose-700 dark:text-rose-300"
+                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                         } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                       >
                         {isSavingThis ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          "Absent"
+                          <>
+                            <span
+                              className="size-2 shrink-0 rounded-full bg-rose-500"
+                              aria-hidden="true"
+                            />
+                            <span>Absent</span>
+                          </>
                         )}
                       </button>
 
@@ -663,16 +670,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                         type="button"
                         disabled={isSavingThis}
                         onClick={() => handleSetStatus(p, "excused")}
-                        className={`flex min-h-[44px] items-center justify-center rounded-lg border text-sm font-medium transition-all ${
+                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
                           p.status === "excused"
-                            ? "border-2 border-amber-600 bg-amber-100 font-semibold text-amber-800 shadow-xs dark:border-amber-500 dark:bg-amber-950/60 dark:text-amber-200"
-                            : "border-amber-300/80 bg-amber-50/20 text-amber-700 hover:border-amber-400 hover:bg-amber-50 dark:border-amber-800/80 dark:bg-amber-950/10 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                            ? "border-amber-500/40 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-300"
+                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                         } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                       >
                         {isSavingThis ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          "Excused"
+                          <>
+                            <span
+                              className="size-2 shrink-0 rounded-full bg-amber-500"
+                              aria-hidden="true"
+                            />
+                            <span>Excused</span>
+                          </>
                         )}
                       </button>
                     </div>
@@ -751,16 +764,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                               type="button"
                               disabled={isSavingThis}
                               onClick={() => handleSetStatus(p, "present")}
-                              className={`inline-flex min-h-[36px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition-all ${
+                              className={`inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all ${
                                 p.status === "present"
-                                  ? "border-2 border-emerald-600 bg-emerald-100 font-semibold text-emerald-800 shadow-xs dark:border-emerald-500 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                  : "border-emerald-300/80 bg-emerald-50/20 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-50 dark:border-emerald-800/80 dark:bg-emerald-950/10 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                                  ? "border-emerald-500/40 bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300"
+                                  : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                               } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                             >
                               {isSavingThis ? (
                                 <Loader2 className="size-3.5 animate-spin" />
                               ) : (
-                                "Present"
+                                <>
+                                  <span
+                                    className="size-1.5 shrink-0 rounded-full bg-emerald-500"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Present</span>
+                                </>
                               )}
                             </button>
 
@@ -768,16 +787,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                               type="button"
                               disabled={isSavingThis}
                               onClick={() => handleSetStatus(p, "absent")}
-                              className={`inline-flex min-h-[36px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition-all ${
+                              className={`inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all ${
                                 p.status === "absent"
-                                  ? "border-2 border-rose-600 bg-rose-100 font-semibold text-rose-800 shadow-xs dark:border-rose-500 dark:bg-rose-950/60 dark:text-rose-200"
-                                  : "border-rose-300/80 bg-rose-50/20 text-rose-700 hover:border-rose-400 hover:bg-rose-50 dark:border-rose-800/80 dark:bg-rose-950/10 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                  ? "border-rose-500/40 bg-rose-500/10 font-semibold text-rose-700 dark:text-rose-300"
+                                  : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                               } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                             >
                               {isSavingThis ? (
                                 <Loader2 className="size-3.5 animate-spin" />
                               ) : (
-                                "Absent"
+                                <>
+                                  <span
+                                    className="size-1.5 shrink-0 rounded-full bg-rose-500"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Absent</span>
+                                </>
                               )}
                             </button>
 
@@ -785,16 +810,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                               type="button"
                               disabled={isSavingThis}
                               onClick={() => handleSetStatus(p, "excused")}
-                              className={`inline-flex min-h-[36px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition-all ${
+                              className={`inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-all ${
                                 p.status === "excused"
-                                  ? "border-2 border-amber-600 bg-amber-100 font-semibold text-amber-800 shadow-xs dark:border-amber-500 dark:bg-amber-950/60 dark:text-amber-200"
-                                  : "border-amber-300/80 bg-amber-50/20 text-amber-700 hover:border-amber-400 hover:bg-amber-50 dark:border-amber-800/80 dark:bg-amber-950/10 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                  ? "border-amber-500/40 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-300"
+                                  : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                               } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                             >
                               {isSavingThis ? (
                                 <Loader2 className="size-3.5 animate-spin" />
                               ) : (
-                                "Excused"
+                                <>
+                                  <span
+                                    className="size-1.5 shrink-0 rounded-full bg-amber-500"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Excused</span>
+                                </>
                               )}
                             </button>
 
@@ -812,17 +843,17 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                         ) : (
                           <div className="inline-flex items-center justify-end gap-2">
                             {p.status === "present" && (
-                              <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                                 Present
                               </span>
                             )}
                             {p.status === "absent" && (
-                              <span className="inline-flex items-center rounded-full border border-rose-300 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
+                              <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
                                 Absent
                               </span>
                             )}
                             {p.status === "excused" && (
-                              <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                                 Excused
                               </span>
                             )}
@@ -858,55 +889,68 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
       {/* 6. Fixed Bottom Action Bar for Multi-select */}
       {isSelectionMode && selectedMemberIds.length > 0 && (
         <aside
-          className="bg-card border-border/80 fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-2xl items-center justify-between gap-2 rounded-2xl border p-3 shadow-2xl backdrop-blur-sm sm:gap-3"
+          className="bg-card border-border/80 fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-2xl items-center gap-2 rounded-2xl border p-2.5 shadow-2xl backdrop-blur-sm sm:gap-3 sm:p-3"
           aria-label="Bulk actions bar"
         >
-          <div className="flex items-center gap-2 pl-2">
-            <span className="bg-primary/10 text-primary rounded-full px-2.5 py-0.5 text-xs font-bold">
+          {/* Selected count badge */}
+          <div className="flex shrink-0 items-center pl-1 sm:pl-1.5">
+            <span className="bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-bold">
               {selectedMemberIds.length}
-            </span>
-            <span className="text-foreground text-xs font-semibold sm:text-sm">
-              selected
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* 3 Full-width Equal Buttons */}
+          <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 sm:gap-2">
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="min-h-[44px] border-emerald-300 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 sm:min-h-0 sm:px-3 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+              className="min-h-[44px] w-full justify-center gap-1.5 px-2 text-xs font-medium sm:min-h-11 sm:px-3 sm:text-sm"
               onClick={() => triggerBulkAction("present", selectedMemberIds)}
             >
-              Present
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-emerald-500"
+                aria-hidden="true"
+              />
+              <span>Present</span>
             </Button>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="min-h-[44px] border-rose-300 px-2.5 text-xs text-rose-700 hover:bg-rose-50 sm:min-h-0 sm:px-3 dark:text-rose-400 dark:hover:bg-rose-950/40"
+              className="min-h-[44px] w-full justify-center gap-1.5 px-2 text-xs font-medium sm:min-h-11 sm:px-3 sm:text-sm"
               onClick={() => triggerBulkAction("absent", selectedMemberIds)}
             >
-              Absent
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-rose-500"
+                aria-hidden="true"
+              />
+              <span>Absent</span>
             </Button>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="min-h-[44px] border-amber-300 px-2.5 text-xs text-amber-700 hover:bg-amber-50 sm:min-h-0 sm:px-3 dark:text-amber-400 dark:hover:bg-amber-950/40"
+              className="min-h-[44px] w-full justify-center gap-1.5 px-2 text-xs font-medium sm:min-h-11 sm:px-3 sm:text-sm"
               onClick={() => triggerBulkAction("excused", selectedMemberIds)}
             >
-              Excused
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-amber-500"
+                aria-hidden="true"
+              />
+              <span>Excused</span>
             </Button>
-            <button
-              type="button"
-              onClick={() => setSelectedMemberIds([])}
-              className="text-muted-foreground hover:text-foreground flex size-11 items-center justify-center p-2 text-xs"
-              aria-label="Clear selection"
-            >
-              <X className="size-4" />
-            </button>
           </div>
+
+          {/* Cancel/Clear selection button */}
+          <button
+            type="button"
+            onClick={() => setSelectedMemberIds([])}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/60 flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors"
+            aria-label="Clear selection"
+          >
+            <X className="size-4" />
+          </button>
         </aside>
       )}
 

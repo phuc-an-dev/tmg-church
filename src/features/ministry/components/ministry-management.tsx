@@ -56,6 +56,11 @@ import {
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
 import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
@@ -823,46 +828,33 @@ export function MinistryManagement({
             <p className="sr-only">
               Use the Actions button on mobile to reveal actions for an item.
             </p>
-            <div
-              role="table"
-              aria-label={title}
-              className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-            >
-              <div role="rowgroup">
-                <div
-                  role="row"
-                  className={cn(
-                    "bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:items-center md:border-b md:px-4 md:py-3",
-                    mode === "ministries"
+            <ListTable label={title}>
+              <ListTableHeader
+                gridClassName={
+                  mode === "ministries"
+                    ? "md:grid-cols-[1fr_180px_120px_180px]"
+                    : mode === "terms"
                       ? "md:grid-cols-[1fr_180px_120px_180px]"
-                      : mode === "terms"
-                        ? "md:grid-cols-[1fr_180px_120px_180px]"
-                        : mode === "departments"
+                      : mode === "departments"
+                        ? "md:grid-cols-[1fr_180px_180px_120px]"
+                        : mode === "groups"
                           ? "md:grid-cols-[1fr_180px_180px_120px]"
-                          : mode === "groups"
-                            ? "md:grid-cols-[1fr_180px_180px_120px]"
-                            : "md:grid-cols-[1fr_180px_180px]",
-                  )}
-                >
-                  <div role="columnheader">Name</div>
-                  <div role="columnheader">Slug</div>
-                  {mode === "ministries" && (
-                    <div role="columnheader">Terms</div>
-                  )}
-                  {mode === "terms" && <div role="columnheader">Lifecycle</div>}
-                  {mode === "departments" && (
-                    <div role="columnheader">Members & Roles</div>
-                  )}
-                  {mode === "groups" && <div role="columnheader">Members</div>}
-                  <div role="columnheader" className="text-right">
-                    Actions
-                  </div>
-                </div>
-              </div>
-              <div
-                role="rowgroup"
-                className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
+                          : "md:grid-cols-[1fr_180px_180px]"
+                }
               >
+                <div role="columnheader">Name</div>
+                <div role="columnheader">Slug</div>
+                {mode === "ministries" && <div role="columnheader">Terms</div>}
+                {mode === "terms" && <div role="columnheader">Lifecycle</div>}
+                {mode === "departments" && (
+                  <div role="columnheader">Members & Roles</div>
+                )}
+                {mode === "groups" && <div role="columnheader">Members</div>}
+                <div role="columnheader" className="text-right">
+                  Actions
+                </div>
+              </ListTableHeader>
+              <ListTableBody>
                 {result.items.map((item) => {
                   const isDeleteDisabled =
                     isMinistry(item) && item.termCount > 0;
@@ -1117,8 +1109,8 @@ export function MinistryManagement({
                     </ExpandableActionItem>
                   );
                 })}
-              </div>
-            </div>
+              </ListTableBody>
+            </ListTable>
           </>
         )}
         {mode !== "groups" && mode !== "departments" && (

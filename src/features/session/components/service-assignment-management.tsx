@@ -35,7 +35,12 @@ export function ServiceAssignmentManagement({
   assignmentData,
 }: ServiceAssignmentManagementProps) {
   const router = useRouter();
-  const { session, departments, assignments, enrolledMembers } = assignmentData;
+  const {
+    session,
+    departments = [],
+    assignments = [],
+    enrolledMembers = [],
+  } = assignmentData;
 
   const [feedback, setFeedback] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);

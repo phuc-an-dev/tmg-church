@@ -9,7 +9,9 @@ import {
   batchSaveServiceAssignmentsSchema,
   bulkAttendanceSchema,
   deleteSessionSchema,
+  removeGroupSessionAssignmentSchema,
   removeServiceAssignmentSchema,
+  saveGroupSessionAssignmentSchema,
   saveServiceAssignmentSchema,
   sessionSchema,
 } from "./schemas";
@@ -172,6 +174,7 @@ export async function deleteSessionAction(raw: unknown): Promise<Result> {
     { count: participantCount, error: participantError },
     { count: assignmentCount, error: assignmentError },
     { count: serviceCount, error: serviceError },
+    { count: groupServiceCount, error: groupServiceError },
   ] = await Promise.all([
     s
       .from("session_participant")
@@ -185,14 +188,20 @@ export async function deleteSessionAction(raw: unknown): Promise<Result> {
       .from("service_assignment")
       .select("id", { count: "exact", head: true })
       .eq("ministry_session_id", session.id),
+    s
+      .from("group_session_assignment")
+      .select("id", { count: "exact", head: true })
+      .eq("ministry_session_id", session.id),
   ]);
   if (
     participantError ||
     assignmentError ||
     serviceError ||
+    groupServiceError ||
     participantCount ||
     assignmentCount ||
-    serviceCount
+    serviceCount ||
+    groupServiceCount
   )
     return {
       success: false,
@@ -359,4 +368,76 @@ export async function removeServiceAssignmentAction(
 
   revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Service assignment removed." };
+}
+
+export async function saveGroupSessionAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = saveGroupSessionAssignmentSchema.safeParse(raw);
+  if (!p.success) {
+    return { success: false, error: "Invalid assignment request." };
+  }
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug,term_group_id")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .not("term_group_id", "is", null)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Invalid group session." };
+
+  const { error } = await s.from("group_session_assignment").upsert(
+    {
+      ministry_session_id: session.id,
+      ministry_membership_id: p.data.membershipId,
+      role: p.data.role,
+    },
+    { onConflict: "ministry_session_id,role" },
+  );
+
+  if (error) {
+    console.error("Failed to save group session assignment:", error);
+    return { success: false, error: "Unable to save assignment." };
+  }
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return { success: true, message: "Assignment saved." };
+}
+
+export async function removeGroupSessionAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = removeGroupSessionAssignmentSchema.safeParse(raw);
+  if (!p.success) {
+    return { success: false, error: "Invalid removal request." };
+  }
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s
+    .from("group_session_assignment")
+    .delete()
+    .eq("id", p.data.assignmentId)
+    .eq("ministry_session_id", session.id);
+
+  if (error) {
+    console.error("Failed to remove group session assignment:", error);
+    return { success: false, error: "Unable to remove assignment." };
+  }
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return { success: true, message: "Assignment removed." };
 }

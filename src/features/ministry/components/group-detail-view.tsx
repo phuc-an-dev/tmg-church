@@ -4,17 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen,
   CalendarDays,
   Check,
-  Crown,
   Ellipsis,
   LogOut,
   Loader2,
   Plus,
   Pencil,
   Search,
-  Shield,
   UserPlus,
   Users,
   Trash2,
@@ -26,8 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
+import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
 import { StatusToast } from "@/components/ui/status-toast";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import { deleteSessionAction } from "@/features/session/actions";
@@ -57,7 +60,7 @@ import type {
 } from "../group-queries";
 
 interface GroupDetailViewProps {
-  section: "members" | "sessions" | "history";
+  section: "members" | "leadership" | "sessions" | "history";
   ministrySlug: string;
   termSlug: string;
   groupSlug: string;
@@ -168,18 +171,9 @@ export function GroupDetailView({
   );
   const [expandedLeadershipRole, setExpandedLeadershipRole] =
     React.useState<GroupRole | null>(null);
-
-  // Compute other members (members who are not in the leadership trio)
-  const otherMembers = React.useMemo(() => {
-    const leaderIds = new Set(
-      [
-        data.leadership.groupLeader?.id,
-        data.leadership.deputyLeader?.id,
-        data.leadership.bibleStudyLeader?.id,
-      ].filter(Boolean),
-    );
-    return data.members.filter((m) => !leaderIds.has(m.id));
-  }, [data.members, data.leadership]);
+  const [expandedSessionId, setExpandedSessionId] = React.useState<
+    string | null
+  >(null);
 
   // Filter eligible members for Assign Member drawer
   const filteredEligibleMembers = React.useMemo(() => {
@@ -225,6 +219,7 @@ export function GroupDetailView({
       );
 
       if (!res.success) {
+        console.error("[GroupDetailView.executeBatchAssign] Error:", res);
         setAssignDrawerError(res.error ?? "Failed to assign members to group.");
       } else {
         setToast({
@@ -234,7 +229,11 @@ export function GroupDetailView({
         setAddDrawerOpen(false);
         setSelectedMembershipIds([]);
       }
-    } catch {
+    } catch (err) {
+      console.error(
+        "[GroupDetailView.executeBatchAssign] Unexpected error:",
+        err,
+      );
       setAssignDrawerError("Unexpected error assigning members to group.");
     } finally {
       setAddPending(false);
@@ -466,120 +465,6 @@ export function GroupDetailView({
     }
   }
 
-  function renderLeadershipCard(
-    role: GroupRole,
-    title: string,
-    icon: React.ReactNode,
-    iconBgClass: string,
-    leader: GroupMemberItem | null,
-  ) {
-    const isExpanded = expandedLeadershipRole === role;
-
-    return (
-      <div className="bg-card border-border/80 flex flex-col justify-between rounded-xl border p-4 shadow-xs">
-        <div className="flex items-center gap-3.5">
-          {/* Icon on the left */}
-          <div
-            className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl",
-              iconBgClass,
-            )}
-          >
-            {icon}
-          </div>
-
-          {/* Leadership details */}
-          <div className="min-w-0 flex-1">
-            <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-              {title}
-            </span>
-
-            {leader ? (
-              <p className="text-foreground mt-0.5 text-base font-semibold md:text-sm">
-                {leader.name}
-              </p>
-            ) : (
-              <p className="text-muted-foreground mt-0.5 text-sm font-medium">
-                Not assigned
-              </p>
-            )}
-          </div>
-
-          {/* Mobile 3-dot Toggle Button (no dropdown) */}
-          <div className="flex shrink-0 items-center md:hidden">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "-my-2 -mr-2 min-h-11 min-w-11 rounded-xl p-0",
-                isExpanded && "bg-muted text-foreground",
-              )}
-              aria-label={`Actions for ${title}`}
-              aria-expanded={isExpanded}
-              onClick={() =>
-                setExpandedLeadershipRole((prev) =>
-                  prev === role ? null : role,
-                )
-              }
-            >
-              <Ellipsis className="size-5" aria-hidden="true" />
-            </Button>
-          </div>
-
-          {/* Desktop 3-dot Dropdown */}
-          <div className="hidden shrink-0 items-center md:flex">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="-my-1 -mr-1 size-8"
-                  aria-label={`Actions for ${title}`}
-                >
-                  <Ellipsis className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={() => openAssignLeaderDrawer(role)}>
-                  {leader ? "Change Leader" : `Assign ${title}`}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Mobile action buttons displayed below card when expanded */}
-        {isExpanded && (
-          <div
-            role="region"
-            aria-label={`Actions for ${title}`}
-            className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden"
-          >
-            <Button
-              type="button"
-              variant="outline"
-              className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-              onClick={() => {
-                setExpandedLeadershipRole(null);
-                openAssignLeaderDrawer(role);
-              }}
-            >
-              {leader ? (
-                <span>Change Leader</span>
-              ) : (
-                <>
-                  <Plus className="size-4" aria-hidden="true" />
-                  <span>Assign {title}</span>
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Toast notifications */}
@@ -592,48 +477,11 @@ export function GroupDetailView({
       {/* =================================================================== */}
       {section === "members" && (
         <div className="space-y-6">
-          {/* LEADERSHIP SECTION */}
-          <div className="space-y-3">
-            <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
-              Leadership
-            </h2>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {/* Group Leader Card */}
-              {renderLeadershipCard(
-                "group_leader",
-                "Group Leader",
-                <Crown className="size-4" aria-hidden="true" />,
-                "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                data.leadership.groupLeader,
-              )}
-
-              {/* Deputy Leader Card */}
-              {renderLeadershipCard(
-                "deputy_leader",
-                "Deputy Leader",
-                <Shield className="size-4" aria-hidden="true" />,
-                "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-                data.leadership.deputyLeader,
-              )}
-
-              {/* Bible Study Leader Card */}
-              {renderLeadershipCard(
-                "bible_study_leader",
-                "Bible Study Leader",
-                <BookOpen className="size-4" aria-hidden="true" />,
-                "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-                data.leadership.bibleStudyLeader,
-              )}
-            </div>
-          </div>
-
-          {/* OTHER MEMBERS SECTION */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
-                  Other Members ({otherMembers.length})
+                  Members ({data.members.length})
                 </h2>
               </div>
               <Button
@@ -647,60 +495,40 @@ export function GroupDetailView({
               </Button>
             </div>
 
-            {otherMembers.length === 0 ? (
-              <div className="border-border/80 bg-card rounded-xl border p-8 text-center shadow-xs">
-                <Users
-                  className="text-muted-foreground mx-auto size-10 stroke-1"
-                  aria-hidden="true"
-                />
-                <h3 className="text-foreground mt-3 text-base font-semibold">
-                  {data.members.length === 0
-                    ? "No group members yet"
-                    : "No other members"}
-                </h3>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {data.members.length === 0
-                    ? "Add enrolled term members to this group."
-                    : "All current members are assigned to leadership roles above."}
-                </p>
-                <Button
-                  type="button"
-                  className="mt-4 min-h-11 text-sm"
-                  onClick={openAssignDrawer}
-                >
-                  <UserPlus className="mr-2 size-4" aria-hidden="true" />
-                  Assign Members
-                </Button>
-              </div>
+            {data.members.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No group members yet"
+                description="Add enrolled term members to this group."
+                action={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 text-sm shadow-xs"
+                    onClick={openAssignDrawer}
+                  >
+                    <UserPlus className="mr-2 size-4" aria-hidden="true" />
+                    Assign Members
+                  </Button>
+                }
+              />
             ) : (
               <>
                 {/* Desktop Table View */}
-                <div
-                  role="table"
-                  aria-label="Group Members"
-                  className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-                >
-                  <div role="rowgroup">
-                    <div
-                      role="row"
-                      className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:border-b md:px-4 md:py-3"
-                    >
-                      <div role="columnheader">Name</div>
-                      <div role="columnheader">Role</div>
-                      <div role="columnheader">Status</div>
-                      <div role="columnheader">Joined Date</div>
-                      <div role="columnheader" className="text-right">
-                        Actions
-                      </div>
+                <ListTable label="Group Members">
+                  <ListTableHeader gridClassName="md:grid-cols-[1fr_180px_120px_140px_100px]">
+                    <div role="columnheader">Name</div>
+                    <div role="columnheader">Role</div>
+                    <div role="columnheader">Status</div>
+                    <div role="columnheader">Joined Date</div>
+                    <div role="columnheader" className="text-right">
+                      Actions
                     </div>
-                  </div>
+                  </ListTableHeader>
 
                   {/* Mobile & Desktop Rows */}
-                  <div
-                    role="rowgroup"
-                    className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-                  >
-                    {otherMembers.map((member) => {
+                  <ListTableBody>
+                    {data.members.map((member) => {
                       const isPending = statusPendingId === member.id;
                       const isExpanded = expandedMemberId === member.id;
                       return (
@@ -714,36 +542,26 @@ export function GroupDetailView({
                             <div className="flex items-center justify-between gap-3 md:justify-start">
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-foreground text-base font-semibold md:text-sm">
-                                    {member.name}
-                                  </p>
-                                  {/* Mobile badges on the same row as name */}
-                                  <div className="flex flex-wrap items-center gap-1.5 md:hidden">
-                                    {member.role !== "member" && (
-                                      <span
-                                        className={cn(
-                                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                                          member.role === "group_leader"
-                                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                            : member.role === "deputy_leader"
-                                              ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                                              : "bg-purple-500/10 text-purple-700 dark:text-purple-300",
-                                        )}
-                                      >
-                                        {GROUP_ROLE_LABELS[member.role]}
-                                      </span>
-                                    )}
+                                  <div className="flex items-center gap-2">
                                     <span
                                       className={cn(
-                                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                                        "size-2 shrink-0 rounded-full md:hidden",
                                         member.status === "active"
-                                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                          : "bg-muted text-muted-foreground",
+                                          ? "bg-emerald-500"
+                                          : "bg-muted-foreground/40",
                                       )}
-                                    >
-                                      {GROUP_STATUS_LABELS[member.status]}
-                                    </span>
+                                      aria-hidden="true"
+                                    />
+                                    <p className="text-foreground text-base font-semibold md:text-sm">
+                                      {member.name}
+                                    </p>
                                   </div>
+                                  {/* Mobile leadership badge (subtle) */}
+                                  {member.role !== "member" && (
+                                    <span className="border-border/80 bg-muted/40 text-muted-foreground inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium md:hidden">
+                                      {GROUP_ROLE_LABELS[member.role]}
+                                    </span>
+                                  )}
                                 </div>
                                 {/* Mobile joined date */}
                                 <p className="text-muted-foreground mt-1 text-xs md:hidden">
@@ -916,8 +734,8 @@ export function GroupDetailView({
                         </div>
                       );
                     })}
-                  </div>
-                </div>
+                  </ListTableBody>
+                </ListTable>
               </>
             )}
           </div>
@@ -934,6 +752,220 @@ export function GroupDetailView({
         </div>
       )}
 
+      {/* =================================================================== */}
+      {/* LEADERSHIP TAB                                                      */}
+      {/* =================================================================== */}
+      {section === "leadership" && (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
+                Leadership Roles
+              </h2>
+            </div>
+
+            {/* Table View (Desktop) / Card List (Mobile) */}
+            <ListTable label="Leadership Roles">
+              <ListTableHeader gridClassName="md:grid-cols-[1fr_180px_120px_140px_100px]">
+                <div role="columnheader">Name</div>
+                <div role="columnheader">Role</div>
+                <div role="columnheader">Status</div>
+                <div role="columnheader">Joined Date</div>
+                <div role="columnheader" className="text-right">
+                  Actions
+                </div>
+              </ListTableHeader>
+
+              {/* Mobile & Desktop Rows */}
+              <ListTableBody>
+                {(
+                  [
+                    {
+                      role: "group_leader" as const,
+                      title: "Group Leader",
+                      leader: data.leadership.groupLeader,
+                    },
+                    {
+                      role: "deputy_leader" as const,
+                      title: "Deputy Leader",
+                      leader: data.leadership.deputyLeader,
+                    },
+                    {
+                      role: "bible_study_leader" as const,
+                      title: "Bible Study Leader",
+                      leader: data.leadership.bibleStudyLeader,
+                    },
+                  ] as const
+                ).map(({ role, title, leader }) => {
+                  const isExpanded = expandedLeadershipRole === role;
+                  return (
+                    <div
+                      key={role}
+                      role="row"
+                      className="bg-card border-border/80 rounded-xl border p-4 shadow-xs md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:rounded-none md:border-0 md:p-3 md:shadow-none"
+                    >
+                      {/* Name Column */}
+                      <div role="cell" className="min-w-0">
+                        <div className="flex items-center justify-between gap-3 md:justify-start">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={cn(
+                                    "size-2 shrink-0 rounded-full md:hidden",
+                                    leader
+                                      ? "bg-emerald-500"
+                                      : "bg-muted-foreground/30",
+                                  )}
+                                  aria-hidden="true"
+                                />
+                                <p
+                                  className={cn(
+                                    "text-base font-semibold md:text-sm",
+                                    leader
+                                      ? "text-foreground"
+                                      : "text-muted-foreground font-normal italic",
+                                  )}
+                                >
+                                  {leader ? leader.name : "Not assigned"}
+                                </p>
+                              </div>
+                              {/* Mobile role badge */}
+                              <span className="border-border/80 bg-muted/40 text-muted-foreground inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium md:hidden">
+                                {title}
+                              </span>
+                            </div>
+                            {/* Mobile joined date */}
+                            <p className="text-muted-foreground mt-1 text-xs md:hidden">
+                              {leader
+                                ? `Joined ${formatDate(leader.joinedAt)}`
+                                : "Position currently vacant"}
+                            </p>
+                          </div>
+
+                          {/* Mobile 3-dot Toggle Button */}
+                          <div className="flex items-center md:hidden">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "min-h-11 min-w-11 rounded-xl p-0",
+                                isExpanded && "bg-muted text-foreground",
+                              )}
+                              aria-label={`Actions for ${title}`}
+                              aria-expanded={isExpanded}
+                              onClick={() =>
+                                setExpandedLeadershipRole((prev) =>
+                                  prev === role ? null : role,
+                                )
+                              }
+                            >
+                              <Ellipsis className="size-5" aria-hidden="true" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Mobile action buttons displayed below card when expanded */}
+                        {isExpanded && (
+                          <div
+                            role="region"
+                            aria-label={`Actions for ${title}`}
+                            className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden"
+                          >
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                              onClick={() => {
+                                setExpandedLeadershipRole(null);
+                                openAssignLeaderDrawer(role);
+                              }}
+                            >
+                              {leader ? (
+                                <span>Change Leader</span>
+                              ) : (
+                                <>
+                                  <Plus className="size-4" aria-hidden="true" />
+                                  <span>Assign {title}</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Role Column (Desktop) */}
+                      <div role="cell" className="hidden text-sm md:block">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                            role === "group_leader"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                              : role === "deputy_leader"
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                                : "bg-purple-500/10 text-purple-700 dark:text-purple-300",
+                          )}
+                        >
+                          {title}
+                        </span>
+                      </div>
+
+                      {/* Status Column (Desktop) */}
+                      <div role="cell" className="hidden text-sm md:block">
+                        {leader ? (
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            —
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Joined Date (Desktop) */}
+                      <div
+                        role="cell"
+                        className="text-muted-foreground hidden text-xs md:block"
+                      >
+                        {leader ? formatDate(leader.joinedAt) : "—"}
+                      </div>
+
+                      {/* Actions Column (Desktop) */}
+                      <div role="cell" className="hidden justify-end md:flex">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 min-h-9 min-w-9"
+                              aria-label={`Actions for ${title}`}
+                            >
+                              <Ellipsis className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => openAssignLeaderDrawer(role)}
+                            >
+                              {leader ? "Change Leader" : `Assign ${title}`}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  );
+                })}
+              </ListTableBody>
+            </ListTable>
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* SESSIONS TAB                                                        */}
+      {/* =================================================================== */}
       {section === "sessions" && (
         <div className="space-y-4">
           <div>
@@ -947,71 +979,91 @@ export function GroupDetailView({
             </div>
           </div>
           {data.sessions.length === 0 ? (
-            <div className="border-border/80 bg-card rounded-xl border p-8 text-center shadow-xs">
-              <CalendarDays
-                className="text-muted-foreground mx-auto size-10 stroke-1"
-                aria-hidden="true"
-              />
-              <h3 className="text-foreground mt-3 text-base font-semibold">
-                No sessions yet
-              </h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Create the first session for this group.
-              </p>
-            </div>
+            <EmptyState
+              icon={CalendarDays}
+              title="No sessions yet"
+              description="Create the first session for this group."
+            />
           ) : (
             <div className="grid gap-3">
-              {data.sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border-border/80 bg-card rounded-xl border p-4 shadow-xs"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <Link
-                      href={`/admin/sessions/${session.slug}`}
-                      className="min-w-0 flex-1"
-                    >
-                      <p className="font-semibold">{session.title}</p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        {session.sessionDate} · {session.participantCount}{" "}
-                        participants
-                      </p>
-                    </Link>
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-11 min-w-11 p-0"
-                          aria-label={`Actions for ${session.title}`}
-                        >
-                          <Ellipsis className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingSession(session);
-                            setGroupSessionOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={!session.canDelete}
-                          onClick={() => setDeletingSession(session)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="size-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {data.sessions.map((session) => {
+                const isExpanded = expandedSessionId === session.id;
+                return (
+                  <div
+                    key={session.id}
+                    className="border-border/80 bg-card rounded-xl border p-4 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <Link
+                        href={`/admin/sessions/${session.slug}`}
+                        className="min-w-0 flex-1"
+                      >
+                        <p className="font-semibold">{session.title}</p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          {session.sessionDate} · {session.participantCount}{" "}
+                          participants
+                        </p>
+                      </Link>
+
+                      {/* 3-dot Toggle Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "min-h-11 min-w-11 rounded-xl p-0",
+                          isExpanded && "bg-muted text-foreground",
+                        )}
+                        aria-label={`Actions for ${session.title}`}
+                        aria-expanded={isExpanded}
+                        onClick={() =>
+                          setExpandedSessionId((prev) =>
+                            prev === session.id ? null : session.id,
+                          )
+                        }
+                      >
+                        <Ellipsis className="size-5" aria-hidden="true" />
+                      </Button>
+                    </div>
+
+                    {/* Action buttons displayed below card when expanded */}
+                    {isExpanded && (
+                      <div
+                        role="region"
+                        aria-label={`Actions for ${session.title}`}
+                        className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                            onClick={() => {
+                              setExpandedSessionId(null);
+                              setEditingSession(session);
+                              setGroupSessionOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4" aria-hidden="true" />
+                            <span>Edit</span>
+                          </Button>
+                          <DestructiveActionButton
+                            type="button"
+                            className="min-h-11 w-full"
+                            disabled={!session.canDelete}
+                            onClick={() => {
+                              setExpandedSessionId(null);
+                              setDeletingSession(session);
+                            }}
+                            label="Delete"
+                            icon={Trash2}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <FloatingCreateButton
@@ -1039,42 +1091,22 @@ export function GroupDetailView({
           </div>
 
           {data.history.length === 0 ? (
-            <div className="border-border/80 bg-card rounded-xl border p-8 text-center shadow-xs">
-              <Users
-                className="text-muted-foreground mx-auto size-10 stroke-1"
-                aria-hidden="true"
-              />
-              <h3 className="text-foreground mt-3 text-base font-semibold">
-                No past membership records
-              </h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                When members transfer to another group or leave, their closed
-                records will be preserved here.
-              </p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No past membership records"
+              description="When members transfer to another group or leave, their closed records will be preserved here."
+            />
           ) : (
-            <div
-              role="table"
-              aria-label="Membership History"
-              className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-            >
-              <div role="rowgroup">
-                <div
-                  role="row"
-                  className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1fr_160px_140px_140px_120px] md:items-center md:border-b md:px-4 md:py-3"
-                >
-                  <div role="columnheader">Name</div>
-                  <div role="columnheader">Role Held</div>
-                  <div role="columnheader">Joined Date</div>
-                  <div role="columnheader">Ended Date</div>
-                  <div role="columnheader">Final Status</div>
-                </div>
-              </div>
+            <ListTable label="Membership History">
+              <ListTableHeader gridClassName="md:grid-cols-[1fr_160px_140px_140px_120px]">
+                <div role="columnheader">Name</div>
+                <div role="columnheader">Role Held</div>
+                <div role="columnheader">Joined Date</div>
+                <div role="columnheader">Ended Date</div>
+                <div role="columnheader">Final Status</div>
+              </ListTableHeader>
 
-              <div
-                role="rowgroup"
-                className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-              >
+              <ListTableBody>
                 {data.history.map((record) => (
                   <div
                     key={record.id}
@@ -1158,8 +1190,8 @@ export function GroupDetailView({
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+              </ListTableBody>
+            </ListTable>
           )}
         </div>
       )}

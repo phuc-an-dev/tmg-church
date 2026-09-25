@@ -52,6 +52,11 @@ import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
+import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
@@ -1588,56 +1593,44 @@ export function MemberManagement({
               <p className="sr-only">
                 Use the Actions button on mobile to reveal actions for an item.
               </p>
-              <div
-                role="table"
-                aria-label="Members"
-                className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-              >
+              <ListTable label="Members">
                 {/* Desktop Table Header */}
-                <div role="rowgroup">
-                  <div
-                    role="row"
-                    className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1.5fr_1fr_120px_110px_80px] md:items-center md:border-b md:px-4 md:py-3"
-                  >
-                    <div role="columnheader">
-                      <button
-                        type="button"
-                        onClick={() => updateSort("full_name")}
-                        className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
-                      >
-                        Name
-                        <SortIcon
-                          active={query.sort === "full_name"}
-                          order={query.order}
-                        />
-                      </button>
-                    </div>
-                    <div role="columnheader">Phone</div>
-                    <div role="columnheader">
-                      <button
-                        type="button"
-                        onClick={() => updateSort("date_of_birth")}
-                        className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
-                      >
-                        Date of birth
-                        <SortIcon
-                          active={query.sort === "date_of_birth"}
-                          order={query.order}
-                        />
-                      </button>
-                    </div>
-                    <div role="columnheader">Status</div>
-                    <div role="columnheader" className="text-right">
-                      Actions
-                    </div>
+                <ListTableHeader gridClassName="md:grid-cols-[1.5fr_1fr_120px_110px_80px]">
+                  <div role="columnheader">
+                    <button
+                      type="button"
+                      onClick={() => updateSort("full_name")}
+                      className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      Name
+                      <SortIcon
+                        active={query.sort === "full_name"}
+                        order={query.order}
+                      />
+                    </button>
                   </div>
-                </div>
+                  <div role="columnheader">Phone</div>
+                  <div role="columnheader">
+                    <button
+                      type="button"
+                      onClick={() => updateSort("date_of_birth")}
+                      className="hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                      Date of birth
+                      <SortIcon
+                        active={query.sort === "date_of_birth"}
+                        order={query.order}
+                      />
+                    </button>
+                  </div>
+                  <div role="columnheader">Status</div>
+                  <div role="columnheader" className="text-right">
+                    Actions
+                  </div>
+                </ListTableHeader>
 
                 {/* Member Items */}
-                <div
-                  role="rowgroup"
-                  className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-                >
+                <ListTableBody>
                   {result.items.map((member) => (
                     <ExpandableActionItem
                       key={member.id}
@@ -1742,8 +1735,8 @@ export function MemberManagement({
                       </div>
                     </ExpandableActionItem>
                   ))}
-                </div>
-              </div>
+                </ListTableBody>
+              </ListTable>
             </>
           )}
         </div>

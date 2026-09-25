@@ -288,6 +288,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      group_session_assignment: {
+        Row: {
+          created_at: string;
+          id: string;
+          ministry_membership_id: string;
+          ministry_session_id: string;
+          role: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          ministry_membership_id: string;
+          ministry_session_id: string;
+          role: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          ministry_membership_id?: string;
+          ministry_session_id?: string;
+          role?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_session_assignment_ministry_membership_id_fkey";
+            columns: ["ministry_membership_id"];
+            isOneToOne: false;
+            referencedRelation: "ministry_membership";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_session_assignment_ministry_session_id_fkey";
+            columns: ["ministry_session_id"];
+            isOneToOne: false;
+            referencedRelation: "ministry_session";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       leaders: {
         Row: {
           created_at: string;

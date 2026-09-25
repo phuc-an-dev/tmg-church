@@ -38,6 +38,7 @@ export default async function GroupDetailPage({
   if (
     rawSection !== undefined &&
     rawSection !== "members" &&
+    rawSection !== "leadership" &&
     rawSection !== "sessions" &&
     rawSection !== "history"
   ) {
@@ -78,19 +79,25 @@ export default async function GroupDetailPage({
           href="?section=members"
           active={section === "members"}
         >
-          Members ({data.members.length})
+          Members
+        </NavigationTabLink>
+        <NavigationTabLink
+          href="?section=leadership"
+          active={section === "leadership"}
+        >
+          Leadership
         </NavigationTabLink>
         <NavigationTabLink
           href="?section=sessions"
           active={section === "sessions"}
         >
-          Sessions ({data.sessions.length})
+          Sessions
         </NavigationTabLink>
         <NavigationTabLink
           href="?section=history"
           active={section === "history"}
         >
-          History ({data.history.length})
+          History
         </NavigationTabLink>
       </NavigationTabs>
       <GroupDetailView

@@ -14,6 +14,11 @@ import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
+import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
@@ -346,28 +351,16 @@ export function SegmentManagement({
             </p>
           </div>
         ) : (
-          <div
-            role="table"
-            aria-label="Segments"
-            className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-          >
-            <div role="rowgroup">
-              <div
-                role="row"
-                className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1fr_180px_120px_180px] md:items-center md:border-b md:px-4 md:py-3"
-              >
-                <div role="columnheader">Name</div>
-                <div role="columnheader">Slug</div>
-                <div role="columnheader">Members</div>
-                <div role="columnheader" className="text-right">
-                  Actions
-                </div>
+          <ListTable label="Segments">
+            <ListTableHeader gridClassName="md:grid-cols-[1fr_180px_120px_180px]">
+              <div role="columnheader">Name</div>
+              <div role="columnheader">Slug</div>
+              <div role="columnheader">Members</div>
+              <div role="columnheader" className="text-right">
+                Actions
               </div>
-            </div>
-            <div
-              role="rowgroup"
-              className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-            >
+            </ListTableHeader>
+            <ListTableBody>
               {visible.map((segment) => (
                 <ExpandableActionItem
                   key={segment.id}
@@ -427,8 +420,8 @@ export function SegmentManagement({
                   </div>
                 </ExpandableActionItem>
               ))}
-            </div>
-          </div>
+            </ListTableBody>
+          </ListTable>
         )}
         <FloatingCreateButton
           onClick={() => {

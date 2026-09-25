@@ -8,7 +8,10 @@ import type {
   SessionDetail,
   SessionEnrolledMember,
   SessionFilterStatus,
+  SessionGroupAssignment,
+  SessionGroupAssignmentRole,
   SessionGroupInfo,
+  SessionGroupMember,
   SessionPage,
   SessionParticipantDetail,
   SessionServiceAssignmentData,
@@ -69,7 +72,7 @@ export async function getSessions(p: {
   let q = s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),term_department:term_department_id(name),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),term_department:term_department_id(name),session_participant(count),session_assignment(count),service_assignment(count),group_session_assignment(count)",
       { count: "exact" },
     )
     .in("ministry_term_id", ids)
@@ -99,6 +102,9 @@ export async function getSessions(p: {
       const serviceAssignments =
         (x.service_assignment as unknown as { count: number }[])?.[0]?.count ??
         0;
+      const groupAssignments =
+        (x.group_session_assignment as unknown as { count: number }[])?.[0]
+          ?.count ?? 0;
       return {
         id: x.id,
         slug: x.slug,
@@ -118,7 +124,10 @@ export async function getSessions(p: {
                 : "Ministry term",
         participantCount: participants,
         canDelete:
-          participants === 0 && assignments === 0 && serviceAssignments === 0,
+          participants === 0 &&
+          assignments === 0 &&
+          serviceAssignments === 0 &&
+          groupAssignments === 0,
       };
     }),
     count: count ?? 0,
@@ -142,7 +151,7 @@ export async function getSessionDetail(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,term_group_id,term_department_id,term_group:term_group_id(name),term_department:term_department_id(name),ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group_id,term_department_id,term_group:term_group_id(name),term_department:term_department_id(name),ministry_term!inner(name,ministry!inner(name)),session_participant(count),session_assignment(count),service_assignment(count),group_session_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
@@ -170,6 +179,9 @@ export async function getSessionDetail(
     (raw.session_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
   const serviceAssignmentCount =
     (raw.service_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
+  const groupAssignmentCount =
+    (raw.group_session_assignment as unknown as { count: number }[])?.[0]
+      ?.count ?? 0;
   const item = {
     id: raw.id,
     slug: raw.slug,
@@ -178,6 +190,8 @@ export async function getSessionDetail(
     termId: raw.ministry_term_id,
     termName,
     ministryName,
+    groupId: raw.term_group_id,
+    departmentId: raw.term_department_id,
     scopeLabel: Array.isArray(raw.term_group)
       ? `Group: ${raw.term_group[0]?.name ?? "Unknown"}`
       : raw.term_group
@@ -191,7 +205,8 @@ export async function getSessionDetail(
     canDelete:
       participantCount === 0 &&
       assignmentCount === 0 &&
-      serviceAssignmentCount === 0,
+      serviceAssignmentCount === 0 &&
+      groupAssignmentCount === 0,
   };
 
   // Fetch all active enrolled members of this term
@@ -340,7 +355,7 @@ export async function getSessionDetail(
 
   // Filter according to params
   const q = (filterParams?.q ?? "").trim().toLowerCase();
-  const statusFilter: SessionFilterStatus = filterParams?.status ?? "pending";
+  const statusFilter: SessionFilterStatus = filterParams?.status ?? "all";
 
   let filtered = allParticipants;
 
@@ -388,7 +403,7 @@ export async function getSessionServiceAssignmentData(
   const { data: raw, error: sessionError } = await s
     .from("ministry_session")
     .select(
-      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),ministry_term!inner(slug,name,ministry!inner(slug,name)),session_participant(count),session_assignment(count),service_assignment(count)",
+      "id,slug,title,session_date,ministry_term_id,term_group_id,term_department_id,term_group:term_group_id(name),ministry_term!inner(slug,name,ministry!inner(slug,name)),session_participant(count),session_assignment(count),service_assignment(count),group_session_assignment(count)",
     )
     .eq("slug", slug)
     .eq("church_id", ctx.church.id)
@@ -424,6 +439,9 @@ export async function getSessionServiceAssignmentData(
     (raw.session_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
   const serviceAssignmentCount =
     (raw.service_assignment as unknown as { count: number }[])?.[0]?.count ?? 0;
+  const groupAssignmentCount =
+    (raw.group_session_assignment as unknown as { count: number }[])?.[0]
+      ?.count ?? 0;
 
   const sessionItem = {
     id: raw.id,
@@ -433,6 +451,8 @@ export async function getSessionServiceAssignmentData(
     termId: raw.ministry_term_id,
     termName: singleTerm?.name ?? "",
     ministryName: singleMinistry?.name ?? "",
+    groupId: raw.term_group_id,
+    departmentId: raw.term_department_id,
     scopeLabel: Array.isArray(raw.term_group)
       ? `Group: ${raw.term_group[0]?.name ?? "Unknown"}`
       : raw.term_group
@@ -442,8 +462,82 @@ export async function getSessionServiceAssignmentData(
     canDelete:
       participantCount === 0 &&
       assignmentCount === 0 &&
-      serviceAssignmentCount === 0,
+      serviceAssignmentCount === 0 &&
+      groupAssignmentCount === 0,
   };
+
+  // Department-scoped sessions have no service assignments; the tab is hidden.
+  if (raw.term_department_id) return null;
+
+  // Group-scoped sessions: fixed worship/lesson guide slots picked from group members.
+  if (raw.term_group_id) {
+    const [groupMemberRes, groupAssignRes] = await Promise.all([
+      s
+        .from("term_group_membership")
+        .select(
+          "ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug, archived_at))",
+        )
+        .eq("term_group_id", raw.term_group_id)
+        .is("ended_at", null)
+        .eq("status", "active")
+        .is("ministry_membership.member_profile.archived_at", null),
+      s
+        .from("group_session_assignment")
+        .select(
+          "id, role, ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug))",
+        )
+        .eq("ministry_session_id", raw.id)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (groupMemberRes.error || groupAssignRes.error) {
+      console.error(
+        "Failed to fetch group session assignment data:",
+        groupMemberRes.error || groupAssignRes.error,
+      );
+      throw new Error("Failed to fetch group session assignment data");
+    }
+
+    const groupMembers: SessionGroupMember[] = (groupMemberRes.data ?? [])
+      .map((row) => {
+        const membership = row.ministry_membership as unknown as {
+          id: string;
+          member_profile: { id: string; full_name: string; slug: string };
+        };
+        return {
+          membershipId: membership.id,
+          memberName: membership.member_profile.full_name,
+          memberSlug: membership.member_profile.slug,
+        };
+      })
+      .sort((a, b) => a.memberName.localeCompare(b.memberName));
+
+    const groupAssignments: SessionGroupAssignment[] = (
+      groupAssignRes.data ?? []
+    ).map((row) => {
+      const membership = row.ministry_membership as unknown as {
+        id: string;
+        member_profile: { id: string; full_name: string; slug: string };
+      };
+      return {
+        id: row.id,
+        role: row.role as SessionGroupAssignmentRole,
+        ministryMembershipId: row.ministry_membership_id,
+        memberId: membership.member_profile.id,
+        memberName: membership.member_profile.full_name,
+        memberSlug: membership.member_profile.slug,
+      };
+    });
+
+    return {
+      session: sessionItem,
+      ministrySlug,
+      termSlug,
+      scope: "group",
+      groupMembers,
+      groupAssignments,
+    };
+  }
 
   const [deptRes, memberRes, assignRes] = await Promise.all([
     s
@@ -556,6 +650,7 @@ export async function getSessionServiceAssignmentData(
     session: sessionItem,
     ministrySlug,
     termSlug,
+    scope: "ministry",
     departments,
     assignments,
     enrolledMembers,

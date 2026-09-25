@@ -26,7 +26,7 @@ export const sessionAttendanceFilterValues = [
 export const sessionDetailSearchParams = {
   q: parseAsString.withDefault(""),
   status: parseAsStringLiteral(sessionAttendanceFilterValues).withDefault(
-    "pending",
+    "all",
   ),
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(20),

@@ -49,6 +49,7 @@ export const departmentDetailSearchParams = {
 export const groupDetailSearchParams = {
   section: parseAsStringLiteral([
     "members",
+    "leadership",
     "sessions",
     "history",
   ] as const).withDefault("members"),

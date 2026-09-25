@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AttendanceManagement } from "@/features/session/components/attendance-management";
+import { GroupSessionAssignments } from "@/features/session/components/group-session-assignments";
 import { ServiceAssignmentManagement } from "@/features/session/components/service-assignment-management";
 import {
   getSessionDetail,
@@ -40,7 +41,11 @@ export default async function SessionDetailPage({
 
     return (
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <ServiceAssignmentManagement assignmentData={assignmentData} />
+        {assignmentData.scope === "group" ? (
+          <GroupSessionAssignments assignmentData={assignmentData} />
+        ) : (
+          <ServiceAssignmentManagement assignmentData={assignmentData} />
+        )}
       </div>
     );
   }

@@ -26,6 +26,11 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import {
+  ListTable,
+  ListTableHeader,
+  ListTableBody,
+} from "@/components/shared/list-table";
 import { StatusToast } from "@/components/ui/status-toast";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import { deleteSessionAction } from "@/features/session/actions";
@@ -112,6 +117,9 @@ export function DepartmentDetailView({
   const [expandedMemberId, setExpandedMemberId] = React.useState<string | null>(
     null,
   );
+  const [expandedSessionId, setExpandedSessionId] = React.useState<
+    string | null
+  >(null);
   const [assignDrawerOpen, setAssignDrawerOpen] = React.useState(false);
   const [assignDrawerSearch, setAssignDrawerSearch] = React.useState("");
   const [selectedMembershipIds, setSelectedMembershipIds] = React.useState<
@@ -341,29 +349,17 @@ export function DepartmentDetailView({
               </p>
             </div>
           ) : (
-            <div
-              role="table"
-              aria-label="Department assigned members"
-              className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-            >
+            <ListTable label="Department assigned members">
               {/* Desktop table header */}
-              <div role="rowgroup">
-                <div
-                  role="row"
-                  className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1fr_80px] md:items-center md:border-b md:px-4 md:py-3"
-                >
-                  <div role="columnheader">Member</div>
-                  <div role="columnheader" className="text-right">
-                    Actions
-                  </div>
+              <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
+                <div role="columnheader">Member</div>
+                <div role="columnheader" className="text-right">
+                  Actions
                 </div>
-              </div>
+              </ListTableHeader>
 
               {/* Rows / Cards */}
-              <div
-                role="rowgroup"
-                className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-              >
+              <ListTableBody>
                 {assignedMembers.map((m) => {
                   const isExpanded = expandedMemberId === m.membershipId;
 
@@ -456,8 +452,8 @@ export function DepartmentDetailView({
                     </div>
                   );
                 })}
-              </div>
-            </div>
+              </ListTableBody>
+            </ListTable>
           )}
 
           {/* Floating 'Assign Members' Button */}
@@ -487,57 +483,84 @@ export function DepartmentDetailView({
             </div>
           ) : (
             <div className="grid gap-3">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border-border/60 bg-card rounded-xl border p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <Link
-                      href={`/admin/sessions/${session.slug}`}
-                      className="min-w-0 flex-1"
-                    >
-                      <p className="font-semibold">{session.title}</p>
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        {session.sessionDate} · {session.participantCount}{" "}
-                        participants
-                      </p>
-                    </Link>
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-11 min-w-11 p-0"
-                          aria-label={`Actions for ${session.title}`}
-                        >
-                          <Ellipsis className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditingSession(session);
-                            setSessionDrawerOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={!session.canDelete}
-                          onClick={() => setDeletingSession(session)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="size-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {sessions.map((session) => {
+                const isExpanded = expandedSessionId === session.id;
+                return (
+                  <div
+                    key={session.id}
+                    className="border-border/60 bg-card rounded-xl border p-4 shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <Link
+                        href={`/admin/sessions/${session.slug}`}
+                        className="min-w-0 flex-1"
+                      >
+                        <p className="font-semibold">{session.title}</p>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          {session.sessionDate} · {session.participantCount}{" "}
+                          participants
+                        </p>
+                      </Link>
+
+                      {/* 3-dot Toggle Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "min-h-11 min-w-11 rounded-xl p-0",
+                          isExpanded && "bg-muted text-foreground",
+                        )}
+                        aria-label={`Actions for ${session.title}`}
+                        aria-expanded={isExpanded}
+                        onClick={() =>
+                          setExpandedSessionId((prev) =>
+                            prev === session.id ? null : session.id,
+                          )
+                        }
+                      >
+                        <Ellipsis className="size-5" aria-hidden="true" />
+                      </Button>
+                    </div>
+
+                    {/* Action buttons displayed below card when expanded */}
+                    {isExpanded && (
+                      <div
+                        role="region"
+                        aria-label={`Actions for ${session.title}`}
+                        className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                            onClick={() => {
+                              setExpandedSessionId(null);
+                              setEditingSession(session);
+                              setSessionDrawerOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4" aria-hidden="true" />
+                            <span>Edit</span>
+                          </Button>
+                          <DestructiveActionButton
+                            type="button"
+                            className="min-h-11 w-full"
+                            disabled={!session.canDelete}
+                            onClick={() => {
+                              setExpandedSessionId(null);
+                              setDeletingSession(session);
+                            }}
+                            label="Delete"
+                            icon={Trash2}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <FloatingCreateButton
@@ -581,29 +604,17 @@ export function DepartmentDetailView({
               </Button>
             </div>
           ) : (
-            <div
-              role="table"
-              aria-label="Department service roles"
-              className="w-full text-left md:overflow-hidden md:rounded-xl md:border"
-            >
+            <ListTable label="Department service roles">
               {/* Desktop table header */}
-              <div role="rowgroup">
-                <div
-                  role="row"
-                  className="bg-muted/50 text-muted-foreground hidden text-xs font-medium md:grid md:grid-cols-[1fr_80px] md:items-center md:border-b md:px-4 md:py-3"
-                >
-                  <div role="columnheader">Role Name</div>
-                  <div role="columnheader" className="text-right">
-                    Actions
-                  </div>
+              <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
+                <div role="columnheader">Role Name</div>
+                <div role="columnheader" className="text-right">
+                  Actions
                 </div>
-              </div>
+              </ListTableHeader>
 
               {/* Rows / Cards */}
-              <div
-                role="rowgroup"
-                className="md:divide-border/60 space-y-3 md:space-y-0 md:divide-y"
-              >
+              <ListTableBody>
                 {roles.map((role) => {
                   const isDeleteBlocked = role.assignmentCount > 0;
 
@@ -715,8 +726,8 @@ export function DepartmentDetailView({
                     </div>
                   );
                 })}
-              </div>
-            </div>
+              </ListTableBody>
+            </ListTable>
           )}
 
           {/* Floating 'New Role' Button */}

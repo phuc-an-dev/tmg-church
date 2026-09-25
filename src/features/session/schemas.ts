@@ -52,3 +52,14 @@ export const removeServiceAssignmentSchema = z.object({
   sessionId: id,
   assignmentId: id,
 });
+
+export const saveGroupSessionAssignmentSchema = z.object({
+  sessionId: id,
+  role: z.enum(["worship_guide", "lesson_guide"]),
+  membershipId: id,
+});
+
+export const removeGroupSessionAssignmentSchema = z.object({
+  sessionId: id,
+  assignmentId: id,
+});

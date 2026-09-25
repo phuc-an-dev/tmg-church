@@ -63,12 +63,8 @@ export function SessionEditorDrawer({
     }
 
     handleOpenChange(false);
-    if (session) {
-      onSaved?.();
-      router.refresh();
-    } else {
-      router.push(`/admin/sessions/${result.slug}`);
-    }
+    onSaved?.();
+    router.refresh();
   }
 
   return (
