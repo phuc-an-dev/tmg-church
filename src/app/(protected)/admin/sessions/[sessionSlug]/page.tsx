@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AdminPageContainer } from "@/components/admin/admin-page-container";
 import { AttendanceManagement } from "@/features/session/components/attendance-management";
 import { GroupSessionAssignments } from "@/features/session/components/group-session-assignments";
 import { ServiceAssignmentManagement } from "@/features/session/components/service-assignment-management";
@@ -39,14 +40,25 @@ export default async function SessionDetailPage({
     const assignmentData = await getSessionServiceAssignmentData(sessionSlug);
     if (!assignmentData) notFound();
 
+    const returnUrl =
+      typeof resolvedParams.returnUrl === "string"
+        ? resolvedParams.returnUrl
+        : undefined;
+
     return (
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <AdminPageContainer>
         {assignmentData.scope === "group" ? (
-          <GroupSessionAssignments assignmentData={assignmentData} />
+          <GroupSessionAssignments
+            assignmentData={assignmentData}
+            returnUrl={returnUrl}
+          />
         ) : (
-          <ServiceAssignmentManagement assignmentData={assignmentData} />
+          <ServiceAssignmentManagement
+            assignmentData={assignmentData}
+            returnUrl={returnUrl}
+          />
         )}
-      </div>
+      </AdminPageContainer>
     );
   }
 
@@ -55,8 +67,8 @@ export default async function SessionDetailPage({
   if (!session) notFound();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <AdminPageContainer>
       <AttendanceManagement session={session} />
-    </div>
+    </AdminPageContainer>
   );
 }

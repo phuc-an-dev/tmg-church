@@ -48,6 +48,7 @@ export type DepartmentDetailMember = {
   memberId: string;
   memberName: string;
   memberSlug: string;
+  gender?: string | null;
   isAssigned: boolean;
   assignmentId: string | null;
 };
@@ -83,12 +84,14 @@ export type TermDetailMember = {
   memberId: string;
   memberName: string;
   memberSlug: string;
+  gender?: string | null;
 };
 
 export type EligibleTermMember = {
   id: string;
   name: string;
   slug: string;
+  gender?: string | null;
 };
 
 export type TermDetailSession = {

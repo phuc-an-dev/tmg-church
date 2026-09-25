@@ -213,7 +213,7 @@ export async function getSessionDetail(
   const { data: memberships, error: membershipError } = await s
     .from("ministry_membership")
     .select(
-      "id,member_profile_id,member_profile!inner(id,full_name,archived_at)",
+      "id,member_profile_id,member_profile!inner(id,full_name,gender,archived_at)",
     )
     .eq("ministry_term_id", item.termId)
     .is("member_profile.archived_at", null)
@@ -226,31 +226,38 @@ export async function getSessionDetail(
 
   const membershipIds = (memberships ?? []).map((m) => m.id);
 
-  // Concurrently fetch group memberships, department assignments, and session attendance
-  const [groupRes, assignRes, attendanceRes] = await Promise.all([
-    membershipIds.length > 0
-      ? s
-          .from("term_group_membership")
-          .select(
-            "ministry_membership_id,status,term_group:term_group_id(id,name,accent_color,icon_key)",
-          )
-          .in("ministry_membership_id", membershipIds)
-          .is("ended_at", null)
-      : Promise.resolve({ data: [] }),
-    membershipIds.length > 0
-      ? s
-          .from("ministry_assignment")
-          .select(
-            "ministry_membership_id,term_department:term_department_id(id,name,accent_color,icon_key)",
-          )
-          .in("ministry_membership_id", membershipIds)
-          .order("created_at", { ascending: true })
-      : Promise.resolve({ data: [] }),
-    s
-      .from("session_participant")
-      .select("member_profile_id,attendance_record(status)")
-      .eq("ministry_session_id", raw.id),
-  ]);
+  // Concurrently fetch group memberships, department assignments, session attendance, and group session assignments
+  const [groupRes, assignRes, attendanceRes, groupAssignRes] =
+    await Promise.all([
+      membershipIds.length > 0
+        ? s
+            .from("term_group_membership")
+            .select(
+              "ministry_membership_id,status,term_group:term_group_id(id,name,accent_color,icon_key)",
+            )
+            .in("ministry_membership_id", membershipIds)
+            .is("ended_at", null)
+        : Promise.resolve({ data: [] }),
+      membershipIds.length > 0
+        ? s
+            .from("ministry_assignment")
+            .select(
+              "ministry_membership_id,term_department:term_department_id(id,name,accent_color,icon_key)",
+            )
+            .in("ministry_membership_id", membershipIds)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [] }),
+      s
+        .from("session_participant")
+        .select("member_profile_id,attendance_record(status)")
+        .eq("ministry_session_id", raw.id),
+      raw.term_group_id
+        ? s
+            .from("group_session_assignment")
+            .select("role,ministry_membership_id")
+            .eq("ministry_session_id", raw.id)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const groupByMembership = new Map<string, SessionGroupInfo>();
   const groupStatusByMembership = new Map<string, string>();
@@ -299,6 +306,18 @@ export async function getSessionDetail(
     }
   }
 
+  const sessionRoleByMembership = new Map<
+    string,
+    { role: SessionGroupAssignmentRole; label: string }
+  >();
+  for (const row of groupAssignRes.data ?? []) {
+    const role = row.role as SessionGroupAssignmentRole;
+    sessionRoleByMembership.set(row.ministry_membership_id, {
+      role,
+      label: role === "worship_guide" ? "Worship guide" : "Lesson guide",
+    });
+  }
+
   // Calculate summary counts across enrolled eligible members
   let presentCount = 0;
   let absentCount = 0;
@@ -324,6 +343,7 @@ export async function getSessionDetail(
       const profile = m.member_profile as unknown as {
         id: string;
         full_name: string;
+        gender?: string | null;
       };
       const status = statusByMember.get(m.member_profile_id) ?? null;
       if (status === "present") presentCount += 1;
@@ -333,9 +353,11 @@ export async function getSessionDetail(
       return {
         memberId: m.member_profile_id,
         fullName: profile.full_name,
+        gender: profile.gender ?? null,
         status,
         group: groupByMembership.get(m.id) ?? null,
         departments: deptsByMembership.get(m.id) ?? [],
+        sessionRole: sessionRoleByMembership.get(m.id) ?? null,
       };
     },
   );
@@ -475,7 +497,7 @@ export async function getSessionServiceAssignmentData(
       s
         .from("term_group_membership")
         .select(
-          "ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug, archived_at))",
+          "ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug, gender, archived_at))",
         )
         .eq("term_group_id", raw.term_group_id)
         .is("ended_at", null)
@@ -484,7 +506,7 @@ export async function getSessionServiceAssignmentData(
       s
         .from("group_session_assignment")
         .select(
-          "id, role, ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug))",
+          "id, role, ministry_membership_id, ministry_membership!inner(id, member_profile!inner(id, full_name, slug, gender))",
         )
         .eq("ministry_session_id", raw.id)
         .order("created_at", { ascending: true }),
@@ -502,12 +524,18 @@ export async function getSessionServiceAssignmentData(
       .map((row) => {
         const membership = row.ministry_membership as unknown as {
           id: string;
-          member_profile: { id: string; full_name: string; slug: string };
+          member_profile: {
+            id: string;
+            full_name: string;
+            slug: string;
+            gender?: string | null;
+          };
         };
         return {
           membershipId: membership.id,
           memberName: membership.member_profile.full_name,
           memberSlug: membership.member_profile.slug,
+          gender: membership.member_profile.gender ?? null,
         };
       })
       .sort((a, b) => a.memberName.localeCompare(b.memberName));
@@ -517,7 +545,12 @@ export async function getSessionServiceAssignmentData(
     ).map((row) => {
       const membership = row.ministry_membership as unknown as {
         id: string;
-        member_profile: { id: string; full_name: string; slug: string };
+        member_profile: {
+          id: string;
+          full_name: string;
+          slug: string;
+          gender?: string | null;
+        };
       };
       return {
         id: row.id,
@@ -526,6 +559,7 @@ export async function getSessionServiceAssignmentData(
         memberId: membership.member_profile.id,
         memberName: membership.member_profile.full_name,
         memberSlug: membership.member_profile.slug,
+        gender: membership.member_profile.gender ?? null,
       };
     });
 

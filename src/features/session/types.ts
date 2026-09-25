@@ -18,9 +18,14 @@ export type SessionDepartmentInfo = {
 export type SessionParticipantDetail = {
   memberId: string;
   fullName: string;
+  gender?: string | null;
   status: SessionAttendanceStatus | null;
   group: SessionGroupInfo | null;
   departments: SessionDepartmentInfo[];
+  sessionRole?: {
+    role: SessionGroupAssignmentRole;
+    label: string;
+  } | null;
 };
 
 export type SessionAttendanceSummary = {
@@ -108,6 +113,7 @@ export type SessionGroupMember = {
   membershipId: string;
   memberName: string;
   memberSlug: string;
+  gender?: string | null;
 };
 
 export type SessionGroupAssignment = {
@@ -117,6 +123,7 @@ export type SessionGroupAssignment = {
   memberId: string;
   memberName: string;
   memberSlug: string;
+  gender?: string | null;
 };
 
 export type SessionServiceAssignmentData = {

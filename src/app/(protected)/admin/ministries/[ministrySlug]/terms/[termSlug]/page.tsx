@@ -88,6 +88,8 @@ export default async function TermDetailPage({
         <TermDetailView
           section={section === "members" ? "members" : "sessions"}
           termId={context.term.id}
+          ministrySlug={context.ministry.slug}
+          termSlug={context.term.slug}
           data={detail}
         />
       ) : null}

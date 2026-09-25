@@ -861,10 +861,6 @@ export function MinistryManagement({
                   const deleteDisabledReason = isDeleteDisabled
                     ? "Cannot delete a ministry with existing terms."
                     : undefined;
-                  const currentTermId = isMinistry(item)
-                    ? item.currentTermId
-                    : null;
-
                   return (
                     <ExpandableActionItem
                       key={item.id}
@@ -886,12 +882,7 @@ export function MinistryManagement({
                                   ? { groupId: item.id }
                                   : { departmentId: item.id }),
                               })
-                          : mode === "ministries" && currentTermId
-                            ? () =>
-                                setContextualSession({
-                                  ministryTermId: currentTermId,
-                                })
-                            : undefined
+                          : undefined
                       }
                       additionalActionLabel="Create session"
                       additionalActionSectionLabel="Session"

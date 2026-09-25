@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Plus, Search, Users, X } from "lucide-react";
+import { Check, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "cn";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
@@ -29,10 +30,12 @@ import type {
 
 interface ServiceAssignmentManagementProps {
   assignmentData: SessionServiceAssignmentData;
+  returnUrl?: string;
 }
 
 export function ServiceAssignmentManagement({
   assignmentData,
+  returnUrl,
 }: ServiceAssignmentManagementProps) {
   const router = useRouter();
   const {
@@ -172,45 +175,33 @@ export function ServiceAssignmentManagement({
     0,
   );
 
+  const isSafeReturnUrl = Boolean(
+    returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//"),
+  );
+  const backHref = isSafeReturnUrl && returnUrl ? returnUrl : "/admin/sessions";
+  const backLabel = isSafeReturnUrl ? "Back" : "Sessions";
+
   return (
     <div className="space-y-6 pb-24">
-      {/* 1. Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="size-11 shrink-0 p-0"
-            aria-label="Back to sessions list"
-          >
-            <Link href="/admin/sessions">
-              <ArrowLeft className="size-5" />
-            </Link>
-          </Button>
-
-          <div className="min-w-0 flex-1">
-            <h1 className="text-foreground truncate text-xl font-bold tracking-tight sm:text-2xl">
-              {session.title}
-            </h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">
-              {session.ministryName} · {session.termName} ·{" "}
-              {session.sessionDate}
-            </p>
-          </div>
-        </div>
-      </header>
+      <AdminPageHeader
+        title={session.title}
+        description={`${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`}
+        backLink={{
+          href: backHref,
+          label: backLabel,
+        }}
+      />
 
       {/* 2. Navigation Tabs */}
       <NavigationTabs aria-label="Session views">
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}`}
+          href={`/admin/sessions/${session.slug}${isSafeReturnUrl && returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
           active={false}
         >
           Attendance
         </NavigationTabLink>
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}?tab=assignments`}
+          href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl && returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
           active={true}
         >
           Service Assignments

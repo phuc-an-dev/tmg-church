@@ -4,19 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Check,
   CalendarDays,
   Ellipsis,
   Loader2,
   Pencil,
   Plus,
-  Search,
   Shield,
   Trash2,
   UserMinus,
   UserPlus,
   Users,
-  X,
 } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
@@ -25,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
+import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import {
   ListTable,
@@ -77,6 +75,8 @@ export function DepartmentDetailView({
   roles,
   sessions,
   ministryTermId,
+  ministrySlug,
+  termSlug,
 }: DepartmentDetailViewProps) {
   const router = useRouter();
 
@@ -121,10 +121,6 @@ export function DepartmentDetailView({
     string | null
   >(null);
   const [assignDrawerOpen, setAssignDrawerOpen] = React.useState(false);
-  const [assignDrawerSearch, setAssignDrawerSearch] = React.useState("");
-  const [selectedMembershipIds, setSelectedMembershipIds] = React.useState<
-    string[]
-  >([]);
   const [assignPending, setAssignPending] = React.useState(false);
   const [assignDrawerError, setAssignDrawerError] = React.useState<
     string | null
@@ -160,16 +156,6 @@ export function DepartmentDetailView({
     [members],
   );
 
-  const drawerAssignableMembers = React.useMemo(() => {
-    const q = assignDrawerSearch.trim().toLowerCase();
-    if (!q) return unassignedMembers;
-    return unassignedMembers.filter(
-      (m) =>
-        m.memberName.toLowerCase().includes(q) ||
-        m.memberSlug.toLowerCase().includes(q),
-    );
-  }, [unassignedMembers, assignDrawerSearch]);
-
   // ---------------------------------------------------------------------------
   // MEMBER HANDLERS
   // ---------------------------------------------------------------------------
@@ -202,36 +188,18 @@ export function DepartmentDetailView({
   }
 
   function openAssignDrawer() {
-    setAssignDrawerSearch("");
-    setSelectedMembershipIds([]);
     setAssignDrawerError(null);
     setAssignDrawerOpen(true);
   }
 
-  function toggleSelectMembership(id: string) {
-    setSelectedMembershipIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  }
-
-  function handleSelectAllDrawer() {
-    const allIds = drawerAssignableMembers.map((m) => m.membershipId);
-    setSelectedMembershipIds(allIds);
-  }
-
-  function handleDeselectAllDrawer() {
-    setSelectedMembershipIds([]);
-  }
-
-  async function handleBatchAssign(e: React.FormEvent) {
-    e.preventDefault();
-    if (selectedMembershipIds.length === 0) return;
+  async function handleBatchAssign(selectedIds: string[]) {
+    if (selectedIds.length === 0) return;
     setAssignPending(true);
     setAssignDrawerError(null);
     try {
       const res = await assignDepartmentMembersAction({
         termDepartmentId: department.id,
-        membershipIds: selectedMembershipIds,
+        membershipIds: selectedIds,
       });
       if (res.success) {
         setToast({
@@ -492,7 +460,7 @@ export function DepartmentDetailView({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <Link
-                        href={`/admin/sessions/${session.slug}`}
+                        href={`/admin/sessions/${session.slug}?returnUrl=${encodeURIComponent(`/admin/ministries/${ministrySlug}/terms/${termSlug}/departments/${department.slug}?section=sessions`)}`}
                         className="min-w-0 flex-1"
                       >
                         <p className="font-semibold">{session.title}</p>
@@ -764,159 +732,20 @@ export function DepartmentDetailView({
       {/* =================================================================== */}
       {/* DRAWER: ASSIGN ENROLLED MEMBERS                                     */}
       {/* =================================================================== */}
-      <ResponsiveEditor
+      <MemberAssignDrawer
         open={assignDrawerOpen}
         onOpenChange={setAssignDrawerOpen}
         title={`Assign to ${department.name}`}
         description="Select members enrolled in this term to assign to this department."
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setAssignDrawerOpen(false)}
-              disabled={assignPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleBatchAssign}
-              disabled={assignPending || selectedMembershipIds.length === 0}
-            >
-              {assignPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  <span>Assigning...</span>
-                </>
-              ) : (
-                <span>
-                  {selectedMembershipIds.length > 0
-                    ? `Assign (${selectedMembershipIds.length})`
-                    : "Assign"}
-                </span>
-              )}
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleBatchAssign} className="space-y-4">
-          {assignDrawerError && (
-            <div
-              className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-              role="alert"
-            >
-              {assignDrawerError}
-            </div>
-          )}
-
-          {/* Search inside assign drawer */}
-          <div className="relative">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              value={assignDrawerSearch}
-              onChange={(e) => setAssignDrawerSearch(e.target.value)}
-              placeholder="Search unassigned members..."
-              className="min-h-11 pr-9 pl-9 text-base md:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
-              aria-label="Filter unassigned members"
-            />
-            {assignDrawerSearch && (
-              <button
-                type="button"
-                onClick={() => setAssignDrawerSearch("")}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 p-1"
-                aria-label="Clear unassigned search"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {/* Select all / Deselect all actions */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">
-              {drawerAssignableMembers.length}{" "}
-              {drawerAssignableMembers.length === 1 ? "member" : "members"}{" "}
-              available
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleSelectAllDrawer}
-                disabled={drawerAssignableMembers.length === 0}
-                className="min-h-9 px-2 text-xs font-semibold"
-              >
-                Select all
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleDeselectAllDrawer}
-                disabled={selectedMembershipIds.length === 0}
-                className="min-h-9 px-2 text-xs font-semibold"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          {/* Member Picker List: Separate individual cards */}
-          <div className="max-h-72 space-y-2 overflow-y-auto py-1 pr-1">
-            {drawerAssignableMembers.length === 0 ? (
-              <div className="border-border/60 bg-muted/20 rounded-xl border p-6 text-center">
-                <p className="text-muted-foreground text-sm">
-                  No unassigned members match your search.
-                </p>
-              </div>
-            ) : (
-              drawerAssignableMembers.map((m) => {
-                const isSelected = selectedMembershipIds.includes(
-                  m.membershipId,
-                );
-                return (
-                  <button
-                    key={m.membershipId}
-                    type="button"
-                    onClick={() => toggleSelectMembership(m.membershipId)}
-                    className={cn(
-                      "hover:bg-muted/60 flex min-h-14 w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-colors",
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-primary/20 font-semibold ring-1"
-                        : "border-border/70 bg-card",
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <span className="text-foreground block text-sm font-semibold sm:text-base">
-                        {m.memberName}
-                      </span>
-                    </div>
-
-                    {/* Checkbox box */}
-                    <div
-                      className={cn(
-                        "ml-3 flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-                        isSelected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/40 bg-transparent",
-                      )}
-                      aria-hidden="true"
-                    >
-                      {isSelected && <Check className="size-3.5 stroke-3" />}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </form>
-      </ResponsiveEditor>
+        members={unassignedMembers.map((m) => ({
+          id: m.membershipId,
+          name: m.memberName,
+          gender: m.gender,
+        }))}
+        onAssign={handleBatchAssign}
+        pending={assignPending}
+        error={assignDrawerError}
+      />
 
       {/* =================================================================== */}
       {/* DRAWER / CONFIRMATION: UNASSIGN MEMBER                              */}

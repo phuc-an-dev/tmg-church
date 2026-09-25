@@ -20,7 +20,6 @@ import {
   SlidersHorizontal,
   Tags,
   Upload,
-  User,
   X,
 } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
@@ -61,6 +60,7 @@ import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { IdentityTile } from "@/components/shared/identity-picker";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
   NavigationTabs,
   NavigationTabButton,
@@ -1663,21 +1663,7 @@ export function MemberManagement({
                             href={`/admin/members/${member.slug}`}
                             className="group/item flex min-w-0 flex-1 items-center gap-3 outline-hidden"
                           >
-                            <span
-                              className={cn(
-                                "flex size-10 shrink-0 items-center justify-center rounded-xl md:size-9 md:rounded-lg",
-                                member.gender === "male"
-                                  ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                                  : member.gender === "female"
-                                    ? "bg-pink-500/10 text-pink-600 dark:bg-pink-500/20 dark:text-pink-400"
-                                    : "bg-primary/10 text-primary",
-                              )}
-                            >
-                              <User
-                                className="size-5 md:size-4.5"
-                                aria-hidden="true"
-                              />
-                            </span>
+                            <MemberAvatar gender={member.gender} />
                             <div className="min-w-0 flex-1">
                               <span className="text-foreground text-base font-semibold group-hover/item:underline">
                                 {member.fullName}

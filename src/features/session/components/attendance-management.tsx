@@ -1,28 +1,23 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
+  BookOpen,
   Check,
   CheckSquare,
+  Ellipsis,
   Filter,
   Loader2,
-  MoreVertical,
-  Pencil,
+  Music,
   Search,
   Square,
-  Trash2,
-  Users,
   X,
 } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import {
   Sheet,
   SheetClose,
@@ -31,7 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import {
@@ -39,12 +34,7 @@ import {
   NavigationTabLink,
 } from "@/components/shared/navigation-tabs";
 import { StatusToast } from "@/components/ui/status-toast";
-import {
-  deleteSessionAction,
-  saveAttendanceAction,
-  saveBulkAttendanceAction,
-  saveSessionAction,
-} from "../actions";
+import { saveAttendanceAction, saveBulkAttendanceAction } from "../actions";
 import {
   sessionAttendanceFilterValues,
   sessionDetailSearchParams,
@@ -65,8 +55,6 @@ const FILTER_LABELS: Record<SessionFilterStatus, string> = {
 };
 
 export function AttendanceManagement({ session }: { session: SessionDetail }) {
-  const router = useRouter();
-
   // URL state with nuqs (shallow: false for Server Component re-render)
   const [query, setQuery] = useQueryStates(sessionDetailSearchParams, {
     shallow: false,
@@ -128,19 +116,6 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
   const [draftStatus, setDraftStatus] = React.useState<SessionFilterStatus>(
     query.status as SessionFilterStatus,
   );
-
-  // More menu state
-  const [moreDrawerOpen, setMoreDrawerOpen] = React.useState(false);
-
-  // Edit Session state
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [editTitle, setEditTitle] = React.useState(session.title);
-  const [editDate, setEditDate] = React.useState(session.sessionDate);
-  const [editPending, setEditPending] = React.useState(false);
-
-  // Delete Session confirmation
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-  const [deletePending, setDeletePending] = React.useState(false);
 
   // Bulk action confirmation state
   const [bulkConfirm, setBulkConfirm] = React.useState<{
@@ -274,39 +249,6 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
     }
   }
 
-  // Save session edits
-  async function handleSaveSession() {
-    setEditPending(true);
-    const result = await saveSessionAction({
-      id: session.id,
-      ministryTermId: session.termId,
-      title: editTitle,
-      sessionDate: editDate,
-    });
-    setEditPending(false);
-
-    if (result.success) {
-      setEditOpen(false);
-      setToast({ message: "Session details updated." });
-    } else {
-      setToast({ message: result.error ?? "Failed to save session." });
-    }
-  }
-
-  // Delete session
-  async function handleDeleteSession() {
-    setDeletePending(true);
-    const result = await deleteSessionAction({ id: session.id });
-    setDeletePending(false);
-
-    if (result.success) {
-      setDeleteConfirmOpen(false);
-      router.push("/admin/sessions");
-    } else {
-      setToast({ message: result.error ?? "Failed to delete session." });
-    }
-  }
-
   // Toggle single member selection
   function toggleMemberSelection(memberId: string) {
     setSelectedMemberIds((prev) =>
@@ -337,55 +279,33 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
 
   const activeStatus = (query.status as SessionFilterStatus) || "all";
 
+  const isSafeReturnUrl =
+    query.returnUrl?.startsWith("/") && !query.returnUrl.startsWith("//");
+  const backHref = isSafeReturnUrl ? query.returnUrl : "/admin/sessions";
+  const backLabel = isSafeReturnUrl ? "Back" : "Sessions";
+
   return (
     <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
-      {/* 1. Compact Header with Back and More action */}
-      <header className="flex items-center justify-between gap-3 border-b pb-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href="/admin/sessions"
-            className="border-input hover:bg-accent hover:text-accent-foreground flex size-11 shrink-0 items-center justify-center rounded-xl border transition-colors"
-            aria-label="Back to sessions"
-          >
-            <ArrowLeft className="size-5" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
-              {session.title}
-            </h1>
-            <p className="text-muted-foreground truncate text-sm">
-              {session.ministryName} · {session.termName} · {session.scopeLabel}{" "}
-              · {session.sessionDate} ·{" "}
-              <span className="text-foreground/80 font-medium">
-                {session.summary.recordedCount}/{session.summary.enrolledCount}{" "}
-                recorded
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="size-11 shrink-0 p-0"
-          onClick={() => setMoreDrawerOpen(true)}
-          aria-label="Session options"
-        >
-          <MoreVertical className="size-5" />
-        </Button>
-      </header>
+      <AdminPageHeader
+        title={session.title}
+        description={`${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`}
+        backLink={{
+          href: backHref,
+          label: backLabel,
+        }}
+      />
 
       {/* Navigation Tabs (department-scoped sessions have no service assignments) */}
       <NavigationTabs aria-label="Session views">
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}`}
+          href={`/admin/sessions/${session.slug}${isSafeReturnUrl ? `?returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
           active={true}
         >
           Attendance
         </NavigationTabLink>
         {!session.departmentId && (
           <NavigationTabLink
-            href={`/admin/sessions/${session.slug}?tab=assignments`}
+            href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl ? `&returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
             active={false}
           >
             Service Assignments
@@ -553,141 +473,182 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
             {session.participants.map((p) => {
               const isSelected = selectedMemberIds.includes(p.memberId);
               const isSavingThis = savingMemberId === p.memberId;
+              const hasRole = Boolean(p.sessionRole);
 
               return (
                 <article
                   key={p.memberId}
-                  className="bg-card border-border/80 rounded-xl border p-4 shadow-2xs transition-shadow"
+                  className={cn(
+                    "border-border/80 overflow-hidden border shadow-2xs transition-shadow",
+                    hasRole ? "bg-muted/40 rounded-2xl" : "bg-card rounded-xl",
+                  )}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      {isSelectionMode && (
+                  <div
+                    className={cn(
+                      "p-4",
+                      hasRole &&
+                        "bg-card border-border/80 rounded-b-xl border-b",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        {isSelectionMode && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMemberSelection(p.memberId)}
+                            className="text-foreground -ml-2 flex size-11 shrink-0 items-center justify-center"
+                            aria-label={`Select ${p.fullName}`}
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="text-primary size-5" />
+                            ) : (
+                              <Square className="text-muted-foreground size-5" />
+                            )}
+                          </button>
+                        )}
+                        <MemberAvatar gender={p.gender} />
+                        <div className="min-w-0 flex-1">
+                          <h2 className="text-foreground truncate text-base leading-tight font-semibold">
+                            {p.fullName}
+                          </h2>
+                          {(p.group?.name || p.departments.length > 0) && (
+                            <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                              {[
+                                p.group?.name,
+                                ...p.departments.map((d) => d.name),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status badge and 3-dots action in top right */}
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {p.status === "present" && (
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            Present
+                          </span>
+                        )}
+                        {p.status === "absent" && (
+                          <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+                            Absent
+                          </span>
+                        )}
+                        {p.status === "excused" && (
+                          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            Excused
+                          </span>
+                        )}
+                        {!p.status && (
+                          <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+                            Pending
+                          </span>
+                        )}
+
+                        {/* 3-dots icon on top right: click to show 3 buttons to re-select */}
+                        {p.status && (
+                          <button
+                            type="button"
+                            onClick={() => toggleMemberControls(p.memberId)}
+                            className={cn(
+                              "text-muted-foreground hover:text-foreground hover:bg-muted/60 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors",
+                              expandedMemberIds.has(p.memberId) &&
+                                "bg-muted text-foreground",
+                            )}
+                            aria-label={`Change attendance for ${p.fullName}`}
+                          >
+                            <Ellipsis className="size-5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 3 Segmented attendance controls (outline buttons with status dots, >=44px) */}
+                    {(!p.status || expandedMemberIds.has(p.memberId)) && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
                         <button
                           type="button"
-                          onClick={() => toggleMemberSelection(p.memberId)}
-                          className="text-foreground -ml-2 flex size-11 shrink-0 items-center justify-center"
-                          aria-label={`Select ${p.fullName}`}
+                          disabled={isSavingThis}
+                          onClick={() => handleSetStatus(p, "present")}
+                          className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
+                            p.status === "present"
+                              ? "border-emerald-500/40 bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300"
+                              : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                          } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                         >
-                          {isSelected ? (
-                            <CheckSquare className="text-primary size-5" />
+                          {isSavingThis ? (
+                            <Loader2 className="size-4 animate-spin" />
                           ) : (
-                            <Square className="text-muted-foreground size-5" />
+                            <>
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-emerald-500"
+                                aria-hidden="true"
+                              />
+                              <span>Present</span>
+                            </>
                           )}
                         </button>
-                      )}
-                      <h2 className="text-foreground text-base leading-tight font-semibold">
-                        {p.fullName}
-                      </h2>
-                    </div>
 
-                    {/* Status badge and 3-dots action in top right */}
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {p.status === "present" && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                          Present
-                        </span>
-                      )}
-                      {p.status === "absent" && (
-                        <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
-                          Absent
-                        </span>
-                      )}
-                      {p.status === "excused" && (
-                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                          Excused
-                        </span>
-                      )}
-                      {!p.status && (
-                        <span className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-                          Pending
-                        </span>
-                      )}
-
-                      {/* 3-dots icon on top right: click to show 3 buttons to re-select */}
-                      {p.status && (
                         <button
                           type="button"
-                          onClick={() => toggleMemberControls(p.memberId)}
-                          className="text-muted-foreground hover:text-foreground hover:bg-muted/60 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors"
-                          aria-label={`Change attendance for ${p.fullName}`}
+                          disabled={isSavingThis}
+                          onClick={() => handleSetStatus(p, "absent")}
+                          className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
+                            p.status === "absent"
+                              ? "border-rose-500/40 bg-rose-500/10 font-semibold text-rose-700 dark:text-rose-300"
+                              : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                          } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
                         >
-                          <MoreVertical className="size-4" />
+                          {isSavingThis ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <>
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-rose-500"
+                                aria-hidden="true"
+                              />
+                              <span>Absent</span>
+                            </>
+                          )}
                         </button>
-                      )}
-                    </div>
+
+                        <button
+                          type="button"
+                          disabled={isSavingThis}
+                          onClick={() => handleSetStatus(p, "excused")}
+                          className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
+                            p.status === "excused"
+                              ? "border-amber-500/40 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-300"
+                              : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                          } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
+                        >
+                          {isSavingThis ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <>
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-amber-500"
+                                aria-hidden="true"
+                              />
+                              <span>Excused</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 3 Segmented attendance controls (outline buttons with status dots, >=44px) */}
-                  {(!p.status || expandedMemberIds.has(p.memberId)) && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        disabled={isSavingThis}
-                        onClick={() => handleSetStatus(p, "present")}
-                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
-                          p.status === "present"
-                            ? "border-emerald-500/40 bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300"
-                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                        } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
-                      >
-                        {isSavingThis ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <>
-                            <span
-                              className="size-2 shrink-0 rounded-full bg-emerald-500"
-                              aria-hidden="true"
-                            />
-                            <span>Present</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={isSavingThis}
-                        onClick={() => handleSetStatus(p, "absent")}
-                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
-                          p.status === "absent"
-                            ? "border-rose-500/40 bg-rose-500/10 font-semibold text-rose-700 dark:text-rose-300"
-                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                        } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
-                      >
-                        {isSavingThis ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <>
-                            <span
-                              className="size-2 shrink-0 rounded-full bg-rose-500"
-                              aria-hidden="true"
-                            />
-                            <span>Absent</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={isSavingThis}
-                        onClick={() => handleSetStatus(p, "excused")}
-                        className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-all ${
-                          p.status === "excused"
-                            ? "border-amber-500/40 bg-amber-500/10 font-semibold text-amber-700 dark:text-amber-300"
-                            : "border-border/80 bg-background text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                        } ${isSavingThis ? "pointer-events-none opacity-60" : ""}`}
-                      >
-                        {isSavingThis ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <>
-                            <span
-                              className="size-2 shrink-0 rounded-full bg-amber-500"
-                              aria-hidden="true"
-                            />
-                            <span>Excused</span>
-                          </>
-                        )}
-                      </button>
+                  {/* Mobile role footer tab */}
+                  {p.sessionRole && (
+                    <div className="text-muted-foreground flex items-center justify-center gap-1.5 px-4 py-1.5 text-center text-xs font-medium md:hidden">
+                      {p.sessionRole.role === "worship_guide" ? (
+                        <Music className="size-3.5" aria-hidden="true" />
+                      ) : (
+                        <BookOpen className="size-3.5" aria-hidden="true" />
+                      )}
+                      <span>{p.sessionRole.label}</span>
                     </div>
                   )}
                 </article>
@@ -755,7 +716,49 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                         )}
                       </td>
                       <td className="text-foreground px-4 py-3 font-medium">
-                        {p.fullName}
+                        <div className="flex items-center gap-3">
+                          <MemberAvatar gender={p.gender} size="sm" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate font-semibold">
+                                {p.fullName}
+                              </span>
+                              {p.sessionRole && (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                                    p.sessionRole.role === "worship_guide"
+                                      ? "bg-purple-500/10 text-purple-700 dark:text-purple-300"
+                                      : "bg-blue-500/10 text-blue-700 dark:text-blue-300",
+                                  )}
+                                >
+                                  {p.sessionRole.role === "worship_guide" ? (
+                                    <Music
+                                      className="size-3"
+                                      aria-hidden="true"
+                                    />
+                                  ) : (
+                                    <BookOpen
+                                      className="size-3"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                  <span>{p.sessionRole.label}</span>
+                                </span>
+                              )}
+                            </div>
+                            {(p.group?.name || p.departments.length > 0) && (
+                              <span className="text-muted-foreground block truncate text-xs font-normal">
+                                {[
+                                  p.group?.name,
+                                  ...p.departments.map((d) => d.name),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         {showButtons ? (
@@ -863,7 +866,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                               className="text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex size-9 items-center justify-center rounded-lg"
                               aria-label={`Change attendance for ${p.fullName}`}
                             >
-                              <MoreVertical className="size-4" />
+                              <Ellipsis className="size-4" />
                             </button>
                           </div>
                         )}
@@ -1015,178 +1018,6 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* 8. Bottom Drawer for More Actions (Edit & Delete info) */}
-      <Sheet open={moreDrawerOpen} onOpenChange={setMoreDrawerOpen}>
-        <SheetContent
-          side="bottom"
-          showCloseButton={false}
-          className="border-border/80 bg-card inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none border-t p-0 shadow-2xl focus:outline-none"
-        >
-          <div
-            className="bg-muted-foreground/30 mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full"
-            aria-hidden="true"
-          />
-          <SheetHeader className="border-b px-5 py-4 text-left">
-            <SheetTitle className="text-lg font-semibold">
-              Session Options
-            </SheetTitle>
-            <SheetDescription className="text-xs">
-              Manage details or remove this session
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="space-y-3 p-5">
-            {/* Edit action */}
-            <button
-              type="button"
-              onClick={() => {
-                setMoreDrawerOpen(false);
-                setEditTitle(session.title);
-                setEditDate(session.sessionDate);
-                setEditOpen(true);
-              }}
-              className="hover:bg-muted/50 flex min-h-[48px] w-full items-center gap-3 rounded-xl border p-3.5 text-base font-medium transition-colors"
-            >
-              <Pencil className="text-muted-foreground size-5" />
-              <span>Edit session details</span>
-            </button>
-
-            {/* Service assignments action */}
-            <Link
-              href={`/admin/sessions/${session.slug}?tab=assignments`}
-              onClick={() => setMoreDrawerOpen(false)}
-              className="hover:bg-muted/50 flex min-h-[48px] w-full items-center gap-3 rounded-xl border p-3.5 text-base font-medium transition-colors"
-            >
-              <Users className="text-muted-foreground size-5" />
-              <span>Service assignments</span>
-            </Link>
-
-            {/* Guarded delete behavior (Requirement #6) */}
-            {session.canDelete ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMoreDrawerOpen(false);
-                  setDeleteConfirmOpen(true);
-                }}
-                className="flex min-h-[48px] w-full items-center gap-3 rounded-xl border border-rose-200 bg-rose-50/50 p-3.5 text-base font-medium text-rose-700 transition-colors hover:bg-rose-100/50 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-400"
-              >
-                <Trash2 className="size-5" />
-                <span>Delete session</span>
-              </button>
-            ) : (
-              <div className="border-border/70 bg-muted/40 text-muted-foreground rounded-xl border p-4 text-xs">
-                <p className="text-foreground text-sm font-medium">
-                  Deletion unavailable
-                </p>
-                <p className="mt-1 leading-relaxed">
-                  This session cannot be deleted because it has participant
-                  attendance or service dependencies.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="border-t p-4">
-            <SheetClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 w-full text-base"
-              >
-                Close
-              </Button>
-            </SheetClose>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* 9. Edit Session Editor (Responsive: Drawer on mobile, Dialog on desktop) */}
-      <ResponsiveEditor
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        title="Edit Session"
-        description="Update session title and date. Ministry Term is locked."
-        footer={
-          <div className="flex w-full gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 flex-1 text-base"
-              disabled={editPending}
-              onClick={() => setEditOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="h-12 flex-1 text-base"
-              disabled={editPending || !editTitle.trim() || !editDate}
-              onClick={handleSaveSession}
-            >
-              {editPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Save changes"
-              )}
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Ministry Term</Label>
-            <Input
-              disabled
-              value={`${session.ministryName} · ${session.termName}`}
-              className="bg-muted/50 h-12 cursor-not-allowed text-base"
-            />
-            <p className="text-muted-foreground text-xs">
-              Sessions cannot be moved to another term once created.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="session-title" className="text-sm font-semibold">
-              Title
-            </Label>
-            <Input
-              id="session-title"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="e.g. Sunday Service or Weekly Practice"
-              className="h-12 text-base"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Session Date</Label>
-            <DatePicker
-              value={editDate}
-              onChange={setEditDate}
-              placeholder="Select session date"
-            />
-          </div>
-        </div>
-      </ResponsiveEditor>
-
-      {/* 10. Delete Confirmation Sheet */}
-      <ConfirmationSheet
-        open={deleteConfirmOpen}
-        onOpenChange={setDeleteConfirmOpen}
-        title="Delete Session"
-        description={
-          <>
-            Are you sure you want to permanently delete{" "}
-            <strong>{session.title}</strong>? This action cannot be undone.
-          </>
-        }
-        confirmLabel="Delete session"
-        pending={deletePending}
-        pendingLabel="Deleting..."
-        onConfirm={handleDeleteSession}
-      />
 
       {/* 11. Bulk Action Confirmation Sheet */}
       {bulkConfirm && (

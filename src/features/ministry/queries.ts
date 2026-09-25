@@ -368,7 +368,9 @@ export async function getDepartmentDetailData(
     await Promise.all([
       supabase
         .from("ministry_membership")
-        .select("id, member_profile!inner(id, full_name, slug, archived_at)")
+        .select(
+          "id, member_profile!inner(id, full_name, slug, gender, archived_at)",
+        )
         .eq("ministry_term_id", context.term.id)
         .is("member_profile.archived_at", null),
       supabase
@@ -409,6 +411,7 @@ export async function getDepartmentDetailData(
         id: string;
         full_name: string;
         slug: string;
+        gender?: string | null;
       };
       const assignmentId = assignmentMap.get(m.id) ?? null;
       return {
@@ -416,6 +419,7 @@ export async function getDepartmentDetailData(
         memberId: profile.id,
         memberName: profile.full_name,
         memberSlug: profile.slug,
+        gender: profile.gender ?? null,
         isAssigned: Boolean(assignmentId),
         assignmentId,
       };
@@ -479,13 +483,13 @@ export async function getTermDetailData(
     await Promise.all([
       supabase
         .from("ministry_membership")
-        .select("id,member_profile!inner(id,full_name,slug,archived_at)")
+        .select("id,member_profile!inner(id,full_name,slug,gender,archived_at)")
         .eq("ministry_term_id", context.term.id)
         .is("member_profile.archived_at", null)
         .order("member_profile(full_name)"),
       supabase
         .from("member_profile")
-        .select("id,full_name,slug")
+        .select("id,full_name,slug,gender")
         .eq("church_id", context.church.id)
         .is("archived_at", null)
         .order("full_name"),
@@ -519,12 +523,14 @@ export async function getTermDetailData(
       id: string;
       full_name: string;
       slug: string;
+      gender: string | null;
     };
     return {
       membershipId: row.id,
       memberId: profile.id,
       memberName: profile.full_name,
       memberSlug: profile.slug,
+      gender: profile.gender,
     };
   });
   const memberIds = new Set(members.map((member) => member.memberId));
@@ -534,6 +540,7 @@ export async function getTermDetailData(
       id: profile.id,
       name: profile.full_name,
       slug: profile.slug,
+      gender: (profile as { gender?: string | null }).gender ?? null,
     }));
 
   return {

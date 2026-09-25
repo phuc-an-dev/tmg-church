@@ -30,6 +30,7 @@ export const sessionDetailSearchParams = {
   ),
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(20),
+  returnUrl: parseAsString.withDefault(""),
 };
 
 export const sessionDetailSearchParamsCache = createSearchParamsCache(

@@ -10,7 +10,6 @@ import {
   LogOut,
   Loader2,
   Plus,
-  Pencil,
   Search,
   UserPlus,
   Users,
@@ -25,7 +24,14 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
+import { MemberAvatar } from "@/components/shared/member-avatar";
+import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
+import { format, parseISO } from "date-fns";
+import {
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
 import {
   ListTable,
   ListTableHeader,
@@ -128,10 +134,6 @@ export function GroupDetailView({
   // ASSIGN MEMBERS DRAWER (BATCH ASSIGN MATCHING DEPARTMENT)
   // ---------------------------------------------------------------------------
   const [addDrawerOpen, setAddDrawerOpen] = React.useState(false);
-  const [addSearch, setAddSearch] = React.useState("");
-  const [selectedMembershipIds, setSelectedMembershipIds] = React.useState<
-    string[]
-  >([]);
   const [assignDrawerError, setAssignDrawerError] = React.useState<
     string | null
   >(null);
@@ -141,6 +143,7 @@ export function GroupDetailView({
   const [transferringMembers, setTransferringMembers] = React.useState<
     EligibleTermMemberItem[]
   >([]);
+  const [pendingAssignIds, setPendingAssignIds] = React.useState<string[]>([]);
   const [transferConfirmOpen, setTransferConfirmOpen] = React.useState(false);
   const [transferPending, setTransferPending] = React.useState(false);
 
@@ -171,41 +174,14 @@ export function GroupDetailView({
   );
   const [expandedLeadershipRole, setExpandedLeadershipRole] =
     React.useState<GroupRole | null>(null);
-  const [expandedSessionId, setExpandedSessionId] = React.useState<
-    string | null
-  >(null);
-
-  // Filter eligible members for Assign Member drawer
-  const filteredEligibleMembers = React.useMemo(() => {
-    const q = addSearch.trim().toLowerCase();
-    if (!q) return data.eligibleMembers;
-    return data.eligibleMembers.filter((m) => m.name.toLowerCase().includes(q));
-  }, [data.eligibleMembers, addSearch]);
 
   function openAssignDrawer() {
-    setAddSearch("");
-    setSelectedMembershipIds([]);
     setAssignDrawerError(null);
     setAddDrawerOpen(true);
   }
 
-  function toggleSelectMembership(id: string) {
-    setSelectedMembershipIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  }
-
-  function handleSelectAllDrawer() {
-    const allIds = filteredEligibleMembers.map((m) => m.membershipId);
-    setSelectedMembershipIds(allIds);
-  }
-
-  function handleDeselectAllDrawer() {
-    setSelectedMembershipIds([]);
-  }
-
-  async function executeBatchAssign() {
-    if (selectedMembershipIds.length === 0) return;
+  async function executeBatchAssign(membershipIds: string[]) {
+    if (membershipIds.length === 0) return;
 
     setAddPending(true);
     setAssignDrawerError(null);
@@ -213,7 +189,7 @@ export function GroupDetailView({
       const res = await assignGroupMembersAction(
         {
           groupId: data.group.id,
-          membershipIds: selectedMembershipIds,
+          membershipIds,
         },
         pathContext,
       );
@@ -227,7 +203,6 @@ export function GroupDetailView({
           message: res.message ?? "Members assigned to group.",
         });
         setAddDrawerOpen(false);
-        setSelectedMembershipIds([]);
       }
     } catch (err) {
       console.error(
@@ -240,12 +215,11 @@ export function GroupDetailView({
     }
   }
 
-  async function handleAssignClick(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    if (selectedMembershipIds.length === 0) return;
+  async function handleAssignClick(selectedIds: string[]) {
+    if (selectedIds.length === 0) return;
 
     const selectedMembers = data.eligibleMembers.filter((m) =>
-      selectedMembershipIds.includes(m.membershipId),
+      selectedIds.includes(m.membershipId),
     );
     const inOtherGroup = selectedMembers.filter(
       (m) => m.currentGroupName !== null,
@@ -253,18 +227,20 @@ export function GroupDetailView({
 
     if (inOtherGroup.length > 0) {
       setTransferringMembers(inOtherGroup);
+      setPendingAssignIds(selectedIds);
       setTransferConfirmOpen(true);
     } else {
-      await executeBatchAssign();
+      await executeBatchAssign(selectedIds);
     }
   }
 
   async function handleConfirmTransfer() {
     setTransferPending(true);
     try {
-      await executeBatchAssign();
+      await executeBatchAssign(pendingAssignIds);
       setTransferConfirmOpen(false);
       setTransferringMembers([]);
+      setPendingAssignIds([]);
     } finally {
       setTransferPending(false);
     }
@@ -531,18 +507,35 @@ export function GroupDetailView({
                     {data.members.map((member) => {
                       const isPending = statusPendingId === member.id;
                       const isExpanded = expandedMemberId === member.id;
+                      const hasRole = member.role !== "member";
                       return (
                         <div
                           key={member.id}
                           role="row"
-                          className="bg-card border-border/80 rounded-xl border p-4 shadow-xs md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:rounded-none md:border-0 md:p-3 md:shadow-none"
+                          className={cn(
+                            "border-border/80 overflow-hidden border shadow-xs md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:overflow-visible md:rounded-none md:border-0 md:bg-transparent md:p-3 md:shadow-none",
+                            hasRole
+                              ? "bg-muted/40 rounded-2xl"
+                              : "bg-card rounded-xl",
+                          )}
                         >
-                          {/* Name Column */}
-                          <div role="cell" className="min-w-0">
+                          {/* Name Column (contains entire card content on mobile) */}
+                          <div
+                            role="cell"
+                            className={cn(
+                              "min-w-0 p-4 md:p-0",
+                              hasRole &&
+                                "bg-card border-border/80 rounded-b-xl border-b md:rounded-none md:border-0 md:bg-transparent",
+                            )}
+                          >
                             <div className="flex items-center justify-between gap-3 md:justify-start">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex min-w-0 flex-1 items-center gap-3">
+                                <MemberAvatar gender={member.gender} />
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
+                                    <p className="text-foreground text-base font-semibold md:text-sm">
+                                      {member.name}
+                                    </p>
                                     <span
                                       className={cn(
                                         "size-2 shrink-0 rounded-full md:hidden",
@@ -552,21 +545,12 @@ export function GroupDetailView({
                                       )}
                                       aria-hidden="true"
                                     />
-                                    <p className="text-foreground text-base font-semibold md:text-sm">
-                                      {member.name}
-                                    </p>
                                   </div>
-                                  {/* Mobile leadership badge (subtle) */}
-                                  {member.role !== "member" && (
-                                    <span className="border-border/80 bg-muted/40 text-muted-foreground inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium md:hidden">
-                                      {GROUP_ROLE_LABELS[member.role]}
-                                    </span>
-                                  )}
+                                  {/* Mobile joined date */}
+                                  <p className="text-muted-foreground mt-1 text-xs md:hidden">
+                                    Joined {formatDate(member.joinedAt)}
+                                  </p>
                                 </div>
-                                {/* Mobile joined date */}
-                                <p className="text-muted-foreground mt-1 text-xs md:hidden">
-                                  Joined {formatDate(member.joinedAt)}
-                                </p>
                               </div>
 
                               {/* Mobile 3-dot Toggle Button (no dropdown) */}
@@ -646,6 +630,13 @@ export function GroupDetailView({
                               </div>
                             )}
                           </div>
+
+                          {/* Mobile role footer tab */}
+                          {hasRole && (
+                            <div className="text-muted-foreground px-4 py-1.5 text-center text-xs font-medium md:hidden">
+                              {GROUP_ROLE_LABELS[member.role]}
+                            </div>
+                          )}
 
                           {/* Role Column (Desktop) */}
                           <div role="cell" className="hidden text-sm md:block">
@@ -744,7 +735,7 @@ export function GroupDetailView({
           <FloatingCreateButton
             icon={<UserPlus className="size-5" aria-hidden="true" />}
             onClick={openAssignDrawer}
-            disabled={filteredEligibleMembers.length === 0}
+            disabled={data.eligibleMembers.length === 0}
             aria-label="Assign members to group"
           >
             <span>Assign Members</span>
@@ -802,23 +793,21 @@ export function GroupDetailView({
                     <div
                       key={role}
                       role="row"
-                      className="bg-card border-border/80 rounded-xl border p-4 shadow-xs md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:rounded-none md:border-0 md:p-3 md:shadow-none"
+                      className="border-border/80 bg-muted/40 overflow-hidden rounded-2xl border shadow-xs md:grid md:grid-cols-[1fr_180px_120px_140px_100px] md:items-center md:overflow-visible md:rounded-none md:border-0 md:bg-transparent md:p-3 md:shadow-none"
                     >
-                      {/* Name Column */}
-                      <div role="cell" className="min-w-0">
+                      {/* Name Column (contains entire card content on mobile) */}
+                      <div
+                        role="cell"
+                        className="bg-card border-border/80 min-w-0 rounded-b-xl border-b p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0"
+                      >
                         <div className="flex items-center justify-between gap-3 md:justify-start">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <MemberAvatar
+                              gender={leader?.gender}
+                              className={!leader ? "opacity-40" : undefined}
+                            />
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span
-                                  className={cn(
-                                    "size-2 shrink-0 rounded-full md:hidden",
-                                    leader
-                                      ? "bg-emerald-500"
-                                      : "bg-muted-foreground/30",
-                                  )}
-                                  aria-hidden="true"
-                                />
                                 <p
                                   className={cn(
                                     "text-base font-semibold md:text-sm",
@@ -829,18 +818,20 @@ export function GroupDetailView({
                                 >
                                   {leader ? leader.name : "Not assigned"}
                                 </p>
+                                {leader && (
+                                  <span
+                                    className="size-2 shrink-0 rounded-full bg-emerald-500 md:hidden"
+                                    aria-hidden="true"
+                                  />
+                                )}
                               </div>
-                              {/* Mobile role badge */}
-                              <span className="border-border/80 bg-muted/40 text-muted-foreground inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium md:hidden">
-                                {title}
-                              </span>
+                              {/* Mobile joined date */}
+                              <p className="text-muted-foreground mt-1 text-xs md:hidden">
+                                {leader
+                                  ? `Joined ${formatDate(leader.joinedAt)}`
+                                  : "Position currently vacant"}
+                              </p>
                             </div>
-                            {/* Mobile joined date */}
-                            <p className="text-muted-foreground mt-1 text-xs md:hidden">
-                              {leader
-                                ? `Joined ${formatDate(leader.joinedAt)}`
-                                : "Position currently vacant"}
-                            </p>
                           </div>
 
                           {/* Mobile 3-dot Toggle Button */}
@@ -893,6 +884,11 @@ export function GroupDetailView({
                             </Button>
                           </div>
                         )}
+                      </div>
+
+                      {/* Mobile role footer tab */}
+                      <div className="text-muted-foreground px-4 py-1.5 text-center text-xs font-medium md:hidden">
+                        {title}
                       </div>
 
                       {/* Role Column (Desktop) */}
@@ -973,9 +969,6 @@ export function GroupDetailView({
               <h2 className="text-foreground text-sm font-semibold tracking-wide uppercase">
                 Sessions ({data.sessions.length})
               </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Sessions for {data.group.name}.
-              </p>
             </div>
           </div>
           {data.sessions.length === 0 ? (
@@ -983,88 +976,75 @@ export function GroupDetailView({
               icon={CalendarDays}
               title="No sessions yet"
               description="Create the first session for this group."
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingSession(null);
+                    setGroupSessionOpen(true);
+                  }}
+                  className="bg-card hover:bg-card min-h-11 gap-2 px-4"
+                >
+                  Create session
+                </Button>
+              }
             />
           ) : (
-            <div className="grid gap-3">
-              {data.sessions.map((session) => {
-                const isExpanded = expandedSessionId === session.id;
-                return (
-                  <div
+            <ExpandableCoordinatorProvider>
+              <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
+                {data.sessions.map((session) => (
+                  <ExpandableActionItem
                     key={session.id}
-                    className="border-border/80 bg-card rounded-xl border p-4 shadow-xs"
+                    id={session.id}
+                    name={session.title}
+                    onEdit={() => {
+                      setEditingSession(session);
+                      setGroupSessionOpen(true);
+                    }}
+                    onDelete={
+                      session.canDelete
+                        ? () => setDeletingSession(session)
+                        : undefined
+                    }
+                    deleteDisabled={!session.canDelete}
+                    deleteDisabledReason="Session has attendance records or service assignments"
+                    className="p-4 md:grid md:grid-cols-[1fr_180px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       <Link
-                        href={`/admin/sessions/${session.slug}`}
-                        className="min-w-0 flex-1"
+                        href={`/admin/sessions/${session.slug}?returnUrl=${encodeURIComponent(`/admin/ministries/${ministrySlug}/terms/${termSlug}/groups/${groupSlug}?section=sessions`)}`}
+                        className="flex min-w-0 flex-1 items-center gap-3"
                       >
-                        <p className="font-semibold">{session.title}</p>
-                        <p className="text-muted-foreground mt-1 text-sm">
-                          {session.sessionDate} · {session.participantCount}{" "}
-                          participants
-                        </p>
+                        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                          <CalendarDays className="size-5" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {session.title}
+                          </span>
+                          <span className="text-muted-foreground block text-xs">
+                            {format(
+                              parseISO(session.sessionDate),
+                              "MMM d, yyyy",
+                            )}{" "}
+                            · {session.participantCount} participants
+                          </span>
+                        </span>
                       </Link>
-
-                      {/* 3-dot Toggle Button */}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          "min-h-11 min-w-11 rounded-xl p-0",
-                          isExpanded && "bg-muted text-foreground",
-                        )}
-                        aria-label={`Actions for ${session.title}`}
-                        aria-expanded={isExpanded}
-                        onClick={() =>
-                          setExpandedSessionId((prev) =>
-                            prev === session.id ? null : session.id,
-                          )
-                        }
-                      >
-                        <Ellipsis className="size-5" aria-hidden="true" />
-                      </Button>
+                      <ExpandableActionItem.Trigger className="md:hidden" />
                     </div>
-
-                    {/* Action buttons displayed below card when expanded */}
-                    {isExpanded && (
-                      <div
-                        role="region"
-                        aria-label={`Actions for ${session.title}`}
-                        className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
-                      >
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                            onClick={() => {
-                              setExpandedSessionId(null);
-                              setEditingSession(session);
-                              setGroupSessionOpen(true);
-                            }}
-                          >
-                            <Pencil className="size-4" aria-hidden="true" />
-                            <span>Edit</span>
-                          </Button>
-                          <DestructiveActionButton
-                            type="button"
-                            className="min-h-11 w-full"
-                            disabled={!session.canDelete}
-                            onClick={() => {
-                              setExpandedSessionId(null);
-                              setDeletingSession(session);
-                            }}
-                            label="Delete"
-                            icon={Trash2}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    <ExpandableActionItem.MobileActions />
+                    <div className="text-muted-foreground hidden text-sm md:block">
+                      {format(parseISO(session.sessionDate), "MMM d, yyyy")}
+                    </div>
+                    <div className="hidden justify-end md:flex">
+                      <ExpandableActionItem.DesktopActions />
+                    </div>
+                  </ExpandableActionItem>
+                ))}
+              </div>
+            </ExpandableCoordinatorProvider>
           )}
           <FloatingCreateButton
             icon={<CalendarDays className="size-5" aria-hidden="true" />}
@@ -1199,170 +1179,23 @@ export function GroupDetailView({
       {/* =================================================================== */}
       {/* DRAWER: ASSIGN ENROLLED MEMBERS                                     */}
       {/* =================================================================== */}
-      <ResponsiveEditor
+      <MemberAssignDrawer
         open={addDrawerOpen}
-        onOpenChange={(open) => {
-          setAddDrawerOpen(open);
-          if (!open) {
-            setSelectedMembershipIds([]);
-            setAssignDrawerError(null);
-          }
-        }}
+        onOpenChange={setAddDrawerOpen}
         title={`Assign to ${data.group.name}`}
         description="Select members enrolled in this term to assign to this group."
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setAddDrawerOpen(false)}
-              disabled={addPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={handleAssignClick}
-              disabled={addPending || selectedMembershipIds.length === 0}
-            >
-              {addPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  <span>Assigning...</span>
-                </>
-              ) : (
-                <span>
-                  {selectedMembershipIds.length > 0
-                    ? `Assign (${selectedMembershipIds.length})`
-                    : "Assign"}
-                </span>
-              )}
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleAssignClick} className="space-y-4">
-          {assignDrawerError && (
-            <div
-              className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"
-              role="alert"
-            >
-              {assignDrawerError}
-            </div>
-          )}
-
-          {/* Search inside assign drawer */}
-          <div className="relative">
-            <Search
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              value={addSearch}
-              onChange={(e) => setAddSearch(e.target.value)}
-              placeholder="Search unassigned members..."
-              className="min-h-11 pr-9 pl-9 text-base md:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
-              aria-label="Filter unassigned members"
-            />
-            {addSearch && (
-              <button
-                type="button"
-                onClick={() => setAddSearch("")}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 p-1"
-                aria-label="Clear unassigned search"
-              >
-                <X className="size-4" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {/* Select all / Deselect all actions */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">
-              {filteredEligibleMembers.length}{" "}
-              {filteredEligibleMembers.length === 1 ? "member" : "members"}{" "}
-              available
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleSelectAllDrawer}
-                disabled={filteredEligibleMembers.length === 0}
-                className="min-h-9 px-2 text-xs font-semibold"
-              >
-                Select all
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleDeselectAllDrawer}
-                disabled={selectedMembershipIds.length === 0}
-                className="min-h-9 px-2 text-xs font-semibold"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          {/* Member Picker List: Separate individual cards */}
-          <div className="max-h-72 space-y-2 overflow-y-auto py-1 pr-1">
-            {filteredEligibleMembers.length === 0 ? (
-              <div className="border-border/60 bg-muted/20 rounded-xl border p-6 text-center">
-                <p className="text-muted-foreground text-sm">
-                  No unassigned members match your search.
-                </p>
-              </div>
-            ) : (
-              filteredEligibleMembers.map((m) => {
-                const isSelected = selectedMembershipIds.includes(
-                  m.membershipId,
-                );
-                return (
-                  <button
-                    key={m.membershipId}
-                    type="button"
-                    onClick={() => toggleSelectMembership(m.membershipId)}
-                    className={cn(
-                      "hover:bg-muted/60 flex min-h-14 w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-colors",
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-primary/20 font-semibold ring-1"
-                        : "border-border/70 bg-card",
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <span className="text-foreground block text-sm font-semibold sm:text-base">
-                        {m.name}
-                      </span>
-                      {m.currentGroupName && (
-                        <span className="text-muted-foreground block text-xs">
-                          Currently in {m.currentGroupName}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Checkbox box / circle */}
-                    <div
-                      className={cn(
-                        "ml-3 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
-                        isSelected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/40 bg-transparent",
-                      )}
-                      aria-hidden="true"
-                    >
-                      {isSelected && <Check className="size-3.5 stroke-3" />}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </form>
-      </ResponsiveEditor>
+        members={data.eligibleMembers.map((m) => ({
+          id: m.membershipId,
+          name: m.name,
+          gender: m.gender,
+          subtitle: m.currentGroupName
+            ? `Currently in ${m.currentGroupName}`
+            : null,
+        }))}
+        onAssign={handleAssignClick}
+        pending={addPending}
+        error={assignDrawerError}
+      />
 
       {/* =================================================================== */}
       {/* CONFIRMATION: MOVE MEMBERS FROM ANOTHER GROUP                       */}

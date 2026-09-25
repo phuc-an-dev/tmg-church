@@ -8,6 +8,7 @@ export interface GroupMemberItem {
   membershipId: string;
   memberId: string;
   name: string;
+  gender?: string | null;
   role: GroupRole;
   status: GroupStatus;
   joinedAt: string;
@@ -24,6 +25,7 @@ export interface EligibleTermMemberItem {
   membershipId: string;
   memberId: string;
   name: string;
+  gender?: string | null;
   currentGroupName: string | null;
   currentGroupId: string | null;
 }
@@ -78,6 +80,7 @@ export async function getGroupDetailData(
         member_profile!inner (
           id,
           full_name,
+          gender,
           archived_at
         )
       )
@@ -106,8 +109,8 @@ export async function getGroupDetailData(
         id: string;
         member_profile_id: string;
         member_profile:
-          | { id: string; full_name: string }
-          | { id: string; full_name: string }[];
+          | { id: string; full_name: string; gender?: string | null }
+          | { id: string; full_name: string; gender?: string | null }[];
       };
       const profile = Array.isArray(mm.member_profile)
         ? mm.member_profile[0]
@@ -118,6 +121,7 @@ export async function getGroupDetailData(
         membershipId: row.ministry_membership_id,
         memberId: profile.id,
         name: profile.full_name,
+        gender: profile.gender ?? null,
         role: row.role as GroupRole,
         status: row.status as GroupStatus,
         joinedAt: row.joined_at,
@@ -161,7 +165,8 @@ export async function getGroupDetailData(
         member_profile_id,
         member_profile!inner (
           id,
-          full_name
+          full_name,
+          gender
         )
       )
     `,
@@ -180,7 +185,8 @@ export async function getGroupDetailData(
       id: string;
       member_profile_id: string;
       member_profile:
-        { id: string; full_name: string } | { id: string; full_name: string }[];
+        | { id: string; full_name: string; gender?: string | null }
+        | { id: string; full_name: string; gender?: string | null }[];
     };
     const profile = Array.isArray(mm.member_profile)
       ? mm.member_profile[0]
@@ -191,6 +197,7 @@ export async function getGroupDetailData(
       membershipId: row.ministry_membership_id,
       memberId: profile.id,
       name: profile.full_name,
+      gender: profile.gender ?? null,
       role: row.role as GroupRole,
       status: row.status as GroupStatus,
       joinedAt: row.joined_at,
@@ -208,6 +215,7 @@ export async function getGroupDetailData(
       member_profile!inner (
         id,
         full_name,
+        gender,
         archived_at
       )
     `,
@@ -271,6 +279,7 @@ export async function getGroupDetailData(
         membershipId: tm.id,
         memberId: profile.id,
         name: profile.full_name,
+        gender: profile.gender ?? null,
         currentGroupName: openGroup?.groupName ?? null,
         currentGroupId: openGroup?.groupId ?? null,
       };

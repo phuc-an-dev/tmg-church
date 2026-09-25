@@ -26,8 +26,10 @@ export interface ResponsiveEditorProps {
   description?: string;
   children: React.ReactNode;
   footer: React.ReactNode;
+  bottomBar?: React.ReactNode;
   maxWidthClass?: string;
   mobileMinHeightClass?: string;
+  bodyClassName?: string;
 }
 
 function subscribe(callback: () => void) {
@@ -124,8 +126,10 @@ export function ResponsiveEditor({
   description,
   children,
   footer,
+  bottomBar,
   maxWidthClass = "sm:max-w-lg",
   mobileMinHeightClass,
+  bodyClassName,
 }: ResponsiveEditorProps) {
   const isDesktop = useIsDesktop();
   const bodyRef = React.useRef<HTMLDivElement>(null);
@@ -313,10 +317,19 @@ export function ResponsiveEditor({
           <div
             ref={bodyRef}
             data-slot="responsive-editor-body"
-            className="max-h-[70dvh] overflow-y-auto px-6 py-2"
+            className={cn(
+              "max-h-[70dvh] overflow-y-auto px-6 py-2",
+              bodyClassName,
+            )}
           >
             {children}
           </div>
+
+          {bottomBar && (
+            <div className="border-border/70 bg-card shrink-0 border-t px-6 py-3">
+              {bottomBar}
+            </div>
+          )}
 
           <ActionFooter className="border-border/70 bg-muted/30 border-t px-6 py-4">
             {footer}
@@ -376,10 +389,16 @@ export function ResponsiveEditor({
         <div
           ref={bodyRef}
           data-slot="responsive-editor-body"
-          className="flex-1 overflow-y-auto px-5 pt-4 pb-8"
+          className={cn("flex-1 overflow-y-auto px-5 pt-4 pb-8", bodyClassName)}
         >
           {children}
         </div>
+
+        {bottomBar && (
+          <div className="border-border/70 bg-card shrink-0 border-t px-5 py-3">
+            {bottomBar}
+          </div>
+        )}
 
         {/* Visible sticky action footer respecting safe-area */}
         <ActionFooter className="border-border/70 bg-muted/30 shrink-0 border-t px-5 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
