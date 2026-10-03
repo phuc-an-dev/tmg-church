@@ -35,6 +35,13 @@ export function NavigationTabs({
         '[aria-selected="true"]',
       );
       if (activeTab) {
+        if (nav.scrollWidth > nav.clientWidth) {
+          nav.scrollTo({
+            left:
+              activeTab.offsetLeft -
+              (nav.clientWidth - activeTab.clientWidth) / 2,
+          });
+        }
         setIndicator({
           left: activeTab.offsetLeft,
           top: activeTab.offsetTop,

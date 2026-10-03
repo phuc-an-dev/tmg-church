@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 
 const seedSteps = [
   {
@@ -106,26 +107,23 @@ export function AdminSeedStepCards() {
               </Button>
             </div>
 
-            {isOpen && (
-              <div
-                id={`seed-step-actions-${id}`}
-                role="region"
-                aria-label={`Actions for ${actionLabel}`}
-                className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
+            <ExpandableCardPanel
+              open={isOpen}
+              id={`seed-step-actions-${id}`}
+              label={`Actions for ${actionLabel}`}
+            >
+              <Button
+                asChild
+                variant="outline"
+                className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                data-interactive="true"
               >
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                  data-interactive="true"
-                >
-                  <Link href={href}>
-                    <span>Open {actionLabel}</span>
-                    <ArrowRight className="size-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-              </div>
-            )}
+                <Link href={href}>
+                  <span>Open {actionLabel}</span>
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </ExpandableCardPanel>
           </article>
         );
       })}

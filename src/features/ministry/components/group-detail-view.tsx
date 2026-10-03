@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
@@ -565,6 +566,7 @@ export function GroupDetailView({
                                   )}
                                   aria-label={`Actions for ${member.name}`}
                                   aria-expanded={isExpanded}
+                                  aria-controls={`group-member-actions-${member.id}`}
                                   onClick={() =>
                                     setExpandedMemberId((prev) =>
                                       prev === member.id ? null : member.id,
@@ -580,55 +582,54 @@ export function GroupDetailView({
                             </div>
 
                             {/* Mobile action buttons displayed below card when expanded */}
-                            {isExpanded && (
-                              <div
-                                role="region"
-                                aria-label={`Actions for ${member.name}`}
-                                className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden"
-                              >
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                                    onClick={() => {
-                                      setExpandedMemberId(null);
-                                      openRoleEditor(member);
-                                    }}
-                                  >
-                                    <span>Change Role</span>
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                                    onClick={() => handleToggleStatus(member)}
-                                    disabled={isPending}
-                                  >
-                                    {isPending && (
-                                      <Loader2 className="size-4 animate-spin" />
-                                    )}
-                                    <span>
-                                      {member.status === "active"
-                                        ? "Mark Inactive"
-                                        : "Mark Active"}
-                                    </span>
-                                  </Button>
-                                </div>
-                                <div className="mt-2">
-                                  <DestructiveActionButton
-                                    type="button"
-                                    className="min-h-11 w-full"
-                                    onClick={() => {
-                                      setExpandedMemberId(null);
-                                      setLeavingMember(member);
-                                    }}
-                                    label="Leave Group"
-                                    icon={LogOut}
-                                  />
-                                </div>
+                            <ExpandableCardPanel
+                              open={isExpanded}
+                              id={`group-member-actions-${member.id}`}
+                              label={`Actions for ${member.name}`}
+                              className="md:hidden"
+                            >
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                                  onClick={() => {
+                                    setExpandedMemberId(null);
+                                    openRoleEditor(member);
+                                  }}
+                                >
+                                  <span>Change Role</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                                  onClick={() => handleToggleStatus(member)}
+                                  disabled={isPending}
+                                >
+                                  {isPending && (
+                                    <Loader2 className="size-4 animate-spin" />
+                                  )}
+                                  <span>
+                                    {member.status === "active"
+                                      ? "Mark Inactive"
+                                      : "Mark Active"}
+                                  </span>
+                                </Button>
                               </div>
-                            )}
+                              <div className="mt-2">
+                                <DestructiveActionButton
+                                  type="button"
+                                  className="min-h-11 w-full"
+                                  onClick={() => {
+                                    setExpandedMemberId(null);
+                                    setLeavingMember(member);
+                                  }}
+                                  label="Leave Group"
+                                  icon={LogOut}
+                                />
+                              </div>
+                            </ExpandableCardPanel>
                           </div>
 
                           {/* Mobile role footer tab */}
@@ -846,6 +847,7 @@ export function GroupDetailView({
                               )}
                               aria-label={`Actions for ${title}`}
                               aria-expanded={isExpanded}
+                              aria-controls={`group-leadership-actions-${role}`}
                               onClick={() =>
                                 setExpandedLeadershipRole((prev) =>
                                   prev === role ? null : role,
@@ -858,32 +860,31 @@ export function GroupDetailView({
                         </div>
 
                         {/* Mobile action buttons displayed below card when expanded */}
-                        {isExpanded && (
-                          <div
-                            role="region"
-                            aria-label={`Actions for ${title}`}
-                            className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden"
+                        <ExpandableCardPanel
+                          open={isExpanded}
+                          id={`group-leadership-actions-${role}`}
+                          label={`Actions for ${title}`}
+                          className="md:hidden"
+                        >
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                            onClick={() => {
+                              setExpandedLeadershipRole(null);
+                              openAssignLeaderDrawer(role);
+                            }}
                           >
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                              onClick={() => {
-                                setExpandedLeadershipRole(null);
-                                openAssignLeaderDrawer(role);
-                              }}
-                            >
-                              {leader ? (
-                                <span>Change Leader</span>
-                              ) : (
-                                <>
-                                  <Plus className="size-4" aria-hidden="true" />
-                                  <span>Assign {title}</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        )}
+                            {leader ? (
+                              <span>Change Leader</span>
+                            ) : (
+                              <>
+                                <Plus className="size-4" aria-hidden="true" />
+                                <span>Assign {title}</span>
+                              </>
+                            )}
+                          </Button>
+                        </ExpandableCardPanel>
                       </div>
 
                       {/* Mobile role footer tab */}

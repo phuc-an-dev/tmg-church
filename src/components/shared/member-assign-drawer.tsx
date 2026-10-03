@@ -30,6 +30,10 @@ export interface MemberAssignDrawerProps {
   emptySearchMessage?: string;
   emptyListMessage?: string;
   pageSize?: number;
+  singleSelect?: boolean;
+  selectedIds?: readonly string[];
+  onSelectedIdsChange?: (selectedIds: string[]) => void;
+  isSubmitDisabled?: boolean;
 }
 
 export function MemberAssignDrawer({
@@ -46,15 +50,30 @@ export function MemberAssignDrawer({
   emptySearchMessage = "No unassigned members match your search.",
   emptyListMessage = "No members available to assign.",
   pageSize = 20,
+  singleSelect = false,
+  selectedIds,
+  onSelectedIdsChange,
+  isSubmitDisabled,
 }: MemberAssignDrawerProps) {
-  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [uncontrolledSelectedIds, setUncontrolledSelectedIds] = React.useState<
+    string[]
+  >([]);
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
   const listRef = React.useRef<HTMLDivElement>(null);
+  const activeSelectedIds = selectedIds ?? uncontrolledSelectedIds;
+
+  function setActiveSelectedIds(next: string[]) {
+    if (selectedIds) {
+      onSelectedIdsChange?.(next);
+      return;
+    }
+    setUncontrolledSelectedIds(next);
+  }
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      setSelectedIds([]);
+      setUncontrolledSelectedIds([]);
       setSearch("");
       setPage(1);
     }
@@ -88,29 +107,37 @@ export function MemberAssignDrawer({
   };
 
   const handleSelectAll = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const m of filteredMembers) {
-        next.add(m.id);
-      }
-      return Array.from(next);
-    });
+    const next = new Set(activeSelectedIds);
+    for (const member of filteredMembers) {
+      next.add(member.id);
+    }
+    setActiveSelectedIds(Array.from(next));
   };
 
   const handleClear = () => {
-    setSelectedIds([]);
+    setActiveSelectedIds([]);
   };
 
   const handleToggle = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    setActiveSelectedIds(
+      activeSelectedIds.includes(id)
+        ? activeSelectedIds.filter((i) => i !== id)
+        : singleSelect
+          ? [id]
+          : [...activeSelectedIds, id],
     );
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (pending || selectedIds.length === 0) return;
-    void onAssign(selectedIds);
+    if (
+      pending ||
+      isSubmitDisabled === true ||
+      (isSubmitDisabled === undefined && activeSelectedIds.length === 0)
+    ) {
+      return;
+    }
+    void onAssign([...activeSelectedIds]);
   };
 
   return (
@@ -146,7 +173,11 @@ export function MemberAssignDrawer({
           <Button
             type="button"
             onClick={() => handleSubmit()}
-            disabled={pending || selectedIds.length === 0}
+            disabled={
+              pending ||
+              isSubmitDisabled === true ||
+              (isSubmitDisabled === undefined && activeSelectedIds.length === 0)
+            }
           >
             {pending ? (
               <>
@@ -155,8 +186,8 @@ export function MemberAssignDrawer({
               </>
             ) : (
               <span>
-                {selectedIds.length > 0
-                  ? `${assignLabel} (${selectedIds.length})`
+                {activeSelectedIds.length > 0 && !singleSelect
+                  ? `${assignLabel} (${activeSelectedIds.length})`
                   : assignLabel}
               </span>
             )}
@@ -188,7 +219,7 @@ export function MemberAssignDrawer({
               setPage(1);
             }}
             placeholder={searchPlaceholder}
-            className="min-h-11 pr-9 pl-9 text-base md:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
+            className="min-h-11 pr-12 pl-9 text-base md:text-sm [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
             aria-label={searchPlaceholder}
           />
           {search && (
@@ -198,7 +229,7 @@ export function MemberAssignDrawer({
                 setSearch("");
                 setPage(1);
               }}
-              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 p-1"
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 flex size-11 -translate-y-1/2 items-center justify-center"
               aria-label="Clear search"
             >
               <X className="size-4" aria-hidden="true" />
@@ -213,23 +244,25 @@ export function MemberAssignDrawer({
             {filteredMembers.length === 1 ? "member" : "members"} available
           </span>
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleSelectAll}
-              disabled={filteredMembers.length === 0}
-              className="min-h-9 px-2 text-xs font-semibold"
-            >
-              Select all
-            </Button>
+            {!singleSelect && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAll}
+                disabled={filteredMembers.length === 0}
+                className="min-h-11 px-2 text-xs font-semibold"
+              >
+                Select all
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              disabled={selectedIds.length === 0}
-              className="min-h-9 px-2 text-xs font-semibold"
+              disabled={activeSelectedIds.length === 0}
+              className="min-h-11 px-2 text-xs font-semibold"
             >
               Clear
             </Button>
@@ -249,12 +282,13 @@ export function MemberAssignDrawer({
             </div>
           ) : (
             paginatedMembers.map((m) => {
-              const isSelected = selectedIds.includes(m.id);
+              const isSelected = activeSelectedIds.includes(m.id);
               return (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => handleToggle(m.id)}
+                  aria-pressed={isSelected}
                   className={cn(
                     "hover:bg-muted/60 flex min-h-14 w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-colors",
                     isSelected

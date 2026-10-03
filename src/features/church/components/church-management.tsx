@@ -2,32 +2,28 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   AlertCircle,
   Building2,
-  Calendar,
-  CheckCircle2,
-  FolderTree,
   Globe,
   Info,
-  Layers,
-  ShieldAlert,
-  Users,
+  Pencil,
+  Settings2,
 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { StatusToast } from "@/components/ui/status-toast";
+import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+  useExpandableCoordinator,
+  useExpandableItem,
+} from "@/components/shared/expandable-action-item";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import type { ChurchState } from "../types";
 import { CreateChurchDialog } from "./create-church-dialog";
 import { EditChurchDialog } from "./edit-church-dialog";
-import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { StatusToast } from "@/components/ui/status-toast";
-import { ChurchPageActions } from "./church-page-actions";
 
 interface ChurchManagementProps {
   initialState: ChurchState;
@@ -46,6 +42,7 @@ export function ChurchManagement({
   } | null>(
     initialSuccessMessage ? { id: 0, message: initialSuccessMessage } : null,
   );
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const handleActionSuccess = React.useCallback(
     (message: string) => {
@@ -73,30 +70,21 @@ export function ChurchManagement({
             onDismiss={dismissSuccessToast}
           />
         )}
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="mx-auto max-w-4xl space-y-8">
           <AdminPageHeader
             title="Church Settings"
             description="Set up the primary church profile to begin organization management."
           />
 
-          <Card className="admin-panel-strong">
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                  <Building2 className="size-5" aria-hidden="true" />
-                </div>
-                <div>
-                  <CardTitle className="text-foreground text-xl font-bold">
-                    No Church Configured
-                  </CardTitle>
-                  <CardDescription className="text-muted-foreground mt-0.5 text-sm">
-                    The system requires one church profile to organize
-                    ministries, terms, and members.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+          <section className="space-y-3">
+            <div className="px-1">
+              <h2 className="text-base font-semibold">No church configured</h2>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                The system requires one church profile to organize ministries,
+                terms, and members.
+              </p>
+            </div>
+            <div className="admin-panel space-y-4 p-4 sm:p-6">
               <div className="admin-surface flex items-start gap-3 p-4 text-sm">
                 <Info
                   className="text-primary size-5 shrink-0 translate-y-0.5"
@@ -113,11 +101,9 @@ export function ChurchManagement({
                   </p>
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="border-border/70 flex flex-col justify-start border-t bg-transparent p-4 sm:flex-row sm:p-6">
               <CreateChurchDialog onSuccess={handleActionSuccess} />
-            </CardFooter>
-          </Card>
+            </div>
+          </section>
         </div>
       </>
     );
@@ -126,41 +112,32 @@ export function ChurchManagement({
   // 2. Multiple Churches - Configuration Error State
   if (state.status === "multiple") {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-8">
         <AdminPageHeader
           title="Church Settings"
           description="Configuration error: multiple church records found in the database."
         />
 
-        <Card className="admin-panel border-destructive/30 bg-destructive/5">
-          <CardHeader className="p-4 sm:p-6">
-            <div className="flex items-start gap-3">
-              <div className="bg-destructive/10 text-destructive flex size-10 shrink-0 items-center justify-center rounded-xl">
-                <ShieldAlert className="size-5" aria-hidden="true" />
-              </div>
-              <div>
-                <CardTitle className="text-destructive text-xl font-bold">
-                  Configuration Error: {state.count} Churches Detected
-                </CardTitle>
-                <CardDescription className="text-muted-foreground mt-0.5 text-sm">
-                  The administration application supports exactly one active
-                  church. The database currently contains {state.count} church
-                  records. To ensure data integrity, mutations are locked until
-                  records are consolidated.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+        <section className="space-y-3">
+          <div className="px-1">
+            <h2 className="text-destructive text-base font-semibold">
+              Configuration error: {state.count} churches detected
+            </h2>
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              The administration application supports exactly one active church.
+              Mutations are locked until records are consolidated.
+            </p>
+          </div>
+          <div className="admin-panel border-destructive/30 space-y-4 p-4 sm:p-6">
             <div className="admin-surface p-4">
-              <h2 className="text-foreground mb-3 text-sm font-semibold">
-                Existing Church Records (Read-Only):
-              </h2>
+              <h3 className="text-foreground mb-3 text-sm font-semibold">
+                Existing church records (read-only):
+              </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-muted-foreground border-border border-b text-xs uppercase">
                     <tr>
-                      <th className="pb-2 font-medium">Church Name</th>
+                      <th className="pb-2 font-medium">Church name</th>
                       <th className="pb-2 font-medium">Slug</th>
                       <th className="pb-2 font-medium">Identifier (ID)</th>
                     </tr>
@@ -197,16 +174,14 @@ export function ChurchManagement({
                 mutations.
               </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     );
   }
 
   // 3. One Church - Standard Active State
   const { church } = state;
-  const createdDateFormatted = formatDateTime(church.createdAt);
-  const updatedDateFormatted = formatDateTime(church.updatedAt);
 
   return (
     <>
@@ -217,165 +192,110 @@ export function ChurchManagement({
           onDismiss={dismissSuccessToast}
         />
       )}
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-4xl space-y-8">
         <AdminPageHeader
           title="Church Settings"
           description="Operational details and configuration for the active church profile."
-          action={<ChurchPageActions />}
         />
 
-        {/* Main Church Profile Card */}
-        <Card className="admin-panel-strong">
-          <CardHeader className="p-4 pb-4 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                  <Building2 className="size-5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {/* User-entered database value displayed verbatim */}
-                  <CardTitle className="text-foreground truncate text-xl font-bold sm:text-2xl">
-                    {church.name}
-                  </CardTitle>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="text-muted-foreground flex items-center gap-1 font-mono">
+        <section>
+          <ExpandableCoordinatorProvider>
+            <ExpandableActionItem
+              id="church-profile"
+              name={church.name}
+              onEdit={() => setEditOpen(true)}
+              editLabel="Edit church"
+              onAdditionalAction={() => router.push("/admin/church/advanced")}
+              additionalActionLabel="Advanced settings"
+              additionalActionIcon={Settings2}
+              className="p-4 sm:p-5 md:grid md:grid-cols-[1fr_44px] md:items-center md:gap-4 md:p-3"
+            >
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <Link
+                  href="/admin/ministries"
+                  className="group/item flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                    <Building2 className="size-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    {/* User-entered database value displayed verbatim */}
+                    <p className="text-foreground truncate font-semibold group-hover/item:underline">
+                      {church.name}
+                    </p>
+                    <span className="text-muted-foreground flex items-center gap-1 font-mono text-xs">
                       <Globe className="size-3.5" aria-hidden="true" />
                       <span>/{church.slug}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="size-3" aria-hidden="true" />
-                      Active
-                    </span>
                   </div>
-                </div>
+                </Link>
+                <ExpandableActionItem.Trigger className="md:hidden" />
               </div>
-              <EditChurchDialog
-                church={church}
-                onSuccess={handleActionSuccess}
-                compactTrigger
+              <ChurchProfileActions
+                onEdit={() => setEditOpen(true)}
+                onAdvancedSettings={() => router.push("/admin/church/advanced")}
               />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6 p-4 pt-0 sm:p-6">
-            {/* Metadata Row */}
-            <div className="admin-surface grid grid-cols-2 overflow-hidden">
-              <div className="border-border/70 space-y-1 border-r p-3 sm:p-4">
-                <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                  <Calendar className="size-3.5" aria-hidden="true" />
-                  Created
-                </span>
-                <time
-                  dateTime={church.createdAt}
-                  className="text-foreground block text-sm leading-5 font-medium"
-                >
-                  {createdDateFormatted}
-                </time>
+              <div className="hidden justify-end md:flex">
+                <ExpandableActionItem.DesktopActions />
               </div>
-              <div className="space-y-1 p-3 sm:p-4">
-                <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                  <Calendar className="size-3.5" aria-hidden="true" />
-                  Updated
-                </span>
-                <time
-                  dateTime={church.updatedAt}
-                  className="text-foreground block text-sm leading-5 font-medium"
-                >
-                  {updatedDateFormatted}
-                </time>
-              </div>
-            </div>
-
-            {/* Compact Statistics Row inside Primary Card */}
-            <div className="space-y-3">
-              <h2 className="text-foreground text-sm font-semibold">
-                Linked Organizational Data
-              </h2>
-              <div className="admin-surface grid grid-cols-1 overflow-hidden sm:grid-cols-3">
-                <div className="border-border/70 flex items-center gap-3 border-b p-4 sm:border-r sm:border-b-0">
-                  <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
-                    <Layers className="size-4" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="text-foreground text-base font-bold">
-                      {church.ministryCount}
-                    </div>
-                    <div className="text-muted-foreground text-xs">
-                      Ministries
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-border/70 flex items-center gap-3 border-b p-4 sm:border-r sm:border-b-0">
-                  <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
-                    <Users className="size-4" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="text-foreground text-base font-bold">
-                      {church.memberCount}
-                    </div>
-                    <div className="text-muted-foreground text-xs">Members</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4">
-                  <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
-                    <FolderTree className="size-4" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="text-foreground text-base font-bold">
-                      {church.segmentCount}
-                    </div>
-                    <div className="text-muted-foreground text-xs">
-                      Member groups
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-
-          {/* Dependency Status Footer */}
-          <CardFooter className="border-border/70 border-t bg-transparent p-4 sm:p-6">
-            <div className="text-xs">
-              {!church.isDeletable ? (
-                <p className="text-muted-foreground flex items-center gap-1.5">
-                  <Info className="size-3.5 shrink-0" aria-hidden="true" />
-                  <span>
-                    Deletion is restricted while linked ministries, members, or
-                    groups exist.
-                  </span>
-                </p>
-              ) : (
-                <p className="text-muted-foreground flex items-center gap-1.5">
-                  <Info className="size-3.5 shrink-0" aria-hidden="true" />
-                  <span>
-                    This church record has no linked dependent history and may
-                    be safely deleted.
-                  </span>
-                </p>
-              )}
-            </div>
-          </CardFooter>
-        </Card>
+            </ExpandableActionItem>
+          </ExpandableCoordinatorProvider>
+        </section>
       </div>
+
+      <EditChurchDialog
+        church={church}
+        onSuccess={handleActionSuccess}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
     </>
   );
 }
 
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const values = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
+function ChurchProfileActions({
+  onEdit,
+  onAdvancedSettings,
+}: {
+  onEdit: () => void;
+  onAdvancedSettings: () => void;
+}) {
+  const { id, name, isOpen } = useExpandableItem();
+  const { closeAll } = useExpandableCoordinator();
 
-  return `${values.year}-${values.month}-${values.day}, ${values.hour}:${values.minute}`;
+  return (
+    <ExpandableCardPanel
+      open={isOpen}
+      id={`actions-panel-${id}`}
+      label={`Actions for ${name}`}
+      className="md:hidden"
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            closeAll();
+            onAdvancedSettings();
+          }}
+          className="min-h-11 w-full gap-2 text-sm font-semibold"
+        >
+          <Settings2 className="size-4" aria-hidden="true" />
+          <span>Advanced settings</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            closeAll();
+            onEdit();
+          }}
+          className="min-h-11 w-full gap-2 text-sm font-semibold"
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+          <span>Edit church</span>
+        </Button>
+      </div>
+    </ExpandableCardPanel>
+  );
 }

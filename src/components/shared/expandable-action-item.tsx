@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "cn";
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import { ItemActionButtons } from "@/components/shared/item-action-buttons";
 import {
   DropdownMenu,
@@ -302,19 +303,14 @@ export function ExpandableActionMobileActions({
     additionalActionIcon: AdditionalActionIcon,
   } = useExpandableItem();
 
-  if (!isOpen) return null;
-
   const hasMemberActions = Boolean(onEdit || onDelete);
 
   return (
-    <div
+    <ExpandableCardPanel
+      open={isOpen}
       id={`actions-panel-${id}`}
-      role="region"
-      aria-label={`Actions for ${name}`}
-      className={cn(
-        "border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden",
-        className,
-      )}
+      label={`Actions for ${name}`}
+      className={cn("md:hidden", className)}
     >
       {onAdditionalAction && AdditionalActionIcon && (
         <section className="space-y-2">
@@ -363,7 +359,7 @@ export function ExpandableActionMobileActions({
           />
         </section>
       )}
-    </div>
+    </ExpandableCardPanel>
   );
 }
 

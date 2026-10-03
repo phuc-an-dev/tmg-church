@@ -13,14 +13,21 @@ interface EditChurchDialogProps {
   church: ChurchViewModel;
   onSuccess?: (message: string) => void;
   compactTrigger?: boolean;
+  /** Controlled open state; when provided the built-in trigger is hidden. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function EditChurchDialog({
   church,
   onSuccess,
   compactTrigger = false,
+  open: controlledOpen,
+  onOpenChange,
 }: EditChurchDialogProps) {
-  const [open, setOpen] = React.useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const isOpen = isControlled ? controlledOpen : internalOpen;
   const [name, setName] = React.useState(church.name);
   const [slug, setSlug] = React.useState(church.slug);
   const [isPending, setIsPending] = React.useState(false);
@@ -30,12 +37,15 @@ export function EditChurchDialog({
   >({});
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!isPending) {
-      setOpen(newOpen);
-      setName(church.name);
-      setSlug(church.slug);
-      setErrorMessage(null);
-      setFieldErrors({});
+    if (isPending) return;
+    setName(church.name);
+    setSlug(church.slug);
+    setErrorMessage(null);
+    setFieldErrors({});
+    if (isControlled) {
+      onOpenChange?.(newOpen);
+    } else {
+      setInternalOpen(newOpen);
     }
   };
 
@@ -60,7 +70,11 @@ export function EditChurchDialog({
       } else {
         const successMsg =
           result.message || "Church settings updated successfully.";
-        setOpen(false);
+        if (isControlled) {
+          onOpenChange?.(false);
+        } else {
+          setInternalOpen(false);
+        }
         onSuccess?.(successMsg);
       }
     } catch {
@@ -112,22 +126,24 @@ export function EditChurchDialog({
 
   return (
     <>
-      <Button
-        variant={compactTrigger ? "default" : "outline"}
-        onClick={() => setOpen(true)}
-        className={
-          compactTrigger
-            ? "min-h-11 gap-2 rounded-lg px-4"
-            : "min-h-[44px] w-auto gap-2"
-        }
-        title={compactTrigger ? "Edit church" : undefined}
-      >
-        <Pencil className="size-4" aria-hidden="true" />
-        <span>Edit</span>
-      </Button>
+      {!isControlled && (
+        <Button
+          variant={compactTrigger ? "default" : "outline"}
+          onClick={() => handleOpenChange(true)}
+          className={
+            compactTrigger
+              ? "min-h-11 gap-2 rounded-lg px-4"
+              : "min-h-[44px] w-auto gap-2"
+          }
+          title={compactTrigger ? "Edit church" : undefined}
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+          <span>Edit</span>
+        </Button>
+      )}
 
       <ResponsiveEditor
-        open={open}
+        open={isOpen}
         onOpenChange={handleOpenChange}
         title="Edit Church Settings"
         description="Update church name or configure the unique identifier slug."
