@@ -6,6 +6,9 @@ import {
 } from "nuqs/server";
 
 export const sessionSearchParams = {
+  view: parseAsStringLiteral(["overview", "list"]).withDefault("overview"),
+  month: parseAsString.withDefault(""),
+  date: parseAsString.withDefault(""),
   q: parseAsString.withDefault(""),
   term: parseAsString.withDefault(""),
   page: parseAsInteger.withDefault(1),

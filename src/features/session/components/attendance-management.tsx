@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import {
   NavigationTabs,
@@ -295,23 +296,22 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
         }}
       />
 
-      {/* Navigation Tabs (department-scoped sessions have no service assignments) */}
-      <NavigationTabs aria-label="Session views">
-        <NavigationTabLink
-          href={`/admin/sessions/${session.slug}${isSafeReturnUrl ? `?returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
-          active={true}
-        >
-          Attendance
-        </NavigationTabLink>
-        {!session.departmentId && (
+      {!session.departmentId && (
+        <NavigationTabs aria-label="Session views">
+          <NavigationTabLink
+            href={`/admin/sessions/${session.slug}${isSafeReturnUrl ? `?returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
+            active={true}
+          >
+            Attendance
+          </NavigationTabLink>
           <NavigationTabLink
             href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl ? `&returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
             active={false}
           >
             Service Assignments
           </NavigationTabLink>
-        )}
-      </NavigationTabs>
+        </NavigationTabs>
+      )}
 
       {/* 2. Summary Stat Grid (2-col on mobile, 4-col on desktop) */}
       <section aria-label="Attendance summary">
@@ -558,6 +558,8 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                                 "bg-muted text-foreground",
                             )}
                             aria-label={`Change attendance for ${p.fullName}`}
+                            aria-expanded={expandedMemberIds.has(p.memberId)}
+                            aria-controls={`attendance-actions-${p.memberId}`}
                           >
                             <Ellipsis className="size-5" />
                           </button>
@@ -566,8 +568,13 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                     </div>
 
                     {/* 3 Segmented attendance controls (outline buttons with status dots, >=44px) */}
-                    {(!p.status || expandedMemberIds.has(p.memberId)) && (
-                      <div className="mt-3 grid grid-cols-3 gap-2">
+                    <ExpandableCardPanel
+                      open={!p.status || expandedMemberIds.has(p.memberId)}
+                      id={`attendance-actions-${p.memberId}`}
+                      label={`Attendance actions for ${p.fullName}`}
+                      contentClassName="mt-3"
+                    >
+                      <div className="grid grid-cols-3 gap-2">
                         <button
                           type="button"
                           disabled={isSavingThis}
@@ -637,7 +644,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
                           )}
                         </button>
                       </div>
-                    )}
+                    </ExpandableCardPanel>
                   </div>
 
                   {/* Mobile role footer tab */}

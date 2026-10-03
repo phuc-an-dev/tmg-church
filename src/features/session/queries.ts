@@ -12,6 +12,7 @@ import type {
   SessionGroupAssignmentRole,
   SessionGroupInfo,
   SessionGroupMember,
+  SessionItem,
   SessionPage,
   SessionParticipantDetail,
   SessionServiceAssignmentData,
@@ -134,6 +135,81 @@ export async function getSessions(p: {
     page,
     pageSize,
   };
+}
+
+export async function getSessionCalendarMonth(
+  month: string,
+): Promise<SessionItem[]> {
+  const [ctx, terms] = await Promise.all([
+    requireOperationalContext(),
+    getSessionTerms(),
+  ]);
+  const [year, monthNumber] = month.split("-").map(Number);
+  if (!year || !monthNumber || monthNumber > 12) return [];
+
+  const startDate = `${month}-01`;
+  const endDate = `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, "0")}`;
+  const termIds = terms.map((term) => term.id);
+  if (!termIds.length) return [];
+
+  const s = await createClient();
+  const { data, error } = await s
+    .from("ministry_session")
+    .select(
+      "id,slug,title,session_date,ministry_term_id,term_group:term_group_id(name),term_department:term_department_id(name),session_participant(count),session_assignment(count),service_assignment(count),group_session_assignment(count)",
+    )
+    .in("ministry_term_id", termIds)
+    .eq("church_id", ctx.church.id)
+    .gte("session_date", startDate)
+    .lte("session_date", endDate)
+    .order("session_date")
+    .order("id");
+  if (error) {
+    console.error("Failed to fetch calendar sessions:", error);
+    throw new Error("Failed to fetch calendar sessions");
+  }
+
+  const byId = new Map(terms.map((term) => [term.id, term]));
+  return (data ?? []).map((session) => {
+    const term = byId.get(session.ministry_term_id)!;
+    const participants =
+      (session.session_participant as unknown as { count: number }[])?.[0]
+        ?.count ?? 0;
+    const assignments =
+      (session.session_assignment as unknown as { count: number }[])?.[0]
+        ?.count ?? 0;
+    const serviceAssignments =
+      (session.service_assignment as unknown as { count: number }[])?.[0]
+        ?.count ?? 0;
+    const groupAssignments =
+      (session.group_session_assignment as unknown as { count: number }[])?.[0]
+        ?.count ?? 0;
+
+    return {
+      id: session.id,
+      slug: session.slug,
+      title: session.title,
+      sessionDate: session.session_date,
+      termId: session.ministry_term_id,
+      termName: term.name,
+      ministryName: term.ministryName,
+      scopeLabel: Array.isArray(session.term_group)
+        ? `Group: ${session.term_group[0]?.name ?? "Unknown"}`
+        : session.term_group
+          ? `Group: ${session.term_group.name}`
+          : Array.isArray(session.term_department)
+            ? `Department: ${session.term_department[0]?.name ?? "Unknown"}`
+            : session.term_department
+              ? `Department: ${session.term_department.name}`
+              : "Ministry term",
+      participantCount: participants,
+      canDelete:
+        participants === 0 &&
+        assignments === 0 &&
+        serviceAssignments === 0 &&
+        groupAssignments === 0,
+    };
+  });
 }
 
 export async function getSessionDetail(
@@ -573,7 +649,7 @@ export async function getSessionServiceAssignmentData(
     };
   }
 
-  const [deptRes, memberRes, assignRes] = await Promise.all([
+  const [deptRes, selectedRoleRes, memberRes, assignRes] = await Promise.all([
     s
       .from("term_department")
       .select(
@@ -582,9 +658,13 @@ export async function getSessionServiceAssignmentData(
       .eq("ministry_term_id", sessionItem.termId)
       .order("name"),
     s
+      .from("session_service_role")
+      .select("department_service_role_id")
+      .eq("ministry_session_id", sessionItem.id),
+    s
       .from("ministry_membership")
       .select(
-        "id, member_profile_id, member_profile!inner(id, full_name, slug, archived_at), ministry_assignment(term_department(id, name))",
+        "id, member_profile_id, member_profile!inner(id, full_name, slug, gender, archived_at), ministry_assignment(term_department(id, name))",
       )
       .eq("ministry_term_id", sessionItem.termId)
       .is("member_profile.archived_at", null)
@@ -602,10 +682,18 @@ export async function getSessionServiceAssignmentData(
       .order("created_at", { ascending: true }),
   ]);
 
-  if (deptRes.error || memberRes.error || assignRes.error) {
+  if (
+    deptRes.error ||
+    selectedRoleRes.error ||
+    memberRes.error ||
+    assignRes.error
+  ) {
     console.error(
       "Failed to fetch session service assignment data:",
-      deptRes.error || memberRes.error || assignRes.error,
+      deptRes.error ||
+        selectedRoleRes.error ||
+        memberRes.error ||
+        assignRes.error,
     );
     throw new Error("Failed to fetch session service assignment data");
   }
@@ -647,6 +735,7 @@ export async function getSessionServiceAssignmentData(
         memberId: profile.id,
         memberName: profile.full_name,
         memberSlug: profile.slug,
+        gender: profile.gender ?? null,
         departmentIds: deptIds,
         departmentNames: deptNames,
       };
@@ -686,6 +775,9 @@ export async function getSessionServiceAssignmentData(
     termSlug,
     scope: "ministry",
     departments,
+    selectedRoleIds: (selectedRoleRes.data ?? []).map(
+      (row) => row.department_service_role_id,
+    ),
     assignments,
     enrolledMembers,
   };

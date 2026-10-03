@@ -31,6 +31,11 @@ import { FloatingCreateButton } from "@/components/shared/floating-create-button
 import { StatusToast } from "@/components/ui/status-toast";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
+  NavigationTabButton,
+  NavigationTabs,
+} from "@/components/shared/navigation-tabs";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
 } from "@/components/shared/expandable-action-item";
@@ -40,11 +45,19 @@ import type { SessionItem, SessionPage, SessionTermOption } from "../types";
 export function SessionManagement({
   result,
   terms,
+  calendarMonth,
+  calendarSessions,
+  selectedCalendarDate,
 }: {
   result: SessionPage;
   terms: SessionTermOption[];
+  calendarMonth: string;
+  calendarSessions: SessionItem[];
+  selectedCalendarDate: string;
 }) {
-  const [query, setQuery] = useQueryStates(sessionSearchParams);
+  const [query, setQuery] = useQueryStates(sessionSearchParams, {
+    shallow: false,
+  });
   const [edit, setEdit] = React.useState<SessionItem | null | "new">(null);
   const [remove, setRemove] = React.useState<SessionItem | null>(null);
   const [title, setTitle] = React.useState("");
@@ -94,155 +107,196 @@ export function SessionManagement({
     setFilterOpen(false);
   }
   const hasActiveFilter = Boolean(query.term);
+  const isOverview = query.view === "overview";
   return (
     <section className="space-y-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-0">
-      <div className="flex items-center gap-2 border-b pb-5">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
-          <Input
-            className="bg-card h-12 pl-9 text-base shadow-xs"
-            value={query.q}
-            onChange={(e) => void setQuery({ q: e.target.value, page: 1 })}
-            placeholder="Search sessions"
-            aria-label="Search sessions"
-          />
-        </div>
-        <Button
-          ref={filterButtonRef}
-          type="button"
-          variant="outline"
-          onClick={openFilter}
-          className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
-          aria-label={
-            hasActiveFilter ? "Filter sessions (1 active)" : "Filter sessions"
+      <NavigationTabs aria-label="Session views">
+        <NavigationTabButton
+          active={isOverview}
+          onClick={() => void setQuery({ view: "overview" })}
+        >
+          Overview
+        </NavigationTabButton>
+        <NavigationTabButton
+          active={!isOverview}
+          onClick={() =>
+            void setQuery({ view: "list", month: null, date: null })
           }
         >
-          <SlidersHorizontal
-            className="text-muted-foreground size-4"
-            aria-hidden="true"
-          />
-          <span>Filter</span>
-          {hasActiveFilter && (
-            <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
-              1
-            </span>
-          )}
-        </Button>
-      </div>
-      <div className="hidden flex-wrap gap-2 md:flex">
-        <Button
-          variant={query.term ? "outline" : "default"}
-          onClick={() => setQuery({ term: "", page: 1 })}
-        >
-          All terms
-        </Button>
-        {terms.map((t) => (
-          <Button
-            key={t.id}
-            variant={query.term === t.routeKey ? "default" : "outline"}
-            onClick={() => setQuery({ term: t.routeKey, page: 1 })}
-          >
-            {t.ministryName}: {t.name}
-          </Button>
-        ))}
-      </div>
-      {result.items.length === 0 ? (
-        <EmptyState
-          icon={CalendarDays}
-          title={query.q ? "No sessions match this search" : "No sessions yet"}
-          description={
-            query.q
-              ? "Clear or change your search to see more records."
-              : "Create the first one-off session to begin attendance."
+          All sessions
+        </NavigationTabButton>
+      </NavigationTabs>
+      {isOverview ? (
+        <SessionCalendarOverview
+          month={calendarMonth}
+          sessions={calendarSessions}
+          selectedDate={selectedCalendarDate}
+          onSelectDate={(nextDate) => void setQuery({ date: nextDate })}
+          onMonthChange={(nextMonth) =>
+            void setQuery({ month: nextMonth, date: "" })
           }
-          action={
-            !query.q ? (
-              <Button variant="outline" onClick={() => open("new")}>
-                Add session
-              </Button>
-            ) : undefined
-          }
+          onEdit={open}
+          onDelete={setRemove}
         />
       ) : (
         <>
-          <ExpandableCoordinatorProvider
-            resetKey={`${query.q}-${query.term}-${query.page}-${query.pageSize}`}
-          >
-            <div className="grid gap-3 md:hidden">
-              {result.items.map((item) => (
-                <SessionCard
-                  key={item.id}
-                  item={item}
-                  onEdit={() => open(item)}
-                  onDelete={() => setRemove(item)}
-                />
-              ))}
+          <div className="flex items-center gap-2 border-b pb-5">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                aria-hidden="true"
+              />
+              <Input
+                className="bg-card h-12 pl-9 text-base shadow-xs"
+                value={query.q}
+                onChange={(e) => void setQuery({ q: e.target.value, page: 1 })}
+                placeholder="Search sessions"
+                aria-label="Search sessions"
+              />
             </div>
-          </ExpandableCoordinatorProvider>
-          <div className="hidden overflow-hidden rounded-xl border md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="p-3">Session</th>
-                  <th>Term</th>
-                  <th>Scope</th>
-                  <th>Date</th>
-                  <th>Participants</th>
-                  <th className="p-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.items.map((item) => (
-                  <tr key={item.id} className="border-b last:border-0">
-                    <td className="p-3">
-                      <Link
-                        className="font-medium underline"
-                        href={`/admin/sessions/${item.slug}`}
-                      >
-                        {item.title}
-                      </Link>
-                    </td>
-                    <td>
-                      {item.ministryName} · {item.termName}
-                    </td>
-                    <td>{item.scopeLabel}</td>
-                    <td>{item.sessionDate}</td>
-                    <td>{item.participantCount}</td>
-                    <td className="flex gap-2 p-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => open(item)}
-                      >
-                        Edit
-                      </Button>
-                      {item.canDelete && (
-                        <DestructiveActionButton
-                          size="sm"
-                          onClick={() => setRemove(item)}
-                          className="w-auto"
-                          label="Delete"
-                          icon={Trash2}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Button
+              ref={filterButtonRef}
+              type="button"
+              variant="outline"
+              onClick={openFilter}
+              className="bg-card hover:bg-card min-h-12 shrink-0 gap-2 px-3.5 md:hidden"
+              aria-label={
+                hasActiveFilter
+                  ? "Filter sessions (1 active)"
+                  : "Filter sessions"
+              }
+            >
+              <SlidersHorizontal
+                className="text-muted-foreground size-4"
+                aria-hidden="true"
+              />
+              <span>Filter</span>
+              {hasActiveFilter && (
+                <span className="bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-xs font-semibold">
+                  1
+                </span>
+              )}
+            </Button>
           </div>
+          <div className="hidden flex-wrap gap-2 md:flex">
+            <Button
+              variant={query.term ? "outline" : "default"}
+              onClick={() => setQuery({ term: "", page: 1 })}
+            >
+              All terms
+            </Button>
+            {terms.map((t) => (
+              <Button
+                key={t.id}
+                variant={query.term === t.routeKey ? "default" : "outline"}
+                onClick={() => setQuery({ term: t.routeKey, page: 1 })}
+              >
+                {t.ministryName}: {t.name}
+              </Button>
+            ))}
+          </div>
+          {result.items.length === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title={
+                query.q ? "No sessions match this search" : "No sessions yet"
+              }
+              description={
+                query.q
+                  ? "Clear or change your search to see more records."
+                  : "Create the first one-off session to begin attendance."
+              }
+              action={
+                !query.q ? (
+                  <Button
+                    variant="outline"
+                    className="h-11 min-h-[44px] px-6 text-base font-medium"
+                    onClick={() => open("new")}
+                  >
+                    Add session
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <>
+              <ExpandableCoordinatorProvider
+                resetKey={`${query.q}-${query.term}-${query.page}-${query.pageSize}`}
+              >
+                <div className="grid gap-3 md:hidden">
+                  {result.items.map((item) => (
+                    <SessionCard
+                      key={item.id}
+                      item={item}
+                      onEdit={() => open(item)}
+                      onDelete={() => setRemove(item)}
+                    />
+                  ))}
+                </div>
+              </ExpandableCoordinatorProvider>
+              <div className="hidden overflow-hidden rounded-xl border md:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="p-3">Session</th>
+                      <th>Term</th>
+                      <th>Scope</th>
+                      <th>Date</th>
+                      <th>Participants</th>
+                      <th className="p-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.items.map((item) => (
+                      <tr key={item.id} className="border-b last:border-0">
+                        <td className="p-3">
+                          <Link
+                            className="font-medium underline"
+                            href={`/admin/sessions/${item.slug}`}
+                          >
+                            {item.title}
+                          </Link>
+                        </td>
+                        <td>
+                          {item.ministryName} · {item.termName}
+                        </td>
+                        <td>{item.scopeLabel}</td>
+                        <td>{item.sessionDate}</td>
+                        <td>{item.participantCount}</td>
+                        <td className="flex gap-2 p-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => open(item)}
+                          >
+                            Edit
+                          </Button>
+                          {item.canDelete && (
+                            <DestructiveActionButton
+                              size="sm"
+                              onClick={() => setRemove(item)}
+                              className="w-auto"
+                              label="Delete"
+                              icon={Trash2}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+          <PaginationCard
+            page={result.page}
+            pageSize={query.pageSize}
+            count={result.count}
+            itemLabel="sessions"
+            onPageChange={(page) => void setQuery({ page })}
+          />
         </>
       )}
-      <PaginationCard
-        page={result.page}
-        pageSize={query.pageSize}
-        count={result.count}
-        itemLabel="sessions"
-        onPageChange={(page) => void setQuery({ page })}
-      />
       <ResponsiveEditor
         open={Boolean(edit)}
         onOpenChange={(v) => !v && setEdit(null)}
@@ -410,6 +464,126 @@ export function SessionManagement({
     </section>
   );
 }
+
+function SessionCalendarOverview({
+  month,
+  sessions,
+  selectedDate,
+  onSelectDate,
+  onMonthChange,
+  onEdit,
+  onDelete,
+}: {
+  month: string;
+  sessions: SessionItem[];
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
+  onMonthChange: (month: string) => void;
+  onEdit: (item: SessionItem) => void;
+  onDelete: (item: SessionItem) => void;
+}) {
+  const sessionCounts = React.useMemo(
+    () =>
+      sessions.reduce<Record<string, number>>((counts, session) => {
+        counts[session.sessionDate] = (counts[session.sessionDate] ?? 0) + 1;
+        return counts;
+      }, {}),
+    [sessions],
+  );
+  const selectedSessions = sessions.filter(
+    (session) => session.sessionDate === selectedDate,
+  );
+  const selectedDay = selectedDate ? parseISO(selectedDate) : undefined;
+  const calendarMonth = parseISO(`${month}-01`);
+
+  function SessionDayButton({
+    day,
+    children,
+    ...props
+  }: React.ComponentProps<typeof CalendarDayButton>) {
+    const count = sessionCounts[format(day.date, "yyyy-MM-dd")] ?? 0;
+    return (
+      <CalendarDayButton
+        {...props}
+        day={day}
+        className={
+          count > 0
+            ? "text-primary not-data-[selected-single=true]:bg-primary/10 not-data-[selected-single=true]:hover:bg-primary/15 data-[today=true]:not-data-[selected-single=true]:bg-primary/10 font-bold"
+            : undefined
+        }
+      >
+        <span>{children}</span>
+        {count > 0 && (
+          <span className="bg-primary ring-card absolute top-1 right-1 size-1.5 rounded-full ring-2">
+            <span className="sr-only">{count} sessions</span>
+          </span>
+        )}
+      </CalendarDayButton>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <Calendar
+          fullWidth
+          transparent
+          mode="single"
+          month={calendarMonth}
+          selected={selectedDay}
+          onMonthChange={(nextMonth) =>
+            onMonthChange(format(nextMonth, "yyyy-MM"))
+          }
+          onDayClick={(day) => {
+            const date = format(day, "yyyy-MM-dd");
+            if (!sessionCounts[date]) return;
+            onSelectDate(date);
+          }}
+          components={{ DayButton: SessionDayButton }}
+          className="w-full [--cell-size:2.75rem] sm:[--cell-size:3rem]"
+        />
+      </section>
+
+      <section aria-live="polite" className="space-y-3">
+        <div className="px-1">
+          <h2 className="text-base font-semibold">
+            {selectedDay
+              ? `Sessions on ${format(selectedDay, "MMM d, yyyy")}`
+              : "No sessions this month"}
+          </h2>
+          {selectedDay && (
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {selectedSessions.length}{" "}
+              {selectedSessions.length === 1 ? "session" : "sessions"}
+            </p>
+          )}
+        </div>
+
+        {selectedSessions.length === 0 ? (
+          <div className="border-border/60 bg-muted/20 rounded-xl border border-dashed p-6 text-center">
+            <p className="text-muted-foreground text-sm">
+              Select a highlighted day to view its sessions.
+            </p>
+          </div>
+        ) : (
+          <ExpandableCoordinatorProvider resetKey={selectedDate}>
+            <div className="grid gap-3 md:grid-cols-2">
+              {selectedSessions.map((item) => (
+                <SessionCard
+                  key={item.id}
+                  item={item}
+                  onEdit={() => onEdit(item)}
+                  onDelete={() => onDelete(item)}
+                />
+              ))}
+            </div>
+          </ExpandableCoordinatorProvider>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function SessionCard({
   item,
   onEdit,
@@ -426,7 +600,7 @@ function SessionCard({
       name={item.title}
       onEdit={onEdit}
       onDelete={item.canDelete ? onDelete : undefined}
-      className="p-4 sm:p-5"
+      className="p-4 sm:p-5 md:rounded-2xl md:border md:shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)]"
     >
       <div role="cell" className="min-w-0">
         <div className="flex items-start justify-between gap-3">
@@ -454,6 +628,7 @@ function SessionCard({
             </span>
           </Link>
           <ExpandableActionItem.Trigger />
+          <ExpandableActionItem.DesktopActions />
         </div>
         <ExpandableActionItem.MobileActions />
       </div>

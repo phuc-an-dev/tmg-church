@@ -94,6 +94,7 @@ export type SessionEnrolledMember = {
   memberId: string;
   memberName: string;
   memberSlug: string;
+  gender?: string | null;
   departmentIds: string[];
   departmentNames: string[];
 };
@@ -132,6 +133,7 @@ export type SessionServiceAssignmentData = {
   termSlug: string;
   scope: "ministry" | "group";
   departments?: SessionDepartmentOption[];
+  selectedRoleIds?: string[];
   assignments?: SessionServiceAssignment[];
   enrolledMembers?: SessionEnrolledMember[];
   groupMembers?: SessionGroupMember[];

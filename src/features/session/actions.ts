@@ -11,6 +11,7 @@ import {
   deleteSessionSchema,
   removeGroupSessionAssignmentSchema,
   removeServiceAssignmentSchema,
+  setSessionServiceRolesSchema,
   saveGroupSessionAssignmentSchema,
   saveServiceAssignmentSchema,
   sessionSchema,
@@ -368,6 +369,40 @@ export async function removeServiceAssignmentAction(
 
   revalidatePath(`/admin/sessions/${session.slug}`);
   return { success: true, message: "Service assignment removed." };
+}
+
+export async function setSessionServiceRolesAction(
+  raw: unknown,
+): Promise<Result> {
+  const ctx = await requireOperationalContext();
+  const p = setSessionServiceRolesSchema.safeParse(raw);
+  if (!p.success)
+    return { success: false, error: "Invalid service role selection." };
+
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,slug")
+    .eq("id", p.data.sessionId)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+  if (!session) return { success: false, error: "Invalid session." };
+
+  const { error } = await s.rpc("set_session_service_roles", {
+    target_session_id: session.id,
+    target_role_ids: p.data.roleIds,
+  });
+  if (error)
+    return {
+      success: false,
+      error:
+        error.code === "23503"
+          ? "Remove service assignments before removing a service role."
+          : "Unable to update service roles.",
+    };
+
+  revalidatePath(`/admin/sessions/${session.slug}`);
+  return { success: true, message: "Service roles updated." };
 }
 
 export async function saveGroupSessionAssignmentAction(

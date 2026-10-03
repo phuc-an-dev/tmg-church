@@ -843,6 +843,42 @@ export type Database = {
           },
         ];
       };
+      session_service_role: {
+        Row: {
+          created_at: string;
+          department_service_role_id: string;
+          id: string;
+          ministry_session_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          department_service_role_id: string;
+          id?: string;
+          ministry_session_id: string;
+        };
+        Update: {
+          created_at?: string;
+          department_service_role_id?: string;
+          id?: string;
+          ministry_session_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "session_service_role_department_service_role_id_fkey";
+            columns: ["department_service_role_id"];
+            isOneToOne: false;
+            referencedRelation: "department_service_role";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "session_service_role_ministry_session_id_fkey";
+            columns: ["ministry_session_id"];
+            isOneToOne: false;
+            referencedRelation: "ministry_session";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       service_assignment: {
         Row: {
           created_at: string;
@@ -1674,6 +1710,13 @@ export type Database = {
       };
       set_member_segments: {
         Args: { target_member_id: string; target_segment_ids: string[] };
+        Returns: undefined;
+      };
+      set_session_service_roles: {
+        Args: {
+          target_role_ids: string[];
+          target_session_id: string;
+        };
         Returns: undefined;
       };
       set_ministry_assignments: {

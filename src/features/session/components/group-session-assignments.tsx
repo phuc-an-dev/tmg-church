@@ -17,6 +17,7 @@ import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import {
   NavigationTabs,
   NavigationTabLink,
@@ -254,6 +255,7 @@ export function GroupSessionAssignments({
                           )}
                           aria-label={`Actions for ${label}`}
                           aria-expanded={isExpanded}
+                          aria-controls={`group-session-role-actions-${role}`}
                           onClick={() =>
                             setExpandedRole((prev) =>
                               prev === role ? null : role,
@@ -264,54 +266,53 @@ export function GroupSessionAssignments({
                         </Button>
                       </div>
                     </div>
-                    {isExpanded && (
+                    <ExpandableCardPanel
+                      open={isExpanded}
+                      id={`group-session-role-actions-${role}`}
+                      label={`Actions for ${label}`}
+                      className="md:hidden"
+                    >
                       <div
-                        role="region"
-                        aria-label={`Actions for ${label}`}
-                        className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none md:hidden"
+                        className={cn(
+                          "grid gap-2",
+                          assigned ? "grid-cols-2" : "grid-cols-1",
+                        )}
                       >
-                        <div
-                          className={cn(
-                            "grid gap-2",
-                            assigned ? "grid-cols-2" : "grid-cols-1",
-                          )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                          onClick={() => {
+                            setExpandedRole(null);
+                            setPickerRole(role);
+                          }}
                         >
-                          <Button
+                          {assigned ? (
+                            <>
+                              <Pencil className="size-4" aria-hidden="true" />
+                              <span>Change Guide</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="size-4" aria-hidden="true" />
+                              <span>Assign {label}</span>
+                            </>
+                          )}
+                        </Button>
+                        {assigned && (
+                          <DestructiveActionButton
                             type="button"
-                            variant="outline"
-                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                            className="min-h-11 w-full"
                             onClick={() => {
                               setExpandedRole(null);
-                              setPickerRole(role);
+                              setRemoving(assigned);
                             }}
-                          >
-                            {assigned ? (
-                              <>
-                                <Pencil className="size-4" aria-hidden="true" />
-                                <span>Change Guide</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="size-4" aria-hidden="true" />
-                                <span>Assign {label}</span>
-                              </>
-                            )}
-                          </Button>
-                          {assigned && (
-                            <DestructiveActionButton
-                              type="button"
-                              className="min-h-11 w-full"
-                              onClick={() => {
-                                setExpandedRole(null);
-                                setRemoving(assigned);
-                              }}
-                              label="Remove"
-                              icon={Trash2}
-                            />
-                          )}
-                        </div>
+                            label="Remove"
+                            icon={Trash2}
+                          />
+                        )}
                       </div>
-                    )}
+                    </ExpandableCardPanel>
                   </div>
                   <div className="text-muted-foreground flex items-center justify-center gap-1.5 px-4 py-1.5 text-center text-xs font-medium md:hidden">
                     <Icon className="size-3.5" aria-hidden="true" />

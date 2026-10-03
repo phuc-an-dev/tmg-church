@@ -3,24 +3,32 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Plus, Search, Users, X } from "lucide-react";
+import { Check, LockKeyhole, Plus, Users } from "lucide-react";
 import { cn } from "cn";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
-import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { IdentityTile } from "@/components/shared/identity-picker";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
+import {
+  ListTable,
+  ListTableBody,
+  ListTableHeader,
+} from "@/components/shared/list-table";
+import {
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
 import {
   NavigationTabs,
   NavigationTabLink,
 } from "@/components/shared/navigation-tabs";
 import { StatusToast } from "@/components/ui/status-toast";
-import { DynamicLucideIcon } from "@/features/ministry/components/dynamic-lucide-icon";
-import { normalizeMinistryColor } from "@/features/ministry/visual-identity";
 import {
   batchSaveServiceAssignmentsAction,
   removeServiceAssignmentAction,
-  saveServiceAssignmentAction,
+  setSessionServiceRolesAction,
 } from "../actions";
 import type {
   SessionDepartmentOption,
@@ -43,134 +51,148 @@ export function ServiceAssignmentManagement({
     departments = [],
     assignments = [],
     enrolledMembers = [],
+    selectedRoleIds = [],
   } = assignmentData;
 
   const [feedback, setFeedback] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+  const [serviceRolesDrawerOpen, setServiceRolesDrawerOpen] =
+    React.useState(false);
+  const [draftRoleIds, setDraftRoleIds] = React.useState<string[]>([]);
 
-  // Assign Drawer Wizard state
+  // Role assignment drawer state
   const [assignDrawerOpen, setAssignDrawerOpen] = React.useState(false);
-  const [wizardStep, setWizardStep] = React.useState<1 | 2>(1);
   const [targetDept, setTargetDept] =
     React.useState<SessionDepartmentOption | null>(null);
   const [selectedRoleId, setSelectedRoleId] = React.useState<string>("");
   const [selectedMemberIds, setSelectedMemberIds] = React.useState<string[]>(
     [],
   );
-  const [memberSearchDraft, setMemberSearchDraft] = React.useState("");
 
-  // Remove confirmation state
-  const [removingAssignment, setRemovingAssignment] =
-    React.useState<SessionServiceAssignment | null>(null);
+  const selectedDepartments = React.useMemo(
+    () =>
+      departments
+        .map((department) => ({
+          ...department,
+          roles: department.roles.filter((role) =>
+            selectedRoleIds.includes(role.id),
+          ),
+        }))
+        .filter((department) => department.roles.length > 0),
+    [departments, selectedRoleIds],
+  );
 
-  function openAssignDrawer(dept: SessionDepartmentOption) {
+  function openServiceRolesDrawer() {
+    setDraftRoleIds(selectedRoleIds);
+    setServiceRolesDrawerOpen(true);
+  }
+
+  async function saveServiceRoles() {
+    setPending(true);
+    try {
+      const result = await setSessionServiceRolesAction({
+        sessionId: session.id,
+        roleIds: draftRoleIds,
+      });
+      if (!result.success) {
+        setFeedback(result.error ?? "Unable to update service roles.");
+        return;
+      }
+      setServiceRolesDrawerOpen(false);
+      setFeedback(result.message ?? "Service roles updated.");
+      router.refresh();
+    } catch {
+      setFeedback("Unable to update service roles.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function openAssignDrawer(dept: SessionDepartmentOption, roleId: string) {
     setTargetDept(dept);
-    setWizardStep(1);
-    setSelectedRoleId(dept.roles[0]?.id ?? "");
-    setSelectedMemberIds([]);
-    setMemberSearchDraft("");
+    setSelectedRoleId(roleId);
+    setSelectedMemberIds(
+      assignments
+        .filter(
+          (assignment) =>
+            assignment.termDepartmentId === dept.id &&
+            assignment.departmentServiceRoleId === roleId,
+        )
+        .map((assignment) => assignment.ministryMembershipId),
+    );
     setAssignDrawerOpen(true);
   }
 
-  // Members strictly belonging to the target department
-  const deptMembers = React.useMemo(() => {
-    if (!targetDept) return [];
-    return enrolledMembers.filter((m) =>
-      m.departmentIds.includes(targetDept.id),
+  function getAssignmentChanges(memberIds: readonly string[]) {
+    if (!targetDept || !selectedRoleId) return { additions: [], removals: [] };
+    const currentAssignments = assignments.filter(
+      (assignment) =>
+        assignment.termDepartmentId === targetDept.id &&
+        assignment.departmentServiceRoleId === selectedRoleId,
     );
-  }, [enrolledMembers, targetDept]);
-
-  // Filtered members by search query in step 1
-  const filteredDeptMembers = React.useMemo(() => {
-    const q = memberSearchDraft.trim().toLowerCase();
-    if (!q) return deptMembers;
-    return deptMembers.filter((m) => m.memberName.toLowerCase().includes(q));
-  }, [deptMembers, memberSearchDraft]);
-
-  // Check if all selected members are already assigned to the selected role
-  const isDuplicateRole = React.useMemo(() => {
-    if (!selectedRoleId || selectedMemberIds.length === 0) return false;
-    const existingRoleMemberIds = new Set(
-      assignments
-        .filter((a) => a.departmentServiceRoleId === selectedRoleId)
-        .map((a) => a.ministryMembershipId),
+    const currentMemberIds = new Set(
+      currentAssignments.map((assignment) => assignment.ministryMembershipId),
     );
-    return selectedMemberIds.every((id) => existingRoleMemberIds.has(id));
-  }, [assignments, selectedRoleId, selectedMemberIds]);
 
-  async function handleSaveAssignment() {
-    if (!selectedRoleId || selectedMemberIds.length === 0) return;
+    return {
+      additions: memberIds.filter((id) => !currentMemberIds.has(id)),
+      removals: currentAssignments.filter(
+        (assignment) => !memberIds.includes(assignment.ministryMembershipId),
+      ),
+    };
+  }
 
+  const assignmentChanges = getAssignmentChanges(selectedMemberIds);
+
+  async function applyAssignmentChanges(changes: {
+    additions: string[];
+    removals: SessionServiceAssignment[];
+  }) {
     setPending(true);
     try {
-      if (selectedMemberIds.length === 1) {
-        const result = await saveServiceAssignmentAction({
-          sessionId: session.id,
-          roleId: selectedRoleId,
-          membershipId: selectedMemberIds[0],
-        });
-
-        if (result.success) {
-          setFeedback(result.message ?? "Member assigned successfully.");
-          setAssignDrawerOpen(false);
-          router.refresh();
-        } else {
-          setFeedback(result.error ?? "Failed to assign member.");
-        }
-      } else {
+      if (changes.additions.length > 0) {
         const result = await batchSaveServiceAssignmentsAction({
           sessionId: session.id,
           roleId: selectedRoleId,
-          membershipIds: selectedMemberIds,
+          membershipIds: changes.additions,
         });
-
-        if (result.success) {
-          setFeedback(result.message ?? "Members assigned successfully.");
-          setAssignDrawerOpen(false);
-          router.refresh();
-        } else {
+        if (!result.success) {
           setFeedback(result.error ?? "Failed to assign members.");
+          return;
         }
       }
-    } catch {
-      setFeedback("Unable to save service assignment.");
-    } finally {
-      setPending(false);
-    }
-  }
 
-  async function handleRemoveAssignment() {
-    if (!removingAssignment) return;
-    setPending(true);
-    try {
-      const result = await removeServiceAssignmentAction({
-        sessionId: session.id,
-        assignmentId: removingAssignment.id,
-      });
-
-      if (result.success) {
-        setFeedback(result.message ?? "Service assignment removed.");
-        setRemovingAssignment(null);
-        router.refresh();
-      } else {
-        setFeedback(result.error ?? "Failed to remove assignment.");
+      for (const assignment of changes.removals) {
+        const result = await removeServiceAssignmentAction({
+          sessionId: session.id,
+          assignmentId: assignment.id,
+        });
+        if (!result.success) {
+          setFeedback(result.error ?? "Failed to remove assignment.");
+          return;
+        }
       }
+
+      setAssignDrawerOpen(false);
+      setFeedback("Service assignments updated.");
+      router.refresh();
     } catch {
-      setFeedback("Unable to remove service assignment.");
+      setFeedback("Unable to save service assignments.");
     } finally {
       setPending(false);
     }
   }
 
-  function toggleMemberSelection(membershipId: string) {
-    setSelectedMemberIds((prev) =>
-      prev.includes(membershipId)
-        ? prev.filter((id) => id !== membershipId)
-        : [...prev, membershipId],
-    );
+  function handleSaveAssignment(memberIds: string[]) {
+    const changes = getAssignmentChanges(memberIds);
+    if (changes.additions.length === 0 && changes.removals.length === 0) {
+      return;
+    }
+
+    void applyAssignmentChanges(changes);
   }
 
-  const totalRoles = departments.reduce(
+  const totalRoles = selectedDepartments.reduce(
     (acc, dept) => acc + dept.roles.length,
     0,
   );
@@ -232,36 +254,33 @@ export function ServiceAssignmentManagement({
               Departments
             </p>
             <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
-              {departments.length}
+              {selectedDepartments.length}
             </p>
           </div>
         </div>
       </section>
 
-      {/* 4. Grouped Department & Roles List */}
-      {departments.length === 0 ? (
+      {/* 4. Selected service roles */}
+      {selectedDepartments.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-8 text-center sm:p-12">
           <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-xl">
             <Users className="size-6" />
           </div>
           <h2 className="text-foreground mt-3 text-base font-semibold">
-            No departments configured
+            No service roles selected
           </h2>
           <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">
-            This ministry term has no departments yet. Please add departments in
-            the Ministry Term Structure.
+            Select the service roles needed for this session, then assign
+            members to them.
           </p>
-          {assignmentData.ministrySlug && assignmentData.termSlug && (
-            <div className="mt-4">
-              <Button asChild variant="outline" className="min-h-11">
-                <Link
-                  href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=departments`}
-                >
-                  Open Ministry Term Structure
-                </Link>
-              </Button>
-            </div>
-          )}
+          <Button
+            type="button"
+            className="mt-4 min-h-11"
+            onClick={openServiceRolesDrawer}
+          >
+            <Plus className="size-4" />
+            Select service roles
+          </Button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -299,391 +318,263 @@ export function ServiceAssignmentManagement({
             </div>
           )}
 
-          {/* Department Cards */}
-          {departments.map((dept) => {
-            const color = normalizeMinistryColor(dept.accentColor);
-            const deptAssignments = assignments.filter(
-              (a) => a.termDepartmentId === dept.id,
-            );
-            const assignedRoles = dept.roles.filter((role) =>
-              deptAssignments.some(
-                (a) => a.departmentServiceRoleId === role.id,
-              ),
-            );
+          {/* Service roster */}
+          <ExpandableCoordinatorProvider>
+            <div className="space-y-8">
+              {selectedDepartments.map((dept) => {
+                const deptAssignments = assignments.filter(
+                  (a) => a.termDepartmentId === dept.id,
+                );
+                const staffedRoleCount = dept.roles.filter((role) =>
+                  deptAssignments.some(
+                    (assignment) =>
+                      assignment.departmentServiceRoleId === role.id,
+                  ),
+                ).length;
 
-            return (
-              <div
-                key={dept.id}
-                className="border-border/80 bg-card space-y-3 rounded-2xl border p-4 shadow-2xs sm:p-5"
-              >
-                {/* Card Header: Department Info + Single Assign Button */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="flex size-9 shrink-0 items-center justify-center rounded-xl text-white shadow-2xs"
-                      style={{ backgroundColor: color }}
-                    >
-                      <DynamicLucideIcon
+                return (
+                  <section key={dept.id} className="space-y-2">
+                    <div className="flex items-center gap-3 px-1">
+                      <IdentityTile
+                        accentColor={dept.accentColor}
                         iconKey={dept.iconKey}
-                        className="size-4"
+                        className="size-10 rounded-xl !border-0"
                       />
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="text-foreground truncate text-base font-semibold sm:text-lg">
-                        {dept.name}
-                      </h2>
-                      <p className="text-muted-foreground text-xs">
-                        {dept.roles.length}{" "}
-                        {dept.roles.length === 1 ? "role" : "roles"} ·{" "}
-                        {deptAssignments.length}{" "}
-                        {deptAssignments.length === 1 ? "assigned" : "assigned"}
-                      </p>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-semibold">
+                          {dept.name}
+                        </h2>
+                        <p className="text-muted-foreground text-xs">
+                          {staffedRoleCount}/{dept.roles.length} staffed
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="min-h-11 shrink-0 gap-1.5 px-4 font-semibold"
-                    disabled={dept.roles.length === 0}
-                    onClick={() => openAssignDrawer(dept)}
-                    title={
-                      dept.roles.length === 0
-                        ? `No roles configured in ${dept.name}`
-                        : `Assign volunteers to ${dept.name}`
-                    }
-                  >
-                    <Plus className="size-4" />
-                    <span>Assign</span>
-                  </Button>
-                </div>
-
-                {/* Card Body: Only assigned roles (flat, no nested box) */}
-                {dept.roles.length === 0 ? (
-                  <p className="text-muted-foreground text-xs italic">
-                    No service roles configured in {dept.name}.
-                  </p>
-                ) : assignedRoles.length === 0 ? (
-                  <p className="text-muted-foreground text-xs italic">
-                    No volunteers assigned yet.
-                  </p>
-                ) : (
-                  <div className="border-border/40 divide-border/40 divide-y border-t pt-1">
-                    {assignedRoles.map((role) => {
-                      const roleAssignments = deptAssignments.filter(
-                        (a) => a.departmentServiceRoleId === role.id,
-                      );
-
-                      return (
-                        <div
-                          key={role.id}
-                          className="flex flex-col gap-2 py-3 first:pt-2 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="min-w-36">
-                            <span className="text-foreground text-sm font-semibold">
-                              {role.name}
-                            </span>
-                            <span className="text-muted-foreground ml-2 text-xs">
-                              ({roleAssignments.length})
-                            </span>
+                    <div className="border-border/70 ml-5 border-l pl-4 md:ml-0 md:border-l-0 md:pl-0">
+                      <ListTable label={`Service roles for ${dept.name}`}>
+                        <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
+                          <div role="columnheader">Role</div>
+                          <div role="columnheader" className="text-right">
+                            Actions
                           </div>
+                        </ListTableHeader>
+                        <ListTableBody>
+                          {dept.roles.map((role) => {
+                            const roleAssignments = deptAssignments.filter(
+                              (assignment) =>
+                                assignment.departmentServiceRoleId === role.id,
+                            );
 
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {roleAssignments.map((assignment) => (
-                              <span
-                                key={assignment.id}
-                                className="border-border/80 bg-muted/40 text-foreground inline-flex items-center gap-1.5 rounded-full border py-1 pr-1.5 pl-2.5 text-xs font-medium shadow-2xs"
+                            return (
+                              <ExpandableActionItem
+                                key={role.id}
+                                id={`session-role-${session.id}-${role.id}`}
+                                name={`${dept.name} ${role.name}`}
+                                onEdit={() => openAssignDrawer(dept, role.id)}
+                                editLabel="Manage"
+                                className="before:bg-border/70 p-4 before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4 md:grid md:grid-cols-[1fr_80px] md:items-center md:gap-4 md:p-3 md:before:hidden"
                               >
-                                <span>{assignment.memberName}</span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setRemovingAssignment(assignment)
-                                  }
-                                  className="hover:bg-destructive/10 hover:text-destructive text-muted-foreground flex size-6 items-center justify-center rounded-full transition-colors focus-visible:outline-hidden"
-                                  title={`Remove ${assignment.memberName} from ${role.name}`}
-                                  aria-label={`Remove ${assignment.memberName} from ${role.name}`}
+                                <div role="cell" className="min-w-0">
+                                  <div className="flex min-w-0 items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-base font-semibold md:text-sm">
+                                        {role.name}
+                                      </p>
+                                      {roleAssignments.length === 0 ? (
+                                        <p className="text-muted-foreground mt-0.5 text-sm">
+                                          Unassigned
+                                        </p>
+                                      ) : (
+                                        <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                                          {roleAssignments
+                                            .map(
+                                              (assignment) =>
+                                                assignment.memberName,
+                                            )
+                                            .join(" · ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <ExpandableActionItem.Trigger className="md:hidden" />
+                                  </div>
+                                  <ExpandableActionItem.MobileActions />
+                                </div>
+                                <div
+                                  role="cell"
+                                  className="hidden justify-end md:flex"
                                 >
-                                  <X className="size-3.5" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                                  <ExpandableActionItem.DesktopActions />
+                                </div>
+                              </ExpandableActionItem>
+                            );
+                          })}
+                        </ListTableBody>
+                      </ListTable>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </ExpandableCoordinatorProvider>
         </div>
       )}
 
-      {/* 3. 2-Step Wizard Assign Drawer */}
+      <FloatingCreateButton
+        onClick={openServiceRolesDrawer}
+        icon={<Plus className="size-5" />}
+      >
+        Configure service roles
+      </FloatingCreateButton>
+
       <ResponsiveEditor
-        open={assignDrawerOpen}
-        onOpenChange={(open) => !open && setAssignDrawerOpen(false)}
-        title={
-          wizardStep === 1
-            ? targetDept
-              ? `Assign · ${targetDept.name}`
-              : "Assign Volunteers"
-            : targetDept
-              ? `Choose Role · ${targetDept.name}`
-              : "Choose Role"
-        }
-        description={
-          wizardStep === 1
-            ? `Step 1 of 2: Select members from ${targetDept?.name ?? "department"}`
-            : `Step 2 of 2: Select a service role for ${selectedMemberIds.length} volunteer${selectedMemberIds.length === 1 ? "" : "s"}`
-        }
-        maxWidthClass="sm:max-w-xl"
+        open={serviceRolesDrawerOpen}
+        onOpenChange={setServiceRolesDrawerOpen}
+        title="Service roles"
+        description="Choose the roles needed for this session."
         footer={
-          wizardStep === 1 ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 w-full"
-                onClick={() => setAssignDrawerOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="min-h-11 w-full font-semibold"
-                disabled={selectedMemberIds.length === 0}
-                onClick={() => setWizardStep(2)}
-              >
-                <span>Next: Choose Role</span>
-                {selectedMemberIds.length > 0 && (
-                  <span className="ml-1">({selectedMemberIds.length})</span>
-                )}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 w-full"
-                onClick={() => setWizardStep(1)}
-              >
-                Back
-              </Button>
-              <Button
-                type="button"
-                className="min-h-11 w-full font-semibold"
-                disabled={pending || !selectedRoleId || isDuplicateRole}
-                onClick={handleSaveAssignment}
-              >
-                {pending
-                  ? "Assigning..."
-                  : selectedMemberIds.length > 1
-                    ? `Assign (${selectedMemberIds.length}) Members`
-                    : "Assign Member"}
-              </Button>
-            </>
-          )
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full"
+              disabled={pending}
+              onClick={() => setServiceRolesDrawerOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="min-h-11 w-full"
+              disabled={pending}
+              onClick={() => void saveServiceRoles()}
+            >
+              Save roles
+            </Button>
+          </>
         }
       >
-        <div className="space-y-4">
-          {/* STEP 1: Search & Select Members */}
-          {wizardStep === 1 && (
-            <div className="space-y-3">
-              {deptMembers.length === 0 ? (
-                <div className="bg-muted/15 space-y-3 rounded-xl border border-dashed p-6 text-center">
-                  <p className="text-foreground text-sm font-semibold">
-                    No members in {targetDept?.name}
-                  </p>
-                  <p className="text-muted-foreground mx-auto max-w-sm text-xs">
-                    This department has no members enrolled in this term yet.
-                    Please assign members in the Term Structure.
-                  </p>
-                  {assignmentData.ministrySlug && assignmentData.termSlug && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="min-h-11"
-                    >
-                      <Link
-                        href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=departments`}
-                      >
-                        Open Term Structure
-                      </Link>
-                    </Button>
-                  )}
+        <div className="space-y-5">
+          {departments.map((department) => {
+            return (
+              <section key={department.id} className="space-y-2">
+                <div className="flex items-center gap-3 px-1">
+                  <IdentityTile
+                    accentColor={department.accentColor}
+                    iconKey={department.iconKey}
+                    className="size-10 rounded-xl !border-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {department.name}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {
+                        department.roles.filter((role) =>
+                          draftRoleIds.includes(role.id),
+                        ).length
+                      }
+                      /{department.roles.length} selected
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="relative">
-                    <Search
-                      className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      value={memberSearchDraft}
-                      onChange={(e) => setMemberSearchDraft(e.target.value)}
-                      placeholder={`Search members in ${targetDept?.name}...`}
-                      className="h-11 pl-9 text-base sm:text-sm"
-                      aria-label="Search members"
-                    />
-                  </div>
+                <div className="border-border/70 relative ml-5 space-y-2 border-l pl-4">
+                  {department.roles.map((role) => {
+                    const selected = draftRoleIds.includes(role.id);
+                    const locked =
+                      selected &&
+                      assignments.some(
+                        (assignment) =>
+                          assignment.departmentServiceRoleId === role.id,
+                      );
 
-                  <div className="max-h-72 space-y-2.5 overflow-y-auto pr-0.5">
-                    {filteredDeptMembers.length === 0 ? (
-                      <p className="text-muted-foreground py-8 text-center text-xs">
-                        No matching members found.
-                      </p>
-                    ) : (
-                      filteredDeptMembers.map((member) => {
-                        const isSelected = selectedMemberIds.includes(
-                          member.membershipId,
-                        );
-
-                        // Find any existing assignments for this member in this department for this session
-                        const memberAssignedRoles = assignments
-                          .filter(
-                            (a) =>
-                              a.ministryMembershipId === member.membershipId &&
-                              a.termDepartmentId === targetDept?.id,
+                    return (
+                      <button
+                        key={role.id}
+                        type="button"
+                        disabled={locked}
+                        onClick={() =>
+                          setDraftRoleIds((current) =>
+                            selected
+                              ? current.filter((id) => id !== role.id)
+                              : [...current, role.id],
                           )
-                          .map((a) => a.departmentServiceRoleName);
-
-                        return (
-                          <button
-                            key={member.membershipId}
-                            type="button"
-                            onClick={() =>
-                              toggleMemberSelection(member.membershipId)
-                            }
-                            className={cn(
-                              "flex min-h-14 w-full items-center justify-between rounded-2xl border p-3.5 text-left transition-all select-none sm:p-4",
-                              isSelected
-                                ? "border-primary bg-primary/5 shadow-2xs"
-                                : "border-border/80 bg-card hover:bg-muted/30",
-                            )}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="text-foreground truncate text-sm font-semibold sm:text-base">
-                                {member.memberName}
-                              </p>
-                              {memberAssignedRoles.length > 0 && (
-                                <p className="text-muted-foreground truncate text-xs font-normal">
-                                  Assigned: {memberAssignedRoles.join(", ")}
-                                </p>
-                              )}
-                            </div>
-
-                            <div
-                              className={cn(
-                                "ml-3 flex size-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                                isSelected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-muted-foreground/30 bg-transparent",
-                              )}
-                            >
-                              {isSelected && (
-                                <Check
-                                  className="size-3.5 stroke-[3]"
-                                  aria-hidden="true"
-                                />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* STEP 2: Select Role */}
-          {wizardStep === 2 && targetDept && (
-            <div className="space-y-3">
-              <p className="text-muted-foreground text-xs">
-                Select a role to assign the {selectedMemberIds.length} chosen
-                volunteer{selectedMemberIds.length === 1 ? "" : "s"}:
-              </p>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                {targetDept.roles.map((role) => {
-                  const isSelected = role.id === selectedRoleId;
-                  const currentRoleAssignments = assignments.filter(
-                    (a) => a.departmentServiceRoleId === role.id,
-                  );
-
-                  // Check if any selected member already has this role
-                  const existingRoleMemberIds = new Set(
-                    currentRoleAssignments.map((a) => a.ministryMembershipId),
-                  );
-                  const duplicates = selectedMemberIds.filter((id) =>
-                    existingRoleMemberIds.has(id),
-                  );
-                  const isAllDuplicate =
-                    duplicates.length === selectedMemberIds.length;
-
-                  return (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => setSelectedRoleId(role.id)}
-                      className={cn(
-                        "flex min-h-12 items-center justify-between rounded-xl border p-3.5 text-left transition-all select-none",
-                        isSelected
-                          ? "border-primary bg-primary/10 shadow-xs"
-                          : "border-border/80 bg-card hover:bg-muted/40",
-                      )}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-foreground truncate text-sm font-semibold">
-                          {role.name}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {currentRoleAssignments.length}{" "}
-                          {currentRoleAssignments.length === 1
-                            ? "member assigned"
-                            : "members assigned"}
-                        </p>
-                        {isAllDuplicate && (
-                          <p className="text-destructive mt-0.5 text-[11px] font-medium">
-                            Already assigned to selected member(s)
-                          </p>
+                        }
+                        className={cn(
+                          "before:bg-border/70 relative flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4",
+                          selected
+                            ? "border-primary bg-primary/5"
+                            : "border-border/70 bg-card",
+                          locked && "cursor-not-allowed",
                         )}
-                      </div>
-
-                      {isSelected && (
-                        <div className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full">
-                          <Check className="size-3.5" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                      >
+                        <span className="min-w-0 truncate font-semibold">
+                          {role.name}
+                        </span>
+                        {locked ? (
+                          <LockKeyhole
+                            aria-label="Role has assignments"
+                            className="text-muted-foreground size-4 shrink-0"
+                          />
+                        ) : selected ? (
+                          <Check className="text-primary size-5 shrink-0" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </ResponsiveEditor>
 
-      {/* 6. Confirmation Sheet for Removal */}
-      <ConfirmationSheet
-        open={Boolean(removingAssignment)}
-        onOpenChange={(open) => !open && setRemovingAssignment(null)}
-        title={`Remove ${removingAssignment?.memberName}?`}
-        description={`Remove ${removingAssignment?.memberName} from ${removingAssignment?.departmentServiceRoleName} in ${removingAssignment?.termDepartmentName}?`}
-        confirmLabel="Remove assignment"
+      <MemberAssignDrawer
+        open={assignDrawerOpen}
+        onOpenChange={(open) => !open && setAssignDrawerOpen(false)}
+        title={
+          targetDept
+            ? `Manage · ${targetDept.name} / ${targetDept.roles.find((role) => role.id === selectedRoleId)?.name ?? "Role"}`
+            : "Manage volunteers"
+        }
+        description={`Select members from ${targetDept?.name ?? "department"}`}
+        searchPlaceholder={`Search members in ${targetDept?.name ?? "department"}...`}
+        members={enrolledMembers
+          .filter((member) =>
+            targetDept ? member.departmentIds.includes(targetDept.id) : false,
+          )
+          .map((member) => {
+            const assignedRoles = assignments
+              .filter(
+                (assignment) =>
+                  assignment.ministryMembershipId === member.membershipId &&
+                  assignment.termDepartmentId === targetDept?.id,
+              )
+              .map((assignment) => assignment.departmentServiceRoleName);
+
+            return {
+              id: member.membershipId,
+              name: member.memberName,
+              gender: member.gender,
+              subtitle:
+                assignedRoles.length > 0
+                  ? `Assigned: ${assignedRoles.join(", ")}`
+                  : null,
+            };
+          })}
+        selectedIds={selectedMemberIds}
+        onSelectedIdsChange={setSelectedMemberIds}
+        onAssign={handleSaveAssignment}
         pending={pending}
-        pendingLabel="Removing..."
-        variant="destructive"
-        onConfirm={handleRemoveAssignment}
+        assignLabel="Save changes"
+        isSubmitDisabled={
+          assignmentChanges.additions.length === 0 &&
+          assignmentChanges.removals.length === 0
+        }
+        emptySearchMessage="No members match your search."
+        emptyListMessage={`No members in ${targetDept?.name ?? "this department"}.`}
       />
 
-      {/* 7. Toast Feedback */}
+      {/* 4. Toast Feedback */}
       {feedback && (
         <StatusToast message={feedback} onDismiss={() => setFeedback(null)} />
       )}
