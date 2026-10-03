@@ -1383,6 +1383,7 @@ export type Database = {
           current_group_id: string | null;
           ended_at: string | null;
           full_name: string;
+          gender: string | null;
           group_id: string;
           group_membership_id: string | null;
           group_name: string;
@@ -1410,6 +1411,7 @@ export type Database = {
           department_id: string;
           department_name: string;
           full_name: string;
+          gender: string | null;
           member_id: string;
           membership_id: string;
         };

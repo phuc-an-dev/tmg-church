@@ -6,6 +6,7 @@ export type PortalGroupMemberRow = {
   membershipId: string;
   memberId: string;
   name: string;
+  gender: string | null;
   groupMembershipId: string | null;
   role: string | null;
   status: string | null;
@@ -36,7 +37,7 @@ export async function getPortalGroupMembers(
   const { data, error } = await s
     .from("portal_group_member_directory")
     .select(
-      "membership_id,member_id,full_name,group_membership_id,role,status,current_group_id",
+      "membership_id,member_id,full_name,gender,group_membership_id,role,status,current_group_id",
     )
     .eq("group_id", group.id)
     .order("full_name");
@@ -52,6 +53,7 @@ export async function getPortalGroupMembers(
       membershipId: row.membership_id,
       memberId: row.member_id,
       name: row.full_name,
+      gender: row.gender,
       groupMembershipId: row.group_membership_id,
       role: row.role,
       status: row.status,

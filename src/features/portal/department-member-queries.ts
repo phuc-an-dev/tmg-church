@@ -6,6 +6,7 @@ export type PortalDepartmentMemberRow = {
   membershipId: string;
   memberId: string;
   name: string;
+  gender: string | null;
   assignmentId: string | null;
 };
 
@@ -26,7 +27,7 @@ export async function getPortalDepartmentMembers(
   if (departmentError || !department) return null;
   const { data, error } = await s
     .from("portal_department_member_directory")
-    .select("membership_id,member_id,full_name,assignment_id")
+    .select("membership_id,member_id,full_name,gender,assignment_id")
     .eq("department_id", department.id)
     .order("full_name");
   if (error) throw new Error("Failed to fetch department members");
@@ -36,6 +37,7 @@ export async function getPortalDepartmentMembers(
       membershipId: row.membership_id,
       memberId: row.member_id,
       name: row.full_name,
+      gender: row.gender,
       assignmentId: row.assignment_id,
     })) satisfies PortalDepartmentMemberRow[],
   };

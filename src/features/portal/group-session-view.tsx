@@ -2,12 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Check, Plus, Trash2 } from "lucide-react";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { MemberAvatar } from "@/components/shared/member-avatar";
+import { FloatingCreateButton } from "@/components/shared/floating-create-button";
+import { StatusToast } from "@/components/ui/status-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
-import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
+import {
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
+import { ListTable, ListTableBody } from "@/components/shared/list-table";
 import {
   savePortalAttendanceAction,
   savePortalGroupSessionAction,
@@ -29,17 +39,21 @@ export function PortalGroupSessionList({
   canManage: boolean;
   basePath: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [title, setTitle] = React.useState("");
   const [date, setDate] = React.useState("");
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState("");
   async function save() {
+    setPendingId("save");
     const result = await savePortalGroupSessionAction({
       ministryTermId: group.ministryTermId,
       termGroupId: group.id,
       title,
       sessionDate: date,
     });
+    setPendingId(null);
     if (!result.success)
       return setToast(result.error ?? "Unable to save session.");
     setOpen(false);
@@ -48,78 +62,114 @@ export function PortalGroupSessionList({
     window.location.reload();
   }
   async function remove(id: string) {
+    setPendingId(id);
     const result = await deletePortalGroupSessionAction({ id });
+    setPendingId(null);
     if (!result.success)
       return setToast(result.error ?? "Unable to delete session.");
     window.location.reload();
   }
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-muted-foreground text-sm">Group sessions</p>
-          <h1 className="text-2xl font-bold">{group.name}</h1>
-        </div>
-        {canManage && (
-          <Button className="min-h-11 gap-2" onClick={() => setOpen(true)}>
-            <Plus className="size-4" />
-            New session
-          </Button>
+    <div className="mx-auto max-w-6xl px-4 py-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <AdminPageHeader
+          title={group.name}
+          description="Sessions recorded for this group."
+          backLink={{ href: "/portal", label: "Portal" }}
+          action={
+            canManage ? (
+              <Button
+                className="hidden min-h-11 gap-2 sm:inline-flex"
+                onClick={() => setOpen(true)}
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                <span>New session</span>
+              </Button>
+            ) : undefined
+          }
+        />
+
+        {sessions.length === 0 ? (
+          <EmptyState
+            icon={CalendarDays}
+            title="No sessions yet"
+            description="Create the first session for this group to start recording attendance."
+            action={
+              canManage ? (
+                <Button
+                  variant="outline"
+                  className="bg-card min-h-11 gap-2 px-4"
+                  onClick={() => setOpen(true)}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  New session
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <ExpandableCoordinatorProvider resetKey={String(pendingId)}>
+            <ListTable label="Group sessions">
+              <ListTableBody>
+                {sessions.map((session) => (
+                  <ExpandableActionItem
+                    key={session.id}
+                    id={`group-session-${session.id}`}
+                    name={session.title}
+                    onEdit={
+                      canManage
+                        ? () => router.push(`${basePath}/${session.slug}`)
+                        : undefined
+                    }
+                    editLabel="Open session"
+                    onDelete={
+                      canManage && session.canDelete
+                        ? () => void remove(session.id)
+                        : undefined
+                    }
+                    deleteLabel="Delete session"
+                    deleteIcon={Trash2}
+                    deleteDisabled={pendingId === session.id}
+                    className="p-4 md:grid md:grid-cols-[1fr_44px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                  >
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <Link
+                        href={`${basePath}/${session.slug}`}
+                        className="group/item flex min-w-0 flex-1 items-center gap-3"
+                      >
+                        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                          <CalendarDays className="size-5" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="text-foreground block truncate font-semibold group-hover/item:underline">
+                            {session.title}
+                          </span>
+                          <span className="text-muted-foreground block truncate text-xs">
+                            {session.sessionDate} · {session.participantCount}{" "}
+                            attendance records
+                          </span>
+                        </span>
+                      </Link>
+                      <ExpandableActionItem.Trigger className="md:hidden" />
+                    </div>
+                    <ExpandableActionItem.MobileActions />
+                    <div role="cell" className="hidden justify-end md:flex">
+                      <ExpandableActionItem.DesktopActions />
+                    </div>
+                  </ExpandableActionItem>
+                ))}
+              </ListTableBody>
+            </ListTable>
+          </ExpandableCoordinatorProvider>
         )}
       </div>
-      {sessions.length === 0 ? (
-        <div className="border-border rounded-xl border border-dashed p-10 text-center">
-          <CalendarDays className="text-muted-foreground mx-auto size-10" />
-          <p className="mt-3 font-medium">No sessions yet</p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {sessions.map((session) => (
-            <article
-              key={session.id}
-              className="bg-card border-border flex items-center justify-between gap-3 rounded-xl border p-4"
-            >
-              <Link
-                className="min-w-0 flex-1"
-                href={`${basePath}/${session.slug}`}
-              >
-                <p className="font-semibold">{session.title}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {session.sessionDate} · {session.participantCount} attendance
-                  records
-                </p>
-              </Link>
-              {canManage && (
-                <div className="flex items-center gap-1">
-                  <Link
-                    className="flex min-h-11 min-w-11 items-center justify-center rounded-lg"
-                    href={`${basePath}/${session.slug}`}
-                    aria-label={`Edit ${session.title}`}
-                  >
-                    <Pencil className="size-4" />
-                  </Link>
-                  {session.canDelete && (
-                    <DestructiveActionButton
-                      label="Delete"
-                      icon={Trash2}
-                      onClick={() => void remove(session.id)}
-                    />
-                  )}
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
+
+      {canManage && (
+        <FloatingCreateButton onClick={() => setOpen(true)}>
+          New session
+        </FloatingCreateButton>
       )}
-      {toast && (
-        <button
-          type="button"
-          className="text-destructive text-sm"
-          onClick={() => setToast("")}
-        >
-          {toast}
-        </button>
-      )}
+
       <ResponsiveEditor
         open={open}
         onOpenChange={setOpen}
@@ -127,24 +177,31 @@ export function PortalGroupSessionList({
         description="Create a session for this group."
         footer={
           <>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              variant="outline"
+              className="min-h-[44px]"
+              onClick={() => setOpen(false)}
+              disabled={pendingId === "save"}
+            >
               Cancel
             </Button>
             <Button
+              className="min-h-[44px]"
               onClick={() => void save()}
-              disabled={!title.trim() || !date}
+              disabled={pendingId === "save" || !title.trim() || !date}
             >
               Save session
             </Button>
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-4 py-2">
           <Input
-            className="min-h-11 text-base"
+            className="h-12 text-base"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Session title"
+            aria-label="Session title"
           />
           <DatePicker
             id="portal-group-session-date"
@@ -154,6 +211,8 @@ export function PortalGroupSessionList({
           />
         </div>
       </ResponsiveEditor>
+
+      {toast && <StatusToast message={toast} onDismiss={() => setToast("")} />}
     </div>
   );
 }
@@ -168,16 +227,19 @@ export function PortalGroupSessionDetail({
   backPath: string;
 }) {
   const [rows, setRows] = React.useState(session.members);
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState("");
   async function setStatus(
     memberId: string,
     status: "present" | "absent" | "excused",
   ) {
+    setPendingId(memberId);
     const result = await savePortalAttendanceAction({
       sessionId: session.id,
       memberId,
       status,
     });
+    setPendingId(null);
     if (!result.success)
       return setToast(result.error ?? "Unable to save attendance.");
     setRows((current) =>
@@ -185,57 +247,71 @@ export function PortalGroupSessionDetail({
     );
   }
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6">
-      <Link className="text-primary text-sm font-semibold" href={backPath}>
-        ← Back to group sessions
-      </Link>
-      <div>
-        <p className="text-muted-foreground text-sm">{session.groupName}</p>
-        <h1 className="text-2xl font-bold">{session.title}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <AdminPageHeader
+          title={session.title}
+          description={session.groupName}
+          backLink={{ href: backPath, label: "Group sessions" }}
+        />
+        <p className="text-muted-foreground px-1 text-sm">
           {session.sessionDate}
         </p>
+
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={CalendarDays}
+            title="No members recorded"
+            description="Group members will appear here once they are assigned to this session."
+          />
+        ) : (
+          <div className="md:divide-border/60 space-y-3 md:divide-y md:overflow-hidden md:rounded-xl md:border">
+            {rows.map((member) => (
+              <article
+                key={member.id}
+                className="bg-card flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] md:rounded-none md:border-0 md:p-3 md:shadow-none"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <MemberAvatar />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">
+                      {member.name}
+                    </span>
+                    {!canManage && (
+                      <span className="text-muted-foreground block text-xs capitalize">
+                        {member.status ?? "pending"}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {canManage ? (
+                  <div className="flex flex-wrap gap-2">
+                    {(["present", "absent", "excused"] as const).map(
+                      (status) => (
+                        <Button
+                          key={status}
+                          variant={
+                            member.status === status ? "default" : "outline"
+                          }
+                          className="min-h-11 gap-1.5 capitalize"
+                          disabled={pendingId === member.id}
+                          onClick={() => void setStatus(member.id, status)}
+                        >
+                          {member.status === status ? (
+                            <Check className="size-4" aria-hidden="true" />
+                          ) : null}
+                          {status}
+                        </Button>
+                      ),
+                    )}
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="grid gap-3">
-        {rows.map((member) => (
-          <article
-            key={member.id}
-            className="bg-card border-border flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
-          >
-            <span className="font-medium">{member.name}</span>
-            {canManage ? (
-              <div className="flex flex-wrap gap-2">
-                {(["present", "absent", "excused"] as const).map((status) => (
-                  <Button
-                    key={status}
-                    variant={member.status === status ? "default" : "outline"}
-                    className="min-h-11 capitalize"
-                    onClick={() => void setStatus(member.id, status)}
-                  >
-                    {member.status === status ? (
-                      <Check className="mr-1 size-4" />
-                    ) : null}
-                    {status}
-                  </Button>
-                ))}
-              </div>
-            ) : (
-              <span className="text-muted-foreground text-sm capitalize">
-                {member.status ?? "pending"}
-              </span>
-            )}
-          </article>
-        ))}
-      </div>
-      {toast && (
-        <button
-          type="button"
-          className="text-destructive text-sm"
-          onClick={() => setToast("")}
-        >
-          {toast}
-        </button>
-      )}
+      {toast && <StatusToast message={toast} onDismiss={() => setToast("")} />}
     </div>
   );
 }
