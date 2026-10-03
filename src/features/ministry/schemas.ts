@@ -1,6 +1,7 @@
 import { z } from "zod";
 import dynamicIconImports from "lucide-react/dynamicIconImports";
 import { SLUG_REGEX } from "@/features/church/schemas";
+import { TERM_BOARD_ROLE_OPTIONS } from "./board-roles";
 
 const id = z.string().uuid("Invalid record identifier");
 const name = z
@@ -60,41 +61,33 @@ export const termSchema = z
         message: "End date cannot be before start date",
       });
   });
-export const DEPARTMENT_CODES = [
-  "social_support",
-  "small_groups",
-  "pastoral",
-  "music",
-  "worship",
-  "visitation_care",
-  "evangelism",
-] as const;
 
-export type DepartmentCode = (typeof DEPARTMENT_CODES)[number];
-
-export const DEPARTMENT_CODE_OPTIONS = [
-  { value: null, label: "None (General Department)" },
-  { value: "pastoral", label: "Pastoral" },
-  { value: "worship", label: "Worship" },
-  { value: "music", label: "Music" },
-  { value: "evangelism", label: "Evangelism" },
-  { value: "visitation_care", label: "Visitation Care" },
-  { value: "social_support", label: "Social Support" },
-  { value: "small_groups", label: "Small Groups" },
-] as const;
-
+export const termBoardConfigSchema = z
+  .object({ termId: id, roles: z.array(z.string()).nullable() })
+  .superRefine(({ roles }, ctx) => {
+    if (
+      roles &&
+      (roles.length === 0 ||
+        new Set(roles).size !== roles.length ||
+        roles.some(
+          (role) =>
+            !TERM_BOARD_ROLE_OPTIONS.some((option) => option.value === role),
+        ))
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["roles"],
+        message:
+          "Choose at least one valid Executive Board role without duplicates.",
+      });
+    }
+  });
 export const structureSchema = z.object({
   id: id.optional(),
   ministryId: id,
   termId: id,
   name,
   slug: optionalSlug,
-  departmentCode: z
-    .enum(DEPARTMENT_CODES)
-    .nullable()
-    .optional()
-    .or(z.literal(""))
-    .transform((val) => (val === "" || val === undefined ? null : val)),
   accentColor: z
     .string()
     .trim()

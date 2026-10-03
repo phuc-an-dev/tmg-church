@@ -16,21 +16,21 @@ Validate the selected role set in Zod and the database: only the ten fixed role 
 
 ## Admin flow
 
-Provide an Enable Executive Board action on the term detail page. Its drawer lists the ten roles as selectable option cards. Saving the selection shows the `Executive Board` tab; disabling the board hides the tab. An enabled board's tab has an Edit roles action. Deselecting an occupied role and disabling a board with occupants show an actionable error instructing the admin to unassign those seats first. No role assignments are deleted implicitly.
+Always show the `Executive Board` tab. Its switch opens the role-selection drawer when the board is off; saving at least one role enables it, while canceling leaves it off. When the board is on, the switch opens a confirmation before disabling it, and the tab has a floating Edit roles action. The switch is disabled while roles are occupied, with an instruction to unassign those seats first. No role assignments are deleted implicitly.
 
-The tab renders selected roles in a stable order: Head, Secretary, Treasurer, then Commissioners. Each role card shows its label and either the assigned member using the existing shared `ExpandableActionItem` and `MemberAvatar` pattern or a vacant state using `EmptyState`. Assign and Replace open a searchable bottom drawer containing only members enrolled in that term. Remove uses `DestructiveActionButton` and confirmation. The desktop layout may use the existing responsive list pattern; the mobile layout uses cards, 44 px touch targets, and a sticky safe-area-aware drawer footer.
+The tab renders selected roles in a stable order: Head, Secretary, Treasurer, then Commissioners. Each role uses the shared `ExpandableActionItem` card and the same role icon as the selection drawer; its actions expand below the card on mobile. Assign and Replace open a searchable bottom drawer containing only members enrolled in that term. Unassign uses the shared destructive action and confirmation. The desktop layout may use the existing responsive list pattern; the mobile layout uses cards, 44 px touch targets, and a sticky safe-area-aware drawer footer.
 
-Closed terms retain the tab and assignments for history, with all board controls read-only. A disabled board never exposes a `?section=board` panel; direct navigation falls back to the normal term section.
+Closed terms retain the tab and assignments for history, with all board controls read-only. A disabled board keeps the tab and shows an empty state beside the off switch.
 
 ## Data and server flow
 
-The term detail query returns selected roles, current assignments, and enrolled members only when needed for the board panel. The search-param parser accepts `board`, while the page rejects that section for disabled terms and falls back to `members`. A dedicated server action validates and saves board configuration. Existing assign/remove actions remain the entry points for seat changes and return structured errors.
+The term context query returns selected roles; an enabled board panel reuses the existing term detail query for assignments and enrolled members. The search-param parser accepts `board` even when disabled. A dedicated server action validates and saves board configuration. Existing assign/remove actions remain the entry points for seat changes and return structured errors.
 
 Change `assign_term_role` to atomically insert a vacant seat or update its occupant. The database continues to enforce one occupant per role, term enrollment, and closed-term immutability. The update path preserves the existing audit trigger. Mutations revalidate the term detail route. Role selection and assignment are checked against the same term on the server and in the database, rather than relying on UI filtering.
 
 ## Acceptance checks
 
-- A term without a board has no board tab; enabling it with chosen roles reveals only those seats.
+- A term without a board still has a board tab; enabling it with chosen roles reveals only those seats.
 - Existing assigned roles appear as selected seats after migration, including on closed terms; unassigned legacy terms stay disabled.
 - A selected vacant seat is visible and assignable; an unselected role cannot be assigned through the server action or RPC.
 - A member may occupy two selected seats; a seat cannot have two occupants.

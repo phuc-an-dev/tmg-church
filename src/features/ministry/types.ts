@@ -38,7 +38,6 @@ export type StructureItem = {
   slug: string;
   accentColor: string;
   iconKey: string;
-  departmentCode?: string | null;
   roleCount?: number;
   memberCount?: number;
 };
@@ -67,6 +66,16 @@ export type DepartmentServiceStructure = {
 
 export type DepartmentDetailData = {
   department: StructureItem;
+  leaderMemberId: string | null;
+  boardMembers: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    gender: string | null;
+    archived: boolean;
+    roles: string[];
+  }>;
+  closed: boolean;
   members: DepartmentDetailMember[];
   roles: DepartmentServiceRole[];
   sessions: Array<{
@@ -108,6 +117,8 @@ export type TermRoleAssignment = {
   role: string;
   memberId: string;
   memberName: string;
+  memberSlug: string;
+  gender: string | null;
 };
 
 export type TermDetailData = {

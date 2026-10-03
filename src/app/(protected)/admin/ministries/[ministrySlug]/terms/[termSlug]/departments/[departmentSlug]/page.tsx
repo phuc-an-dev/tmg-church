@@ -93,6 +93,9 @@ export default async function DepartmentDetailPage({
       <DepartmentDetailView
         section={section}
         department={data.department}
+        leaderMemberId={data.leaderMemberId}
+        boardMembers={data.boardMembers}
+        closed={data.closed}
         members={data.members}
         roles={data.roles}
         sessions={data.sessions}

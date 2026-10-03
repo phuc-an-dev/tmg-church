@@ -63,7 +63,9 @@ export const getCurrentActiveTerm = cache(
     const supabase = await createClient();
     const { data } = await supabase
       .from("ministry_term")
-      .select("id, name, slug, start_date, end_date, lifecycle")
+      .select(
+        "id, name, slug, start_date, end_date, lifecycle, executive_board_roles",
+      )
       .eq("ministry_id", context.ministry.id)
       .lte("start_date", currentDate)
       .gte("end_date", currentDate)
@@ -79,6 +81,7 @@ export const getCurrentActiveTerm = cache(
             startDate: data.start_date,
             endDate: data.end_date,
             lifecycle: data.lifecycle as "draft" | "active" | "closed",
+            executiveBoardRoles: data.executive_board_roles,
           },
         }
       : null;
@@ -224,7 +227,7 @@ export async function getStructure(
     const { data, error } = await supabase
       .from("term_department")
       .select(
-        "id, name, slug, accent_color, icon_key, department_code, department_service_role(count), ministry_assignment(count)",
+        "id, name, slug, accent_color, icon_key, department_service_role(count), ministry_assignment(count)",
       )
       .eq("ministry_term_id", context.term.id)
       .order("name")
@@ -236,7 +239,6 @@ export async function getStructure(
       slug: row.slug,
       accentColor: row.accent_color,
       iconKey: row.icon_key,
-      departmentCode: row.department_code ?? null,
       roleCount:
         (
           row as unknown as {
@@ -364,38 +366,57 @@ export async function getDepartmentDetailData(
   if (!context) return null;
   const supabase = await createClient();
 
-  const [membershipsRes, assignmentsRes, rolesRes, sessionsRes] =
-    await Promise.all([
-      supabase
-        .from("ministry_membership")
-        .select(
-          "id, member_profile!inner(id, full_name, slug, gender, archived_at)",
-        )
-        .eq("ministry_term_id", context.term.id)
-        .is("member_profile.archived_at", null),
-      supabase
-        .from("ministry_assignment")
-        .select("id, ministry_membership_id")
-        .eq("term_department_id", context.department.id),
-      supabase
-        .from("department_service_role")
-        .select("id, term_department_id, name, service_assignment(count)")
-        .eq("term_department_id", context.department.id)
-        .order("name"),
-      supabase
-        .from("ministry_session")
-        .select(
-          "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
-        )
-        .eq("term_department_id", context.department.id)
-        .order("session_date", { ascending: false }),
-    ]);
+  const [
+    membershipsRes,
+    assignmentsRes,
+    rolesRes,
+    sessionsRes,
+    departmentRes,
+    boardRes,
+  ] = await Promise.all([
+    supabase
+      .from("ministry_membership")
+      .select(
+        "id, member_profile!inner(id, full_name, slug, gender, archived_at)",
+      )
+      .eq("ministry_term_id", context.term.id)
+      .is("member_profile.archived_at", null),
+    supabase
+      .from("ministry_assignment")
+      .select("id, ministry_membership_id")
+      .eq("term_department_id", context.department.id),
+    supabase
+      .from("department_service_role")
+      .select("id, term_department_id, name, service_assignment(count)")
+      .eq("term_department_id", context.department.id)
+      .order("name"),
+    supabase
+      .from("ministry_session")
+      .select(
+        "id,slug,title,session_date,session_participant(count),session_assignment(count),service_assignment(count)",
+      )
+      .eq("term_department_id", context.department.id)
+      .order("session_date", { ascending: false }),
+    supabase
+      .from("term_department")
+      .select("leader_member_profile_id")
+      .eq("id", context.department.id)
+      .single(),
+    supabase
+      .from("term_role_assignment")
+      .select(
+        "role, member_profile!inner(id, full_name, slug, gender, archived_at)",
+      )
+      .eq("ministry_term_id", context.term.id),
+  ]);
 
   if (
     membershipsRes.error ||
     assignmentsRes.error ||
     rolesRes.error ||
-    sessionsRes.error
+    sessionsRes.error ||
+    departmentRes.error ||
+    boardRes.error
   ) {
     throw new Error("Failed to fetch department detail data");
   }
@@ -435,7 +456,37 @@ export async function getDepartmentDetailData(
         .service_assignment?.[0]?.count ?? 0,
   }));
 
+  const boardMemberMap = new Map<
+    string,
+    DepartmentDetailData["boardMembers"][number]
+  >();
+  for (const assignment of boardRes.data ?? []) {
+    const profile = assignment.member_profile as unknown as {
+      id: string;
+      full_name: string;
+      slug: string;
+      gender: string | null;
+      archived_at: string | null;
+    };
+    const member = boardMemberMap.get(profile.id);
+    if (member) member.roles.push(assignment.role);
+    else
+      boardMemberMap.set(profile.id, {
+        id: profile.id,
+        name: profile.full_name,
+        slug: profile.slug,
+        gender: profile.gender,
+        archived: profile.archived_at !== null,
+        roles: [assignment.role],
+      });
+  }
+
   return {
+    leaderMemberId: departmentRes.data?.leader_member_profile_id ?? null,
+    boardMembers: [...boardMemberMap.values()].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
+    closed: context.term.lifecycle === "closed",
     department: {
       id: context.department.id,
       name: context.department.name,
@@ -504,7 +555,7 @@ export async function getTermDetailData(
         .order("session_date", { ascending: false }),
       supabase
         .from("term_role_assignment")
-        .select("id, role, member_profile!inner(id, full_name)")
+        .select("id, role, member_profile!inner(id, full_name, slug, gender)")
         .eq("ministry_term_id", context.term.id)
         .order("role"),
     ]);
@@ -550,12 +601,16 @@ export async function getTermDetailData(
       const profile = row.member_profile as unknown as {
         id: string;
         full_name: string;
+        slug: string;
+        gender: string | null;
       };
       return {
         id: row.id,
         role: row.role,
         memberId: profile.id,
         memberName: profile.full_name,
+        memberSlug: profile.slug,
+        gender: profile.gender,
       };
     }),
     sessions: (sessionsRes.data ?? []).map((session) => {

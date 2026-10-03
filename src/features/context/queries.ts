@@ -32,6 +32,7 @@ export type TermOperationalContext = MinistryOperationalContext & {
     startDate: string | null;
     endDate: string | null;
     lifecycle: "draft" | "active" | "closed";
+    executiveBoardRoles: string[] | null;
   };
 };
 
@@ -58,7 +59,7 @@ export type GroupOperationalContext = TermOperationalContext & {
 /**
  * Resolves the authenticated leader and single active church.
  *
- * - Redirects to `/admin/login` if unauthenticated.
+ * - Redirects to `/login` if unauthenticated.
  * - Redirects to `/admin/unauthorized` if not a leader.
  * - Redirects to `/admin/church` when zero churches exist.
  * - Throws when multiple churches exist (data corruption guard).
@@ -158,7 +159,9 @@ export const requireTermContext = cache(
 
     let query = supabase
       .from("ministry_term")
-      .select("id, name, slug, start_date, end_date, lifecycle")
+      .select(
+        "id, name, slug, start_date, end_date, lifecycle, executive_board_roles",
+      )
       .eq("ministry_id", ministryCtx.ministry.id);
 
     query = query.eq("slug", termSlug);
@@ -179,6 +182,7 @@ export const requireTermContext = cache(
             startDate: data.start_date,
             endDate: data.end_date,
             lifecycle: data.lifecycle as "draft" | "active" | "closed",
+            executiveBoardRoles: data.executive_board_roles,
           },
         }
       : null;

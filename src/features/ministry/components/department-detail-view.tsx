@@ -21,8 +21,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
+import {
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import {
   ListTable,
@@ -32,19 +39,16 @@ import {
 import { StatusToast } from "@/components/ui/status-toast";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import { deleteSessionAction } from "@/features/session/actions";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { setDepartmentLeaderAction } from "@/features/church/authorization-actions";
 import {
   assignDepartmentMembersAction,
   deleteDepartmentServiceRoleAction,
   saveDepartmentServiceRoleAction,
   unassignDepartmentMembersAction,
 } from "../actions";
+import { TERM_BOARD_ROLE_OPTIONS } from "../board-roles";
 import type {
+  DepartmentDetailData,
   DepartmentDetailMember,
   DepartmentServiceRole,
   StructureItem,
@@ -53,6 +57,9 @@ import type {
 interface DepartmentDetailViewProps {
   section: "members" | "sessions" | "roles";
   department: StructureItem;
+  leaderMemberId: DepartmentDetailData["leaderMemberId"];
+  boardMembers: DepartmentDetailData["boardMembers"];
+  closed: boolean;
   members: DepartmentDetailMember[];
   roles: DepartmentServiceRole[];
   sessions: Array<{
@@ -71,6 +78,9 @@ interface DepartmentDetailViewProps {
 export function DepartmentDetailView({
   section,
   department,
+  leaderMemberId,
+  boardMembers,
+  closed,
   members,
   roles,
   sessions,
@@ -114,13 +124,14 @@ export function DepartmentDetailView({
   // ---------------------------------------------------------------------------
   // MEMBERS STATE
   // ---------------------------------------------------------------------------
-  const [expandedMemberId, setExpandedMemberId] = React.useState<string | null>(
-    null,
-  );
   const [expandedSessionId, setExpandedSessionId] = React.useState<
     string | null
   >(null);
   const [assignDrawerOpen, setAssignDrawerOpen] = React.useState(false);
+  const [leaderDrawerOpen, setLeaderDrawerOpen] = React.useState(false);
+  const [leaderRemoveOpen, setLeaderRemoveOpen] = React.useState(false);
+  const [leaderPending, setLeaderPending] = React.useState(false);
+  const [leaderError, setLeaderError] = React.useState<string | null>(null);
   const [assignPending, setAssignPending] = React.useState(false);
   const [assignDrawerError, setAssignDrawerError] = React.useState<
     string | null
@@ -155,6 +166,49 @@ export function DepartmentDetailView({
     () => members.filter((m) => !m.isAssigned),
     [members],
   );
+  const leader = boardMembers.find((member) => member.id === leaderMemberId);
+  const activeBoardMembers = boardMembers.filter((member) => !member.archived);
+  const boardRoleNames = (roles: string[]) =>
+    roles
+      .map(
+        (role) =>
+          TERM_BOARD_ROLE_OPTIONS.find((option) => option.value === role)
+            ?.label ?? role,
+      )
+      .join(", ");
+  const leaderSubtitle = leader
+    ? `${boardRoleNames(leader.roles)}${leader.archived ? " (archived)" : ""}`
+    : closed
+      ? "No leader assigned in this term"
+      : activeBoardMembers.length === 0
+        ? "Set up Executive Board"
+        : "Select from Executive Board";
+
+  async function updateLeader(memberProfileId: string | null) {
+    setLeaderPending(true);
+    setLeaderError(null);
+    try {
+      const result = await setDepartmentLeaderAction({
+        departmentId: department.id,
+        memberProfileId,
+      });
+      if (!result.success) {
+        setLeaderError(result.error);
+        return;
+      }
+      setLeaderDrawerOpen(false);
+      setLeaderRemoveOpen(false);
+      setToast({
+        type: "success",
+        message: result.message ?? "Department Leader updated.",
+      });
+      router.refresh();
+    } catch {
+      setLeaderError("Unable to update the Department Leader.");
+    } finally {
+      setLeaderPending(false);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // MEMBER HANDLERS
@@ -296,133 +350,145 @@ export function DepartmentDetailView({
       {/* =================================================================== */}
       {/* SECTION: MEMBERS                                                    */}
       {/* =================================================================== */}
-      {/* =================================================================== */}
-      {/* SECTION: MEMBERS                                                    */}
-      {/* =================================================================== */}
       {section === "members" && (
-        <div className="space-y-4 pb-24 md:pb-16">
-          {/* Members Collection */}
-          {assignedMembers.length === 0 ? (
-            <div className="border-border/60 bg-muted/20 flex flex-col items-center justify-center rounded-xl border p-8 text-center sm:p-12">
-              <span className="bg-primary/10 text-primary mb-3 flex size-12 items-center justify-center rounded-2xl">
-                <Users className="size-6" aria-hidden="true" />
-              </span>
-              <h3 className="text-base font-semibold">
-                No members assigned to {department.name} yet
-              </h3>
-              <p className="text-muted-foreground mt-1 max-w-md text-sm">
-                {unassignedMembers.length > 0
-                  ? "Use the floating 'Assign Members' button below to assign members enrolled in this term."
-                  : "No members are enrolled in this ministry term yet."}
-              </p>
-            </div>
-          ) : (
-            <ListTable label="Department assigned members">
-              {/* Desktop table header */}
-              <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
-                <div role="columnheader">Member</div>
-                <div role="columnheader" className="text-right">
-                  Actions
-                </div>
-              </ListTableHeader>
-
-              {/* Rows / Cards */}
-              <ListTableBody>
-                {assignedMembers.map((m) => {
-                  const isExpanded = expandedMemberId === m.membershipId;
-
-                  return (
-                    <div
-                      key={m.membershipId}
-                      role="row"
-                      className="border-border/60 bg-card rounded-xl border p-4 shadow-xs md:grid md:grid-cols-[1fr_80px] md:items-center md:gap-4 md:rounded-none md:border-none md:p-3 md:shadow-none"
-                    >
-                      {/* Name */}
-                      <div role="cell" className="min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <span className="text-base font-semibold md:text-sm">
-                              {m.memberName}
-                            </span>
-                          </div>
-
-                          {/* Mobile three-dot toggle */}
-                          <div className="flex items-center md:hidden">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "min-h-11 min-w-11 rounded-xl p-0",
-                                isExpanded && "bg-muted text-foreground",
-                              )}
-                              aria-label={`Actions for ${m.memberName}`}
-                              aria-expanded={isExpanded}
-                              onClick={() =>
-                                setExpandedMemberId((prev) =>
-                                  prev === m.membershipId
-                                    ? null
-                                    : m.membershipId,
-                                )
-                              }
-                            >
-                              <Ellipsis className="size-5" aria-hidden="true" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Mobile action button revealed when 3-dot is clicked */}
-                        {isExpanded && (
-                          <div className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 md:hidden">
-                            <DestructiveActionButton
-                              type="button"
-                              onClick={() => setUnassignConfirmMember(m)}
-                              className="min-h-11 w-full"
-                              aria-label={`Remove ${m.memberName} from ${department.name}`}
-                              label="Remove from department"
-                              icon={UserMinus}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Desktop Action: three-dot DropdownMenu */}
-                      <div
-                        role="cell"
-                        className="hidden justify-end md:flex md:items-center"
+        <div className="space-y-8 pb-24 md:pb-16">
+          <section className="space-y-3" aria-label="Leadership">
+            <h2 className="text-base font-semibold">Leadership</h2>
+            <ExpandableCoordinatorProvider>
+              <ExpandableActionItem
+                id={`department-leader-${department.id}`}
+                name="Department Leader"
+                onEdit={
+                  !closed &&
+                  activeBoardMembers.some(
+                    (member) => member.id !== leaderMemberId,
+                  )
+                    ? () => {
+                        setLeaderError(null);
+                        setLeaderDrawerOpen(true);
+                      }
+                    : undefined
+                }
+                editLabel={leader ? "Replace" : "Assign"}
+                onDelete={
+                  !closed && leader
+                    ? () => {
+                        setLeaderError(null);
+                        setLeaderRemoveOpen(true);
+                      }
+                    : undefined
+                }
+                deleteLabel="Unassign"
+                deleteIcon={UserMinus}
+                className="p-4 md:rounded-2xl md:border"
+              >
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                    <Shield className="size-5" aria-hidden="true" />
+                  </span>
+                  <span className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
+                    {leader ? (
+                      <Link
+                        href={`/admin/members/${leader.slug}`}
+                        className="truncate font-semibold"
                       >
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="min-h-9 min-w-9 p-0"
-                              aria-label={`Actions for ${m.memberName}`}
-                            >
-                              <Ellipsis className="size-4" aria-hidden="true" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="min-w-48">
-                            <DropdownMenuItem
-                              onClick={() => setUnassignConfirmMember(m)}
-                              className="text-destructive focus:text-destructive cursor-pointer gap-2"
-                            >
-                              <UserMinus
-                                className="size-4 shrink-0"
-                                aria-hidden="true"
-                              />
-                              <span>Remove from department</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                        {leader.name}
+                      </Link>
+                    ) : (
+                      <span className="font-semibold">Vacant</span>
+                    )}
+                    <span className="text-muted-foreground text-sm leading-5">
+                      {leaderSubtitle}
+                    </span>
+                  </span>
+                  {!closed && (leader || activeBoardMembers.length > 0) && (
+                    <ExpandableActionItem.Trigger />
+                  )}
+                  {!closed && <ExpandableActionItem.DesktopActions />}
+                </div>
+                {!closed && <ExpandableActionItem.MobileActions />}
+              </ExpandableActionItem>
+            </ExpandableCoordinatorProvider>
+            {!closed && activeBoardMembers.length === 0 && (
+              <Link
+                href={`/admin/ministries/${ministrySlug}/terms/${termSlug}?section=board`}
+                className="text-primary inline-flex min-h-11 items-center text-sm font-medium"
+              >
+                Open Executive Board
+              </Link>
+            )}
+          </section>
+          <section className="space-y-3 border-t pt-6" aria-label="Members">
+            <h2 className="text-base font-semibold">
+              Members ({assignedMembers.length})
+            </h2>
+            {assignedMembers.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title={`No members assigned to ${department.name} yet`}
+                description={
+                  unassignedMembers.length > 0
+                    ? "Use the floating 'Assign Members' button below to assign members enrolled in this term."
+                    : "No members are enrolled in this ministry term yet."
+                }
+              />
+            ) : (
+              <ExpandableCoordinatorProvider>
+                <ListTable label="Department assigned members">
+                  <ListTableHeader gridClassName="md:grid-cols-[1fr_160px_80px]">
+                    <div role="columnheader">Member</div>
+                    <div role="columnheader">Slug</div>
+                    <div role="columnheader" className="text-right">
+                      Actions
                     </div>
-                  );
-                })}
-              </ListTableBody>
-            </ListTable>
-          )}
+                  </ListTableHeader>
+                  <ListTableBody>
+                    {assignedMembers.map((member) => (
+                      <ExpandableActionItem
+                        key={member.membershipId}
+                        id={member.membershipId}
+                        name={member.memberName}
+                        onDelete={() => setUnassignConfirmMember(member)}
+                        deleteLabel="Remove from department"
+                        deleteIcon={UserMinus}
+                        className="p-4 md:grid md:grid-cols-[1fr_160px_80px] md:items-center md:gap-4 md:p-3"
+                      >
+                        <div role="cell" className="min-w-0">
+                          <div className="flex min-w-0 items-center justify-between gap-3">
+                            <Link
+                              href={`/admin/members/${member.memberSlug}`}
+                              className="flex min-h-11 min-w-0 flex-1 items-center gap-3"
+                            >
+                              <MemberAvatar gender={member.gender} />
+                              <span className="min-w-0">
+                                <span className="block truncate font-semibold">
+                                  {member.memberName}
+                                </span>
+                                <span className="text-muted-foreground block truncate text-xs md:hidden">
+                                  /{member.memberSlug}
+                                </span>
+                              </span>
+                            </Link>
+                            <ExpandableActionItem.Trigger className="md:hidden" />
+                          </div>
+                          <ExpandableActionItem.MobileActions />
+                        </div>
+                        <div
+                          role="cell"
+                          className="text-muted-foreground hidden truncate font-mono text-xs md:block"
+                        >
+                          /{member.memberSlug}
+                        </div>
+                        <div role="cell" className="hidden justify-end md:flex">
+                          <ExpandableActionItem.DesktopActions />
+                        </div>
+                      </ExpandableActionItem>
+                    ))}
+                  </ListTableBody>
+                </ListTable>
+              </ExpandableCoordinatorProvider>
+            )}
+          </section>
 
           {/* Floating 'Assign Members' Button */}
           <FloatingCreateButton
@@ -439,16 +505,11 @@ export function DepartmentDetailView({
       {section === "sessions" && (
         <div className="space-y-4 pb-24 md:pb-16">
           {sessions.length === 0 ? (
-            <div className="border-border/60 bg-muted/20 rounded-xl border p-8 text-center">
-              <CalendarDays
-                className="text-muted-foreground mx-auto size-10"
-                aria-hidden="true"
-              />
-              <h3 className="mt-3 text-base font-semibold">No sessions yet</h3>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Create the first session for this department.
-              </p>
-            </div>
+            <EmptyState
+              icon={CalendarDays}
+              title="No sessions yet"
+              description="Create the first session for this department."
+            />
           ) : (
             <div className="grid gap-3">
               {sessions.map((session) => {
@@ -461,13 +522,20 @@ export function DepartmentDetailView({
                     <div className="flex items-start justify-between gap-3">
                       <Link
                         href={`/admin/sessions/${session.slug}?returnUrl=${encodeURIComponent(`/admin/ministries/${ministrySlug}/terms/${termSlug}/departments/${department.slug}?section=sessions`)}`}
-                        className="min-w-0 flex-1"
+                        className="flex min-h-11 min-w-0 flex-1 items-center gap-3"
                       >
-                        <p className="font-semibold">{session.title}</p>
-                        <p className="text-muted-foreground mt-1 text-sm">
-                          {session.sessionDate} · {session.participantCount}{" "}
-                          participants
-                        </p>
+                        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                          <CalendarDays className="size-5" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {session.title}
+                          </span>
+                          <span className="text-muted-foreground block text-sm">
+                            {session.sessionDate} · {session.participantCount}{" "}
+                            participants
+                          </span>
+                        </span>
                       </Link>
 
                       {/* 3-dot Toggle Button */}
@@ -481,6 +549,7 @@ export function DepartmentDetailView({
                         )}
                         aria-label={`Actions for ${session.title}`}
                         aria-expanded={isExpanded}
+                        aria-controls={`department-session-actions-${session.id}`}
                         onClick={() =>
                           setExpandedSessionId((prev) =>
                             prev === session.id ? null : session.id,
@@ -492,40 +561,38 @@ export function DepartmentDetailView({
                     </div>
 
                     {/* Action buttons displayed below card when expanded */}
-                    {isExpanded && (
-                      <div
-                        role="region"
-                        aria-label={`Actions for ${session.title}`}
-                        className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
-                      >
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
-                            onClick={() => {
-                              setExpandedSessionId(null);
-                              setEditingSession(session);
-                              setSessionDrawerOpen(true);
-                            }}
-                          >
-                            <Pencil className="size-4" aria-hidden="true" />
-                            <span>Edit</span>
-                          </Button>
-                          <DestructiveActionButton
-                            type="button"
-                            className="min-h-11 w-full"
-                            disabled={!session.canDelete}
-                            onClick={() => {
-                              setExpandedSessionId(null);
-                              setDeletingSession(session);
-                            }}
-                            label="Delete"
-                            icon={Trash2}
-                          />
-                        </div>
+                    <ExpandableCardPanel
+                      open={isExpanded}
+                      id={`department-session-actions-${session.id}`}
+                      label={`Actions for ${session.title}`}
+                    >
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-border/80 bg-background hover:bg-muted/80 text-foreground min-h-11 w-full gap-2 text-sm font-semibold shadow-xs"
+                          onClick={() => {
+                            setExpandedSessionId(null);
+                            setEditingSession(session);
+                            setSessionDrawerOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-4" aria-hidden="true" />
+                          <span>Edit</span>
+                        </Button>
+                        <DestructiveActionButton
+                          type="button"
+                          className="min-h-11 w-full"
+                          disabled={!session.canDelete}
+                          onClick={() => {
+                            setExpandedSessionId(null);
+                            setDeletingSession(session);
+                          }}
+                          label="Delete"
+                          icon={Trash2}
+                        />
                       </div>
-                    )}
+                    </ExpandableCardPanel>
                   </div>
                 );
               })}
@@ -551,151 +618,59 @@ export function DepartmentDetailView({
         <div className="space-y-4 pb-24 md:pb-16">
           {/* Roles Collection */}
           {roles.length === 0 ? (
-            <div className="border-border/60 bg-muted/20 flex flex-col items-center justify-center rounded-xl border p-8 text-center sm:p-12">
-              <span className="bg-primary/10 text-primary mb-3 flex size-12 items-center justify-center rounded-2xl">
-                <Shield className="size-6" aria-hidden="true" />
-              </span>
-              <h3 className="text-base font-semibold">
-                No service roles created yet
-              </h3>
-              <p className="text-muted-foreground mt-1 max-w-md text-sm">
-                Define service roles for {department.name} to assign
-                responsibilities during church sessions.
-              </p>
-              <Button
-                type="button"
-                onClick={() => openRoleEditor("new")}
-                className="mt-4 min-h-11 gap-2 text-sm font-semibold"
-              >
-                <Plus className="size-4" aria-hidden="true" />
-                <span>Create first service role</span>
-              </Button>
-            </div>
+            <EmptyState
+              icon={Shield}
+              title="No service roles created yet"
+              description={`Define service roles for ${department.name} to assign responsibilities during church sessions.`}
+              action={
+                <Button
+                  type="button"
+                  onClick={() => openRoleEditor("new")}
+                  className="min-h-11 gap-2 text-sm font-semibold"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  <span>Create first service role</span>
+                </Button>
+              }
+            />
           ) : (
-            <ListTable label="Department service roles">
-              {/* Desktop table header */}
-              <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
-                <div role="columnheader">Role Name</div>
-                <div role="columnheader" className="text-right">
-                  Actions
-                </div>
-              </ListTableHeader>
-
-              {/* Rows / Cards */}
-              <ListTableBody>
-                {roles.map((role) => {
-                  const isDeleteBlocked = role.assignmentCount > 0;
-
-                  return (
-                    <div
+            <ExpandableCoordinatorProvider>
+              <ListTable label="Department service roles">
+                <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
+                  <div role="columnheader">Role Name</div>
+                  <div role="columnheader" className="text-right">
+                    Actions
+                  </div>
+                </ListTableHeader>
+                <ListTableBody>
+                  {roles.map((role) => (
+                    <ExpandableActionItem
                       key={role.id}
-                      role="row"
-                      className="border-border/60 bg-card rounded-xl border p-4 shadow-xs md:grid md:grid-cols-[1fr_80px] md:items-center md:gap-4 md:rounded-none md:border-none md:p-3 md:shadow-none"
+                      id={role.id}
+                      name={role.name}
+                      onEdit={() => openRoleEditor(role)}
+                      onDelete={() => setDeletingRole(role)}
+                      deleteDisabled={role.assignmentCount > 0}
+                      deleteDisabledReason="Roles with assignments cannot be deleted."
+                      className="p-4 md:grid md:grid-cols-[1fr_80px] md:items-center md:gap-4 md:p-3"
                     >
-                      {/* Name */}
                       <div role="cell" className="min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <span className="text-base font-semibold md:text-sm">
-                              {role.name}
-                            </span>
-                          </div>
-
-                          {/* Mobile Action Dropdown */}
-                          <div className="md:hidden">
-                            <DropdownMenu modal={false}>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="min-h-11 min-w-11 p-0"
-                                  aria-label={`Actions for ${role.name}`}
-                                >
-                                  <Ellipsis
-                                    className="size-5"
-                                    aria-hidden="true"
-                                  />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className="min-w-44"
-                              >
-                                <DropdownMenuItem
-                                  onClick={() => openRoleEditor(role)}
-                                  className="gap-2"
-                                >
-                                  <Pencil
-                                    className="size-4 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                  <span>Edit</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={isDeleteBlocked}
-                                  onClick={() => setDeletingRole(role)}
-                                  className="text-destructive focus:text-destructive gap-2"
-                                >
-                                  <Trash2
-                                    className="size-4 shrink-0"
-                                    aria-hidden="true"
-                                  />
-                                  <span>Delete</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                        <div className="flex min-w-0 items-center justify-between gap-3">
+                          <span className="min-w-0 flex-1 truncate font-semibold">
+                            {role.name}
+                          </span>
+                          <ExpandableActionItem.Trigger className="md:hidden" />
                         </div>
+                        <ExpandableActionItem.MobileActions />
                       </div>
-
-                      {/* Desktop Actions */}
-                      <div
-                        role="cell"
-                        className="hidden justify-end md:flex md:items-center"
-                      >
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="min-h-9 min-w-9 p-0"
-                              aria-label={`Actions for ${role.name}`}
-                            >
-                              <Ellipsis className="size-4" aria-hidden="true" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="min-w-44">
-                            <DropdownMenuItem
-                              onClick={() => openRoleEditor(role)}
-                              className="gap-2"
-                            >
-                              <Pencil
-                                className="size-4 shrink-0"
-                                aria-hidden="true"
-                              />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={isDeleteBlocked}
-                              onClick={() => setDeletingRole(role)}
-                              className="text-destructive focus:text-destructive gap-2"
-                            >
-                              <Trash2
-                                className="size-4 shrink-0"
-                                aria-hidden="true"
-                              />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <div role="cell" className="hidden justify-end md:flex">
+                        <ExpandableActionItem.DesktopActions />
                       </div>
-                    </div>
-                  );
-                })}
-              </ListTableBody>
-            </ListTable>
+                    </ExpandableActionItem>
+                  ))}
+                </ListTableBody>
+              </ListTable>
+            </ExpandableCoordinatorProvider>
           )}
 
           {/* Floating 'New Role' Button */}
@@ -732,6 +707,48 @@ export function DepartmentDetailView({
       {/* =================================================================== */}
       {/* DRAWER: ASSIGN ENROLLED MEMBERS                                     */}
       {/* =================================================================== */}
+      <MemberAssignDrawer
+        open={leaderDrawerOpen}
+        onOpenChange={(open) => {
+          if (!open) setLeaderError(null);
+          setLeaderDrawerOpen(open);
+        }}
+        title={`${leader ? "Replace" : "Assign"} Department Leader`}
+        description="Choose a current Executive Board member from this term."
+        searchPlaceholder="Search Board members..."
+        members={activeBoardMembers
+          .filter((member) => member.id !== leaderMemberId)
+          .map((member) => ({
+            id: member.id,
+            name: member.name,
+            gender: member.gender,
+            subtitle: boardRoleNames(member.roles),
+          }))}
+        onAssign={([id]) => updateLeader(id)}
+        pending={leaderPending}
+        error={leaderError}
+        assignLabel={leader ? "Replace" : "Assign"}
+        singleSelect
+      />
+      <ConfirmationSheet
+        open={leaderRemoveOpen}
+        onOpenChange={(open) => {
+          if (!open) setLeaderError(null);
+          setLeaderRemoveOpen(open);
+        }}
+        title="Unassign Department Leader"
+        description={`Unassign ${leader?.name ?? "this member"} from ${department.name}?`}
+        confirmLabel="Unassign"
+        variant="destructive"
+        pending={leaderPending}
+        onConfirm={() => updateLeader(null)}
+      >
+        {leaderError && (
+          <p className="text-destructive text-sm" role="alert">
+            {leaderError}
+          </p>
+        )}
+      </ConfirmationSheet>
       <MemberAssignDrawer
         open={assignDrawerOpen}
         onOpenChange={setAssignDrawerOpen}

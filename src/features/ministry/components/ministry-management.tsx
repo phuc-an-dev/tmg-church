@@ -50,7 +50,6 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { EmptyState } from "@/components/shared/empty-state";
 import { OptionPickerSheet } from "@/components/shared/option-picker-sheet";
 import { StatusToast } from "@/components/ui/status-toast";
-import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import {
   ExpandableActionItem,
   ExpandableCoordinatorProvider,
@@ -67,7 +66,6 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DEPARTMENT_CODE_OPTIONS } from "../schemas";
 import {
   ministrySearchParams,
   structureSearchParams,
@@ -270,9 +268,6 @@ const TERM_LIFECYCLE_OPTIONS: Array<{
   { value: "closed", label: "Closed" },
 ];
 
-const departmentCodeLabel = (code: string) =>
-  DEPARTMENT_CODE_OPTIONS.find((opt) => opt.value === code)?.label ?? code;
-
 function LifecycleDropdown({
   id,
   value,
@@ -349,82 +344,6 @@ function LifecycleDropdown({
   );
 }
 
-function DepartmentCodeDropdown({
-  id,
-  value,
-  onChange,
-  disabled,
-}: {
-  id?: string;
-  value: string | null;
-  onChange: (value: string | null) => void;
-  disabled?: boolean;
-}) {
-  const isDesktop = useIsDesktop();
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-
-  const activeOption =
-    DEPARTMENT_CODE_OPTIONS.find((opt) => opt.value === value) ??
-    DEPARTMENT_CODE_OPTIONS[0];
-
-  const triggerButton = (
-    <Button
-      id={id}
-      type="button"
-      variant="outline"
-      disabled={disabled}
-      onClick={isDesktop === false ? () => setSheetOpen(true) : undefined}
-      className="bg-card hover:bg-card h-12 min-h-[44px] w-full justify-between px-3 text-left text-base font-normal sm:text-sm"
-      aria-label={`Functional Role: ${activeOption.label}`}
-    >
-      <span className="truncate">{activeOption.label}</span>
-      <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
-    </Button>
-  );
-
-  if (isDesktop === false) {
-    return (
-      <>
-        {triggerButton}
-        <OptionPickerSheet
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          title="Select Functional Role"
-          description="Optionally link this department to a standard commissioner role."
-          options={DEPARTMENT_CODE_OPTIONS}
-          value={value}
-          onChange={onChange}
-        />
-      </>
-    );
-  }
-
-  return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="z-[60] w-(--radix-dropdown-menu-trigger-width) min-w-56 p-1.5"
-      >
-        <DropdownMenuRadioGroup
-          value={value ?? "none"}
-          onValueChange={(val) => onChange(val === "none" ? null : val)}
-        >
-          {DEPARTMENT_CODE_OPTIONS.map((opt) => (
-            <DropdownMenuRadioItem
-              key={opt.value ?? "none"}
-              value={opt.value ?? "none"}
-              className="min-h-10 cursor-pointer px-3 text-sm"
-            >
-              {opt.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 import {
   IdentityPicker,
   IdentityTile,
@@ -471,11 +390,6 @@ export function MinistryManagement({
     handleFileSelect,
     resetImport,
   } = useCollectionImport(importColumns);
-  const [contextualSession, setContextualSession] = React.useState<{
-    ministryTermId: string;
-    groupId?: string;
-    departmentId?: string;
-  } | null>(null);
   const [deleting, setDeleting] = React.useState<Item | null>(null);
   const [accentColor, setAccentColor] = React.useState(DEFAULT_MINISTRY_COLOR);
   const [iconKey, setIconKey] = React.useState(
@@ -490,9 +404,6 @@ export function MinistryManagement({
   const [termEndDate, setTermEndDate] = React.useState<string>("");
   const [termLifecycle, setTermLifecycle] =
     React.useState<TermItem["lifecycle"]>("draft");
-  const [departmentCode, setDepartmentCode] = React.useState<string | null>(
-    null,
-  );
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [draftSort, setDraftSort] = React.useState<string>("name-asc");
   const filterButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -562,9 +473,6 @@ export function MinistryManagement({
     setTermStartDate(term?.startDate ?? "");
     setTermEndDate(term?.endDate ?? "");
     setTermLifecycle(term?.lifecycle ?? "draft");
-    const dept =
-      item && mode === "departments" ? (item as StructureItem) : null;
-    setDepartmentCode(dept?.departmentCode ?? null);
     setFormError(null);
   }
 
@@ -593,7 +501,6 @@ export function MinistryManagement({
       name: form.get("name"),
       slug: form.get("slug") || undefined,
       ...(supportsVisualIdentity ? { accentColor, iconKey } : {}),
-      ...(mode === "departments" ? { departmentCode } : {}),
     };
     let action: Promise<{ success: boolean; message?: string; error?: string }>;
     if (mode === "ministries") action = saveMinistryAction(payload);
@@ -873,20 +780,6 @@ export function MinistryManagement({
                       }}
                       deleteDisabled={isDeleteDisabled}
                       deleteDisabledReason={deleteDisabledReason}
-                      onAdditionalAction={
-                        (mode === "groups" || mode === "departments") && termId
-                          ? () =>
-                              setContextualSession({
-                                ministryTermId: termId,
-                                ...(mode === "groups"
-                                  ? { groupId: item.id }
-                                  : { departmentId: item.id }),
-                              })
-                          : undefined
-                      }
-                      additionalActionLabel="Create session"
-                      additionalActionSectionLabel="Session"
-                      additionalActionIcon={CalendarDays}
                       className={cn(
                         "p-4 sm:p-5 md:grid md:items-center md:gap-4 md:p-3",
                         mode === "ministries"
@@ -979,16 +872,6 @@ export function MinistryManagement({
                                   </span>
                                   {mode === "departments" && (
                                     <>
-                                      {(item as StructureItem)
-                                        .departmentCode && (
-                                        <span className="text-primary font-medium">
-                                          •{" "}
-                                          {departmentCodeLabel(
-                                            (item as StructureItem)
-                                              .departmentCode!,
-                                          )}
-                                        </span>
-                                      )}
                                       <span>
                                         •{" "}
                                         {(item as StructureItem).memberCount ??
@@ -1065,14 +948,6 @@ export function MinistryManagement({
                           role="cell"
                           className="text-muted-foreground hidden text-sm md:block"
                         >
-                          {(item as StructureItem).departmentCode && (
-                            <span className="text-primary mr-1.5 font-medium">
-                              {departmentCodeLabel(
-                                (item as StructureItem).departmentCode!,
-                              )}{" "}
-                              •
-                            </span>
-                          )}
                           {(item as StructureItem).memberCount ?? 0}{" "}
                           {((item as StructureItem).memberCount ?? 0) === 1
                             ? "member"
@@ -1177,26 +1052,6 @@ export function MinistryManagement({
                 onIconKeyChange={setIconKey}
                 onCustomColorOpenChange={setCustomColorOpen}
               />
-            )}
-            {mode === "departments" && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-department-code">Functional Role</Label>
-                <input
-                  type="hidden"
-                  name="departmentCode"
-                  value={departmentCode ?? ""}
-                />
-                <DepartmentCodeDropdown
-                  id="edit-department-code"
-                  value={departmentCode}
-                  onChange={setDepartmentCode}
-                  disabled={pending}
-                />
-                <p className="text-muted-foreground text-xs">
-                  Optionally link this department to a standard commissioner
-                  role. Leave as None for general departments.
-                </p>
-              </div>
             )}
             {(mode === "groups" || mode === "departments") && (
               <details className="admin-surface p-3">
@@ -1367,26 +1222,6 @@ export function MinistryManagement({
                 onIconKeyChange={setIconKey}
                 onCustomColorOpenChange={setCustomColorOpen}
               />
-            )}
-            {mode === "departments" && (
-              <div className="space-y-2">
-                <Label htmlFor="create-department-code">Functional Role</Label>
-                <input
-                  type="hidden"
-                  name="departmentCode"
-                  value={departmentCode ?? ""}
-                />
-                <DepartmentCodeDropdown
-                  id="create-department-code"
-                  value={departmentCode}
-                  onChange={setDepartmentCode}
-                  disabled={pending}
-                />
-                <p className="text-muted-foreground text-xs">
-                  Optionally link this department to a standard commissioner
-                  role. Leave as None for general departments.
-                </p>
-              </div>
             )}
             {(mode === "groups" || mode === "departments") && (
               <details className="admin-surface p-3">
@@ -1610,13 +1445,6 @@ export function MinistryManagement({
           </p>
         )}
       </ConfirmationSheet>
-      {contextualSession && (
-        <SessionEditorDrawer
-          open
-          onOpenChange={(open) => !open && setContextualSession(null)}
-          scope={contextualSession}
-        />
-      )}
     </ExpandableCoordinatorProvider>
   );
 }

@@ -37,7 +37,8 @@ export const structureSearchParams = {
     "groups",
     "departments",
     "sessions",
-  ] as const).withDefault("members"),
+    "board",
+  ] as const).withDefault("sessions"),
 };
 export const departmentDetailSearchParams = {
   section: parseAsStringLiteral([

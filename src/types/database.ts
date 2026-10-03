@@ -793,6 +793,7 @@ export type Database = {
         Row: {
           created_at: string;
           end_date: string | null;
+          executive_board_roles: string[] | null;
           id: string;
           lifecycle: string;
           ministry_id: string;
@@ -804,6 +805,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           end_date?: string | null;
+          executive_board_roles?: string[] | null;
           id?: string;
           lifecycle?: string;
           ministry_id: string;
@@ -815,6 +817,7 @@ export type Database = {
         Update: {
           created_at?: string;
           end_date?: string | null;
+          executive_board_roles?: string[] | null;
           id?: string;
           lifecycle?: string;
           ministry_id?: string;
@@ -1077,9 +1080,9 @@ export type Database = {
         Row: {
           accent_color: string;
           created_at: string;
-          department_code: string | null;
           icon_key: string;
           id: string;
+          leader_member_profile_id: string | null;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -1088,9 +1091,9 @@ export type Database = {
         Insert: {
           accent_color?: string;
           created_at?: string;
-          department_code?: string | null;
           icon_key?: string;
           id?: string;
+          leader_member_profile_id?: string | null;
           ministry_term_id: string;
           name: string;
           slug: string;
@@ -1099,15 +1102,22 @@ export type Database = {
         Update: {
           accent_color?: string;
           created_at?: string;
-          department_code?: string | null;
           icon_key?: string;
           id?: string;
+          leader_member_profile_id?: string | null;
           ministry_term_id?: string;
           name?: string;
           slug?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "term_department_leader_member_profile_id_fkey";
+            columns: ["leader_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "term_department_ministry_term_id_fkey";
             columns: ["ministry_term_id"];
@@ -1558,6 +1568,10 @@ export type Database = {
           p_role: string;
           p_term_id: string;
         };
+        Returns: boolean;
+      };
+      set_department_leader: {
+        Args: { p_department_id: string; p_member_profile_id: string | null };
         Returns: boolean;
       };
       remove_term_role: {

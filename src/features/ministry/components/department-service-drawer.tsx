@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveEditor } from "@/components/shared/responsive-editor";
 import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
+import { ExpandableCardPanel } from "@/components/shared/expandable-card-panel";
 import { ItemActionButtons } from "@/components/shared/item-action-buttons";
 import { StatusToast } from "@/components/ui/status-toast";
 import { DynamicLucideIcon } from "./dynamic-lucide-icon";
@@ -289,6 +290,7 @@ export function DepartmentServiceDrawer({
                                 : `Show actions for ${role.name}`
                             }
                             aria-expanded={isExpanded}
+                            aria-controls={`department-service-actions-${role.id}`}
                             onClick={() =>
                               setExpandedRoleId((prev) =>
                                 prev === role.id ? null : role.id,
@@ -303,24 +305,22 @@ export function DepartmentServiceDrawer({
                           </Button>
                         </div>
 
-                        {isExpanded && (
-                          <div
-                            role="region"
-                            aria-label={`Actions for ${role.name}`}
-                            className="border-border/70 animate-in fade-in-0 mt-3 border-t pt-3 duration-150 motion-reduce:animate-none"
-                          >
-                            <ItemActionButtons
-                              id={role.id}
-                              onEdit={() => {
-                                setEditingRole(role);
-                                setNameDraft(role.name);
-                              }}
-                              onDelete={() => setDeletingRole(role)}
-                              deleteDisabled={hasAssignments}
-                              deleteDisabledReason="Cannot delete role referenced by service assignments."
-                            />
-                          </div>
-                        )}
+                        <ExpandableCardPanel
+                          open={isExpanded}
+                          id={`department-service-actions-${role.id}`}
+                          label={`Actions for ${role.name}`}
+                        >
+                          <ItemActionButtons
+                            id={role.id}
+                            onEdit={() => {
+                              setEditingRole(role);
+                              setNameDraft(role.name);
+                            }}
+                            onDelete={() => setDeletingRole(role)}
+                            deleteDisabled={hasAssignments}
+                            deleteDisabledReason="Cannot delete role referenced by service assignments."
+                          />
+                        </ExpandableCardPanel>
                       </div>
                     );
                   })}

@@ -16,6 +16,7 @@ import {
   serviceRoleSchema,
   structureSchema,
   termSchema,
+  termBoardConfigSchema,
   unassignDepartmentMembersSchema,
   enrollTermMembersSchema,
 } from "./schemas";
@@ -338,6 +339,54 @@ export async function saveTermAction(
   }
 }
 
+export async function configureTermBoardAction(
+  raw: unknown,
+): Promise<ActionResult<{ enabled: boolean }>> {
+  const ctx = await requireOperationalContext();
+  const parsed = termBoardConfigSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const supabase = await createClient();
+  const { data: term } = await supabase
+    .from("ministry_term")
+    .select("id,ministry_id,lifecycle")
+    .eq("id", parsed.data.termId)
+    .maybeSingle();
+  if (!term)
+    return resultError("NOT_FOUND", "The requested term was not found.");
+  const { data: ministry } = await supabase
+    .from("ministry")
+    .select("id")
+    .eq("id", term.ministry_id)
+    .eq("church_id", ctx.church.id)
+    .maybeSingle();
+  if (!ministry)
+    return resultError("NOT_FOUND", "The requested term was not found.");
+  if (term.lifecycle === "closed")
+    return resultError("TERM_CLOSED", "Closed terms cannot be changed.");
+
+  const { error } = await supabase
+    .from("ministry_term")
+    .update({ executive_board_roles: parsed.data.roles })
+    .eq("id", term.id);
+  if (error)
+    return resultError(
+      error.message.includes("Unassign occupied executive board roles")
+        ? "BOARD_OCCUPIED"
+        : "DATABASE_ERROR",
+      error.message.includes("Unassign occupied executive board roles")
+        ? "Unassign occupied roles before removing them or disabling the board."
+        : "Unable to update the Executive Board.",
+    );
+
+  await paths(term.ministry_id, term.id);
+  return {
+    success: true,
+    data: { enabled: parsed.data.roles !== null },
+    message: "Executive Board updated.",
+  };
+}
+
 export async function deleteTermAction(
   raw: unknown,
 ): Promise<ActionResult<{ id: string }>> {
@@ -429,26 +478,13 @@ export async function saveStructureAction(
             existing.id,
           )
         : existing.slug;
-      const values =
-        section === "departments"
-          ? {
-              ...baseValues,
-              department_code: parsed.data.departmentCode ?? null,
-              slug,
-            }
-          : { ...baseValues, slug };
+      const values = { ...baseValues, slug };
       const { error } = await supabase
         .from(table)
         .update(values)
         .eq("id", existing.id)
         .eq("ministry_term_id", term.id);
       if (error) {
-        if ((error as { code?: string }).code === "23505") {
-          return resultError(
-            "CONFLICT",
-            `A department with this functional role already exists in this term.`,
-          );
-        }
         return dbError(
           error,
           `Unable to update this ${section === "groups" ? "group" : "department"}.`,
@@ -467,27 +503,13 @@ export async function saveStructureAction(
       parsed.data.name,
       parsed.data.slug,
     );
-    const values =
-      section === "departments"
-        ? {
-            ministry_term_id: term.id,
-            ...baseValues,
-            department_code: parsed.data.departmentCode ?? null,
-            slug,
-          }
-        : { ministry_term_id: term.id, ...baseValues, slug };
+    const values = { ministry_term_id: term.id, ...baseValues, slug };
     const { data, error } = await supabase
       .from(table)
       .insert(values)
       .select("id")
       .single();
     if (error || !data) {
-      if (error && (error as { code?: string }).code === "23505") {
-        return resultError(
-          "CONFLICT",
-          `A department with this functional role or name already exists in this term.`,
-        );
-      }
       return dbError(
         error,
         `Unable to create this ${section === "groups" ? "group" : "department"}.`,
