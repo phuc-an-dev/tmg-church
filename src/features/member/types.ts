@@ -4,6 +4,7 @@ export interface MemberItem {
   id: string;
   slug: string;
   fullName: string;
+  email: string | null;
   phone: string | null;
   dateOfBirth: string | null;
   gender: string | null;

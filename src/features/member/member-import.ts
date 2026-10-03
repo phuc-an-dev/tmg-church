@@ -2,6 +2,7 @@ import { createMemberSchema } from "./schemas";
 
 export interface ImportedMember {
   fullName: string;
+  email: string | null;
   phone: string | null;
   dateOfBirth: string | null;
   gender: "female" | "male" | null;
@@ -79,6 +80,15 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
     "so dien thoai",
   ]);
   const phone = rawPhone ? String(rawPhone).trim() : null;
+  const rawEmail = value(normalized, [
+    "email",
+    "mail",
+    "email address",
+    "thu_dien_tu",
+    "thư điện tử",
+    "thu dien tu",
+  ]);
+  const email = rawEmail ? String(rawEmail).trim() : null;
   const dateOfBirth = normalizeDateOfBirth(
     value(normalized, [
       "dateofbirth",
@@ -106,11 +116,14 @@ function toMember(item: Record<string, unknown>): ImportedMember | null {
   );
   const parsed = createMemberSchema.safeParse({
     fullName,
+    email,
     phone: phone ?? "",
     dateOfBirth,
     gender,
   });
-  return parsed.success ? { fullName, phone, dateOfBirth, gender } : null;
+  return parsed.success
+    ? { fullName, email: email || null, phone, dateOfBirth, gender }
+    : null;
 }
 
 function parseCsv(text: string): Record<string, unknown>[] {

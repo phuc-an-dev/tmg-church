@@ -354,12 +354,14 @@ function MemberManagerDrawer({
     Record<string, string[]>
   >({});
   const [fullName, setFullName] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [dateOfBirth, setDateOfBirth] = React.useState("");
   const [gender, setGender] = React.useState("");
 
   const resetAddForm = () => {
     setFullName("");
+    setEmail("");
     setPhone("");
     setDateOfBirth("");
     setGender("");
@@ -375,6 +377,7 @@ function MemberManagerDrawer({
 
     const result = await createMemberAction({
       fullName,
+      email: email || null,
       phone,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
@@ -400,6 +403,7 @@ function MemberManagerDrawer({
   const [importParsed, setImportParsed] = React.useState<{
     valid: Array<{
       fullName: string;
+      email: string | null;
       phone: string | null;
       dateOfBirth: string | null;
       gender: "female" | "male" | null;
@@ -481,11 +485,11 @@ function MemberManagerDrawer({
       return;
     }
 
-    const headers = "Full Name,Phone,Date of birth,Gender\n";
+    const headers = "Full Name,Email,Phone,Date of birth,Gender\n";
     const rows = result.data
       .map(
         (m) =>
-          `"${m.fullName.replace(/"/g, '""')}","${m.phone ?? ""}","${m.dateOfBirth ?? ""}","${m.gender ?? ""}"`,
+          `"${m.fullName.replace(/"/g, '""')}","${m.email ?? ""}","${m.phone ?? ""}","${m.dateOfBirth ?? ""}","${m.gender ?? ""}"`,
       )
       .join("\n");
     const blob = new Blob(["\uFEFF" + headers + rows], {
@@ -678,6 +682,38 @@ function MemberManagerDrawer({
                   {fieldErrors.fullName[0]}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-member-email">Email</Label>
+              <Input
+                id="create-member-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={isSaving}
+                placeholder="e.g. john@example.com"
+                autoComplete="email"
+                aria-invalid={Boolean(fieldErrors.email?.[0])}
+                aria-describedby={
+                  fieldErrors.email?.[0]
+                    ? "create-member-email-error"
+                    : undefined
+                }
+                className="h-11 text-base"
+              />
+              {fieldErrors.email?.[0] && (
+                <p
+                  id="create-member-email-error"
+                  role="alert"
+                  className="text-destructive text-xs"
+                >
+                  {fieldErrors.email[0]}
+                </p>
+              )}
+              <p className="text-muted-foreground text-xs">
+                Required before this member can be invited to portal access.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -901,7 +937,7 @@ function MemberManagerDrawer({
                       CSV Format (Excel)
                     </p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
-                      Spreadsheet-ready list (Name, Phone, Date of birth,
+                      Spreadsheet-ready list (Name, Email, Phone, Date of birth,
                       Gender) with UTF-8 BOM encoding.
                     </p>
                   </div>
@@ -949,6 +985,7 @@ function MemberEditor({
     Record<string, string[]>
   >({});
   const [fullName, setFullName] = React.useState(member.fullName);
+  const [email, setEmail] = React.useState(member.email ?? "");
   const [phone, setPhone] = React.useState(member.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = React.useState(
     member.dateOfBirth ?? "",
@@ -964,6 +1001,7 @@ function MemberEditor({
     const result = await updateMemberAction({
       id: member.id,
       fullName,
+      email: email || null,
       phone,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
@@ -1060,6 +1098,35 @@ function MemberEditor({
               {fieldErrors.fullName[0]}
             </p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="member-email">Email</Label>
+          <Input
+            id="member-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            disabled={isSaving}
+            autoComplete="email"
+            aria-invalid={Boolean(fieldErrors.email?.[0])}
+            aria-describedby={
+              fieldErrors.email?.[0] ? "member-email-error" : undefined
+            }
+            className="h-11"
+          />
+          {fieldErrors.email?.[0] && (
+            <p
+              id="member-email-error"
+              role="alert"
+              className="text-destructive text-xs"
+            >
+              {fieldErrors.email[0]}
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Required before this member can be invited to portal access.
+          </p>
         </div>
 
         <div className="space-y-2">

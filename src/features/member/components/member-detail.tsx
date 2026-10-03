@@ -7,6 +7,7 @@ import {
   Check,
   Clock,
   Loader2,
+  Mail,
   Phone,
   RotateCcw,
   UserMinus,
@@ -465,7 +466,17 @@ export function MemberDetail({ initialData, options }: MemberDetailProps) {
           </div>
 
           {/* Profile Metadata */}
-          <div className="border-border/60 mt-5 grid grid-cols-2 gap-4 border-t pt-5 sm:grid-cols-4">
+          <div className="border-border/60 mt-5 grid grid-cols-2 gap-4 border-t pt-5 sm:grid-cols-3">
+            <div className="space-y-1">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                <Mail className="size-3.5" aria-hidden="true" />
+                Email
+              </span>
+              <div className="text-foreground truncate text-sm font-semibold">
+                {data.profile.email ?? "Not provided"}
+              </div>
+            </div>
+
             <div className="space-y-1">
               <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                 <Phone className="size-3.5" aria-hidden="true" />

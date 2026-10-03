@@ -17,6 +17,7 @@ import {
 export interface EditableMember {
   id: string;
   fullName: string;
+  email?: string | null;
   phone?: string | null;
   dateOfBirth?: string | null;
   gender?: string | null;
@@ -62,6 +63,7 @@ function MemberEditorModal({
     Record<string, string[]>
   >({});
   const [fullName, setFullName] = React.useState(member.fullName);
+  const [email, setEmail] = React.useState(member.email ?? "");
   const [phone, setPhone] = React.useState(member.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = React.useState(
     member.dateOfBirth ?? "",
@@ -77,6 +79,7 @@ function MemberEditorModal({
     const result = await updateMemberAction({
       id: member.id,
       fullName,
+      email: email || null,
       phone,
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
@@ -173,6 +176,35 @@ function MemberEditorModal({
               {fieldErrors.fullName[0]}
             </p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="member-email">Email</Label>
+          <Input
+            id="member-email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            disabled={isSaving}
+            autoComplete="email"
+            aria-invalid={Boolean(fieldErrors.email?.[0])}
+            aria-describedby={
+              fieldErrors.email?.[0] ? "member-email-error" : undefined
+            }
+            className="h-11"
+          />
+          {fieldErrors.email?.[0] && (
+            <p
+              id="member-email-error"
+              role="alert"
+              className="text-destructive text-xs"
+            >
+              {fieldErrors.email[0]}
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Required before this member can be invited to portal access.
+          </p>
         </div>
 
         <div className="space-y-2">

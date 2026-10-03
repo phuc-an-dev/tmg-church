@@ -52,6 +52,7 @@ async function revalidateMemberPaths(churchId: string, memberId: string) {
 async function createMemberWithUniqueSlug(input: {
   churchId: string;
   fullName: string;
+  email: string | null;
   phone: string | null;
   dateOfBirth: string | null;
   gender: "female" | "male" | null;
@@ -65,11 +66,14 @@ async function createMemberWithUniqueSlug(input: {
         church_id: input.churchId,
         slug,
         full_name: input.fullName,
+        email: input.email,
         phone: input.phone,
         date_of_birth: input.dateOfBirth,
         gender: input.gender,
       })
-      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+      .select(
+        "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+      )
       .single();
     if (
       !result.error ||
@@ -103,10 +107,11 @@ export async function createMemberAction(
       };
     }
 
-    const { fullName, phone, dateOfBirth, gender } = parsed.data;
+    const { fullName, email, phone, dateOfBirth, gender } = parsed.data;
     const { data, error } = await createMemberWithUniqueSlug({
       churchId: church.id,
       fullName,
+      email: email ?? null,
       phone: normalizePhoneNumber(phone),
       dateOfBirth: dateOfBirth ?? null,
       gender: gender ?? null,
@@ -128,6 +133,7 @@ export async function createMemberAction(
         id: data.id,
         slug: data.slug,
         fullName: data.full_name,
+        email: data.email,
         phone: data.phone,
         dateOfBirth: data.date_of_birth,
         gender: data.gender,
@@ -167,18 +173,21 @@ export async function updateMemberAction(
     }
 
     const supabase = await createClient();
-    const { id, fullName, phone, dateOfBirth, gender } = parsed.data;
+    const { id, fullName, email, phone, dateOfBirth, gender } = parsed.data;
     const { data, error } = await supabase
       .from("member_profile")
       .update({
         full_name: fullName,
+        email: email ?? null,
         phone: normalizePhoneNumber(phone),
         date_of_birth: dateOfBirth ?? null,
         ...(gender === undefined ? {} : { gender }),
       })
       .eq("id", id)
       .eq("church_id", church.id)
-      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+      .select(
+        "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+      )
       .maybeSingle();
 
     if (error) {
@@ -205,6 +214,7 @@ export async function updateMemberAction(
         id: data.id,
         slug: data.slug,
         fullName: data.full_name,
+        email: data.email,
         phone: data.phone,
         dateOfBirth: data.date_of_birth,
         gender: data.gender,
@@ -245,7 +255,9 @@ export async function archiveMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .is("archived_at", null)
-      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+      .select(
+        "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+      )
       .maybeSingle();
 
     if (error) {
@@ -272,6 +284,7 @@ export async function archiveMemberAction(
         id: data.id,
         slug: data.slug,
         fullName: data.full_name,
+        email: data.email,
         phone: data.phone,
         dateOfBirth: data.date_of_birth,
         gender: data.gender,
@@ -312,7 +325,9 @@ export async function restoreMemberAction(
       .eq("id", parsed.data.id)
       .eq("church_id", church.id)
       .not("archived_at", "is", null)
-      .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+      .select(
+        "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+      )
       .maybeSingle();
 
     if (error) {
@@ -339,6 +354,7 @@ export async function restoreMemberAction(
         id: data.id,
         slug: data.slug,
         fullName: data.full_name,
+        email: data.email,
         phone: data.phone,
         dateOfBirth: data.date_of_birth,
         gender: data.gender,
@@ -537,6 +553,14 @@ export async function removeMinistryMembershipAction(
     );
 
     if (removalError) {
+      if (removalError.message.includes("Unassign executive board roles")) {
+        return {
+          success: false,
+          error:
+            "Unassign this member's Executive Board roles before removing them from the term.",
+          code: "BOARD_ROLE_ASSIGNED",
+        };
+      }
       // Check for foreign key restriction (e.g. historical session participants / attendance)
       if (removalError.code === "23503") {
         return {
@@ -771,10 +795,10 @@ export async function importMembersAction(rawInput: unknown): Promise<{
 
     const supabase = await createClient();
 
-    // Fetch existing phone numbers for active members in this church
+    // Fetch existing phone numbers and emails for active members in this church
     const { data: existingRows, error: fetchError } = await supabase
       .from("member_profile")
-      .select("phone, full_name")
+      .select("phone, email, full_name")
       .eq("church_id", church.id)
       .is("archived_at", null);
 
@@ -790,10 +814,16 @@ export async function importMembersAction(rawInput: unknown): Promise<{
         .map((r) => r.phone)
         .filter((p): p is string => Boolean(p)),
     );
+    const existingEmails = new Set(
+      (existingRows ?? [])
+        .map((r) => r.email?.trim().toLowerCase())
+        .filter((e): e is string => Boolean(e)),
+    );
 
     const candidates = parsed.data.members;
     const toCreate: Array<{
       fullName: string;
+      email: string | null;
       phone: string | null;
       dateOfBirth: string | null;
       gender: "female" | "male" | null;
@@ -801,6 +831,7 @@ export async function importMembersAction(rawInput: unknown): Promise<{
 
     let skippedCount = 0;
     const seenPhonesInBatch = new Set<string>();
+    const seenEmailsInBatch = new Set<string>();
 
     for (const item of candidates) {
       const normalizedPhone = item.phone
@@ -817,8 +848,21 @@ export async function importMembersAction(rawInput: unknown): Promise<{
         seenPhonesInBatch.add(normalizedPhone);
       }
 
+      const normalizedEmail = item.email?.trim().toLowerCase() ?? null;
+      if (normalizedEmail) {
+        if (
+          existingEmails.has(normalizedEmail) ||
+          seenEmailsInBatch.has(normalizedEmail)
+        ) {
+          skippedCount += 1;
+          continue;
+        }
+        seenEmailsInBatch.add(normalizedEmail);
+      }
+
       toCreate.push({
         fullName: item.fullName,
+        email: normalizedEmail,
         phone: normalizedPhone,
         dateOfBirth: item.dateOfBirth ?? null,
         gender: (item.gender as "female" | "male") || null,
@@ -839,6 +883,7 @@ export async function importMembersAction(rawInput: unknown): Promise<{
       const { data, error } = await createMemberWithUniqueSlug({
         churchId: church.id,
         fullName: member.fullName,
+        email: member.email,
         phone: member.phone,
         dateOfBirth: member.dateOfBirth,
         gender: member.gender,
@@ -869,6 +914,7 @@ export async function exportAllMembersAction(): Promise<{
   data?: Array<{
     id: string;
     fullName: string;
+    email: string | null;
     phone: string | null;
     dateOfBirth: string | null;
     gender: string | null;
@@ -883,7 +929,7 @@ export async function exportAllMembersAction(): Promise<{
 
     const { data, error } = await supabase
       .from("member_profile")
-      .select("id, full_name, phone, date_of_birth, gender, created_at")
+      .select("id, full_name, email, phone, date_of_birth, gender, created_at")
       .eq("church_id", church.id)
       .is("archived_at", null)
       .order("full_name", { ascending: true });
@@ -900,6 +946,7 @@ export async function exportAllMembersAction(): Promise<{
       data: (data ?? []).map((m) => ({
         id: m.id,
         fullName: m.full_name,
+        email: m.email,
         phone: m.phone,
         dateOfBirth: m.date_of_birth,
         gender: m.gender,

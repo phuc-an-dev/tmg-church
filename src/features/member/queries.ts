@@ -34,6 +34,7 @@ function toMemberItem(row: {
   id: string;
   slug: string;
   full_name: string;
+  email: string | null;
   phone: string | null;
   date_of_birth: string | null;
   gender: string | null;
@@ -43,6 +44,7 @@ function toMemberItem(row: {
     id: row.id,
     slug: row.slug,
     fullName: row.full_name,
+    email: row.email,
     phone: row.phone,
     dateOfBirth: row.date_of_birth,
     gender: row.gender,
@@ -120,7 +122,9 @@ export async function getMembers(params: {
 
   let query = supabase
     .from("member_profile")
-    .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+    .select(
+      "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+    )
     .eq("church_id", church.id);
 
   if (status === "active") {
@@ -184,7 +188,9 @@ export async function getMemberForEdit(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("member_profile")
-    .select("id, slug, full_name, phone, date_of_birth, gender, archived_at")
+    .select(
+      "id, slug, full_name, email, phone, date_of_birth, gender, archived_at",
+    )
     .eq("slug", memberSlug)
     .eq("church_id", ctx.church.id)
     .maybeSingle();
@@ -209,7 +215,7 @@ export async function getMemberDetail(
   const { data: profileRow, error: profileError } = await supabase
     .from("member_profile")
     .select(
-      "id, slug, full_name, phone, date_of_birth, gender, archived_at, created_at, updated_at",
+      "id, slug, full_name, email, phone, date_of_birth, gender, archived_at, created_at, updated_at",
     )
     .eq("slug", memberSlug)
     .eq("church_id", church.id)
@@ -223,6 +229,7 @@ export async function getMemberDetail(
     id: profileRow.id,
     slug: profileRow.slug,
     fullName: profileRow.full_name,
+    email: profileRow.email,
     phone: profileRow.phone,
     dateOfBirth: profileRow.date_of_birth,
     gender: profileRow.gender,

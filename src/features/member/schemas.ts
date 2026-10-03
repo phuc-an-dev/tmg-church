@@ -29,6 +29,13 @@ export const createMemberSchema = z.object({
     .trim()
     .min(1, "Enter the member's full name.")
     .max(120, "Full name must be 120 characters or fewer."),
+  email: z
+    .string()
+    .trim()
+    .max(254, "Email must be 254 characters or fewer.")
+    .email("Enter a valid email address.")
+    .nullable()
+    .optional(),
   phone: z
     .string()
     .trim()
@@ -100,6 +107,13 @@ export const importMemberItemSchema = z.object({
     .trim()
     .min(1, "Full name is required.")
     .max(120, "Full name must be 120 characters or fewer."),
+  email: z
+    .string()
+    .trim()
+    .max(254, "Email must be 254 characters or fewer.")
+    .email("Enter a valid email address.")
+    .nullable()
+    .optional(),
   phone: z
     .string()
     .trim()
