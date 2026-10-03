@@ -80,7 +80,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext> => {
 
 /**
  * Guard for protected administration routes.
- * Redirects unauthenticated users to /admin/login.
+ * Redirects unauthenticated users to /login.
  * Redirects authenticated users without a Master/Admin role to /admin/unauthorized.
  * Returns the authorized context when successful.
  */
@@ -90,7 +90,7 @@ export async function requireSystemAdmin(): Promise<
   const context = await getAuthContext();
 
   if (context.status === "unauthenticated") {
-    redirect("/admin/login");
+    redirect("/login");
   }
 
   if (context.status === "unauthorized") {
@@ -159,7 +159,7 @@ export async function requirePortalContext(): Promise<PortalContext> {
   const context = await getPortalContext();
   if (!context) {
     const auth = await getAuthContext();
-    if (auth.status === "unauthenticated") redirect("/admin/login");
+    if (auth.status === "unauthenticated") redirect("/login");
     redirect("/admin/unauthorized");
   }
   return context;

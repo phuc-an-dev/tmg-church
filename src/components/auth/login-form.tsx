@@ -18,7 +18,12 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
   );
 
   return (
-    <form action={formAction} noValidate className="space-y-5">
+    <form
+      action={formAction}
+      noValidate
+      autoComplete="off"
+      className="space-y-5"
+    >
       {initialErrorMessage && state.status === "idle" && (
         <div
           role="alert"
@@ -39,7 +44,7 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-foreground text-sm font-medium">
           Email address
         </label>
@@ -47,7 +52,7 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
           id="email"
           name="email"
           type="email"
-          autoComplete="email"
+          autoComplete="off"
           required
           disabled={isPending}
           placeholder="leader@tmgchurch.website"
@@ -68,7 +73,7 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
         <label
           htmlFor="password"
           className="text-foreground text-sm font-medium"
@@ -79,7 +84,7 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
           id="password"
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           required
           disabled={isPending}
           className="h-12 px-4 text-lg"

@@ -115,7 +115,8 @@ export async function createMemberInvitationAction(
     });
     return {
       success: false,
-      error: "Invitation email could not be sent.",
+      error:
+        "Invitation email could not be sent. Verify the Resend configuration (RESEND_API_KEY, RESEND_FROM_EMAIL).",
       code: "INVITATION_DELIVERY_FAILED",
     };
   }
@@ -211,12 +212,12 @@ export async function activateMemberAccountAction(
     };
   }
 
-  const callbackPath = `/admin/activate/complete?token=${encodeURIComponent(token)}`;
+  const callbackPath = `/activate/complete?token=${encodeURIComponent(token)}`;
   let { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${getSiteUrl()}/admin/auth/callback?next=${encodeURIComponent(callbackPath)}`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(callbackPath)}`,
     },
   });
   if (error) {
@@ -246,7 +247,7 @@ export async function activateMemberAccountAction(
         message: "This invitation could not be completed.",
       };
     }
-    redirect("/admin/login?status=activated");
+    redirect("/login?status=activated");
   }
 
   return {

@@ -31,6 +31,25 @@ Luôn thiết kế và kiểm thử bắt đầu từ màn hình nhỏ nhất tr
 - **Chế độ mặc định**: `full` (tối giản mã nguồn nghiêm ngặt); hỗ trợ `ultra` (triệt để tuân thủ YAGNI) khi được yêu cầu.
 - **Chiếc thang Ponytail (The Ladder)**: Dừng lại ở bậc đầu tiên giải quyết được vấn đề: 1. Có thực sự cần tồn tại không (YAGNI)? $\to$ 2. Tái sử dụng utils/components sẵn có $\to$ 3. Dùng chuẩn Web/JS/TS stdlib $\to$ 4. Dùng dependencies đã cài đặt $\to$ 5. Viết gọn trong một dòng $\to$ 6. Tạo diff hoạt động nhỏ nhất có thể.
 
+## Database và email local
+
+### Áp migration local
+
+- Đọc migration trước khi chạy. Không dùng `supabase db reset` trừ khi người dùng yêu cầu vì lệnh này xoá dữ liệu local.
+- Chạy đúng migration mới bằng lệnh sau, thay `<migration-file.sql>` bằng file cần áp dụng:
+
+```bash
+docker exec -i supabase_db_tmg-church psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/migrations/<migration-file.sql>
+```
+
+- Xác nhận lệnh không lỗi rồi kiểm tra lại luồng bị ảnh hưởng.
+
+### Test email local
+
+- Không cấu hình `RESEND_API_KEY` hoặc `RESEND_FROM_EMAIL` khi test invitation local để tránh gửi email thật.
+- Chạy `pnpm dev`, gửi invitation trong app và mở activation link được in ở console dev server. Link có hiệu lực 15 phút.
+- Email do Supabase Auth tạo có thể xem tại `http://127.0.0.1:54324` khi Supabase local đang chạy.
+
 ## Quy trình bàn giao (Delivery)
 
 - Chỉ chạy các lệnh kiểm tra chất lượng sau khi người dùng yêu cầu commit:

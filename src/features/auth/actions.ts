@@ -6,6 +6,7 @@ import {
   passwordLoginSchema,
   type LoginActionState,
 } from "@/features/auth/schemas";
+import { getPortalContext } from "./queries";
 
 export async function signInWithPassword(
   _prevState: LoginActionState,
@@ -31,7 +32,17 @@ export async function signInWithPassword(
     };
   }
 
-  redirect("/admin");
+  // Route by granted scope: system admins to the admin area, members with a
+  // linked profile (ministry heads, department/group leaders, members) to the
+  // operational portal, and orphaned accounts to the unauthorized page.
+  const portal = await getPortalContext();
+  if (portal?.isSystemAdmin) {
+    redirect("/admin");
+  }
+  if (portal?.memberProfileId) {
+    redirect("/portal");
+  }
+  redirect("/admin/unauthorized");
 }
 
 /**
@@ -40,5 +51,5 @@ export async function signInWithPassword(
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/admin/login");
+  redirect("/login");
 }

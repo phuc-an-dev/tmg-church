@@ -33,8 +33,21 @@ export async function sendMemberInvitationEmail({
   email,
   token,
 }: InvitationEmail): Promise<void> {
+  const activationUrl = `${getSiteUrl()}/activate?token=${encodeURIComponent(token)}`;
+
+  // Local development without Resend credentials: log the activation link
+  // instead of sending, so the invitation flow stays testable end to end.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    !process.env.RESEND_API_KEY?.trim()
+  ) {
+    console.info(
+      `[dev] Invitation email skipped for ${email}. Activation link (valid 15 minutes): ${activationUrl}`,
+    );
+    return;
+  }
+
   const { apiKey, from } = getResendConfig();
-  const activationUrl = `${getSiteUrl()}/admin/activate?token=${encodeURIComponent(token)}`;
   const safeUrl = escapeHtml(activationUrl);
 
   const response = await fetch("https://api.resend.com/emails", {

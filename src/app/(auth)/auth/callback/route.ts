@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     return createNonCacheableRedirect(
-      new URL("/admin/login?status=link-invalid", origin),
+      new URL("/login?status=link-invalid", origin),
     );
   }
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return createNonCacheableRedirect(
-      new URL("/admin/login?status=link-invalid", origin),
+      new URL("/login?status=link-invalid", origin),
     );
   }
 

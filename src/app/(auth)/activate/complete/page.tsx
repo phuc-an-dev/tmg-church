@@ -13,7 +13,7 @@ export default async function CompleteActivationPage({
 }: CompleteActivationPageProps) {
   const { token } = await searchParams;
   if (!token) {
-    redirect("/admin/login?status=link-invalid");
+    redirect("/login?status=link-invalid");
   }
 
   const supabase = await createClient();
@@ -21,7 +21,7 @@ export default async function CompleteActivationPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.email) {
-    redirect("/admin/login?status=link-invalid");
+    redirect("/login?status=link-invalid");
   }
 
   const { error } = await supabase.rpc("consume_member_access_invitation", {
@@ -30,9 +30,9 @@ export default async function CompleteActivationPage({
   });
   if (error) {
     await supabase.auth.signOut();
-    redirect("/admin/login?status=link-invalid");
+    redirect("/login?status=link-invalid");
   }
 
   await supabase.auth.signOut();
-  redirect("/admin/login?status=activated");
+  redirect("/login?status=activated");
 }

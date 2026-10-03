@@ -37,9 +37,14 @@ pnpm dev
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SITE_URL=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 ```
 
 Chỉ đặt các thông tin publishable dùng trên trình duyệt vào biến `NEXT_PUBLIC_*`. Tuyệt đối không thêm `SUPABASE_SERVICE_ROLE_KEY` vào ứng dụng này hoặc để lộ cho trình duyệt.
+
+`RESEND_API_KEY` và `RESEND_FROM_EMAIL` dùng để gửi email lời mời kích hoạt tài khoản thành viên qua Resend; thiếu một trong hai biến này thì luồng invitation sẽ không gửi được email. Khi chạy local (`next dev`) mà chưa cấu hình `RESEND_API_KEY`, link kích hoạt được in ra console của dev server thay vì gửi email thật.
 
 ## Các câu lệnh thường dùng (Commands)
 
