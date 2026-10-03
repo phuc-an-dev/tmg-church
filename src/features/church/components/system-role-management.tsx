@@ -2,15 +2,12 @@
 
 import * as React from "react";
 import { ShieldCheck, UserMinus, UserPlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/shared/empty-state";
+import { MemberAvatar } from "@/components/shared/member-avatar";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { DestructiveActionButton } from "@/components/shared/item-action-buttons";
+  ExpandableActionItem,
+  ExpandableCoordinatorProvider,
+} from "@/components/shared/expandable-action-item";
 import { setSystemAdminAction } from "../authorization-actions";
 import type { SystemRoleCandidate } from "../authorization-queries";
 
@@ -19,6 +16,17 @@ interface SystemRoleManagementProps {
   candidates: SystemRoleCandidate[];
   actorRole: string;
 }
+
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  master_admin: "border-primary/20 bg-primary/10 text-primary",
+  admin:
+    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  master_admin: "Master Admin",
+  admin: "Admin",
+};
 
 export function SystemRoleManagement({
   churchId,
@@ -43,78 +51,122 @@ export function SystemRoleManagement({
     });
   };
 
+  if (!candidates.length) {
+    return (
+      <EmptyState
+        icon={ShieldCheck}
+        title="No portal users yet"
+        description="Members appear here once they accept a portal access invitation."
+      />
+    );
+  }
+
+  const disabledReason = canManage
+    ? undefined
+    : "Only the Master Admin can change system roles.";
+
   return (
-    <Card className="admin-panel">
-      <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-4">
-        <div className="flex items-start gap-3">
-          <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-            <ShieldCheck className="size-5" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <CardTitle className="text-xl">System roles</CardTitle>
-            <CardDescription className="mt-1 leading-6">
-              Only the Master Admin can add or remove Church Admin access.
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
-        {!canManage && (
-          <p className="text-muted-foreground text-sm leading-6">
-            You can administer Church data, but system role changes require the
-            Master Admin.
-          </p>
-        )}
-        {message && <p className="text-muted-foreground text-sm">{message}</p>}
-        <div className="space-y-2">
+    <div className="space-y-3">
+      {!canManage && (
+        <p className="text-muted-foreground text-sm leading-6">
+          You can administer Church data, but system role changes require the
+          Master Admin.
+        </p>
+      )}
+      {message && <p className="text-muted-foreground text-sm">{message}</p>}
+      <ExpandableCoordinatorProvider resetKey={String(pendingUserId)}>
+        <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
           {candidates.map((candidate) => {
-            const isPending = pendingUserId === candidate.userId;
             const isMaster = candidate.role === "master_admin";
-            return (
-              <div
-                key={candidate.userId}
-                className="bg-background flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="text-foreground truncate text-sm font-semibold">
+            const isAdmin = candidate.role === "admin";
+            const pending = pendingUserId === candidate.userId;
+            const roleLabel = candidate.role
+              ? (ROLE_LABELS[candidate.role] ?? candidate.role)
+              : "No system role";
+            const badgeStyle = candidate.role
+              ? ROLE_BADGE_STYLES[candidate.role]
+              : undefined;
+
+            const identityCell = (
+              <div className="flex min-w-0 items-center gap-3">
+                <MemberAvatar gender={candidate.gender} />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">
                     {candidate.fullName}
-                  </p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {candidate.email ?? "No email recorded"}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-xs font-medium tracking-wide uppercase">
-                    {candidate.role?.replace("_", " ") ?? "No system role"}
-                  </p>
-                </div>
-                {isMaster ? (
-                  <span className="text-muted-foreground text-xs">
-                    Protected Master Admin
                   </span>
-                ) : candidate.role === "admin" ? (
-                  <DestructiveActionButton
-                    className="w-full sm:w-auto"
-                    label="Remove Admin"
-                    icon={UserMinus}
-                    disabled={!canManage || isPending}
-                    onClick={() => updateRole(candidate, false)}
-                  />
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11 w-full gap-2 sm:w-auto"
-                    disabled={!canManage || isPending}
-                    onClick={() => updateRole(candidate, true)}
+                  <span className="text-muted-foreground block truncate text-xs">
+                    {candidate.email ?? "No email recorded"}
+                  </span>
+                </span>
+              </div>
+            );
+
+            const roleCell = (
+              <div className="hidden md:block">
+                {badgeStyle ? (
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
                   >
-                    <UserPlus className="size-4" aria-hidden="true" />
-                    Add Admin
-                  </Button>
+                    {roleLabel}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-xs">
+                    {roleLabel}
+                  </span>
                 )}
               </div>
             );
+
+            if (isMaster || !canManage) {
+              return (
+                <div
+                  key={candidate.userId}
+                  role="row"
+                  className="bg-card flex items-center justify-between gap-3 rounded-2xl border p-4 shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] md:grid md:grid-cols-[1fr_140px_44px] md:items-center md:gap-4 md:rounded-none md:border-0 md:border-b md:p-3 md:shadow-none md:last:border-b-0"
+                >
+                  {identityCell}
+                  {roleCell}
+                  <div className="text-muted-foreground hidden text-right text-xs md:block">
+                    {isMaster ? "Protected" : undefined}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <ExpandableActionItem
+                key={candidate.userId}
+                id={`system-role-${candidate.userId}`}
+                name={candidate.fullName}
+                onAdditionalAction={
+                  isAdmin ? undefined : () => updateRole(candidate, true)
+                }
+                additionalActionLabel="Add Admin"
+                additionalActionSectionLabel="System role"
+                additionalActionIcon={UserPlus}
+                onDelete={
+                  isAdmin ? () => updateRole(candidate, false) : undefined
+                }
+                deleteLabel="Remove Admin"
+                deleteIcon={UserMinus}
+                deleteDisabled={Boolean(disabledReason) || pending}
+                deleteDisabledReason={disabledReason}
+                className="p-4 md:grid md:grid-cols-[1fr_140px_44px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+              >
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  {identityCell}
+                  <ExpandableActionItem.Trigger className="md:hidden" />
+                </div>
+                <ExpandableActionItem.MobileActions />
+                {roleCell}
+                <div className="hidden justify-end md:flex">
+                  <ExpandableActionItem.DesktopActions />
+                </div>
+              </ExpandableActionItem>
+            );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </ExpandableCoordinatorProvider>
+    </div>
   );
 }

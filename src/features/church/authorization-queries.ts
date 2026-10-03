@@ -7,6 +7,7 @@ export type SystemRoleCandidate = {
   memberProfileId: string;
   fullName: string;
   email: string | null;
+  gender: string | null;
   role: "master_admin" | "admin" | null;
 };
 
@@ -14,6 +15,7 @@ export type InvitationCandidate = {
   memberProfileId: string;
   fullName: string;
   email: string | null;
+  gender: string | null;
 };
 
 export type InvitationStatus = {
@@ -35,7 +37,7 @@ export const getSystemRoleCandidates = cache(
     ] = await Promise.all([
       supabase
         .from("member_profile")
-        .select("id, user_id, full_name, email")
+        .select("id, user_id, full_name, email, gender")
         .eq("church_id", churchId)
         .is("archived_at", null)
         .not("user_id", "is", null)
@@ -66,6 +68,7 @@ export const getSystemRoleCandidates = cache(
         memberProfileId: profile.id,
         fullName: profile.full_name,
         email: profile.email,
+        gender: profile.gender,
         role:
           (roleByUser.get(profile.user_id) as SystemRoleCandidate["role"]) ??
           null,
@@ -78,7 +81,7 @@ export const getInvitationCandidates = cache(
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("member_profile")
-      .select("id, full_name, email, user_id")
+      .select("id, full_name, email, user_id, gender")
       .eq("church_id", churchId)
       .is("archived_at", null)
       .is("user_id", null)
@@ -88,6 +91,7 @@ export const getInvitationCandidates = cache(
       memberProfileId: profile.id,
       fullName: profile.full_name,
       email: profile.email,
+      gender: profile.gender,
     }));
   },
 );

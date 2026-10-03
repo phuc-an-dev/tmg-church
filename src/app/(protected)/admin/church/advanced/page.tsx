@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
 import {
   getInvitationCandidates,
   getInvitationStatuses,
-  getSystemRoleCandidates,
 } from "@/features/church/authorization-queries";
 import { ChurchAdvancedSettings } from "@/features/church/components/church-advanced-settings";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Advanced Church Settings",
@@ -22,17 +19,14 @@ export default async function AdvancedChurchSettingsPage() {
   const churchState = await getAdminChurchState();
 
   if (churchState.status === "one") {
-    const [systemRoleCandidates, invitationCandidates, invitationStatuses] =
-      await Promise.all([
-        getSystemRoleCandidates(churchState.church.id),
-        getInvitationCandidates(churchState.church.id),
-        getInvitationStatuses(churchState.church.id),
-      ]);
+    const [invitationCandidates, invitationStatuses] = await Promise.all([
+      getInvitationCandidates(churchState.church.id),
+      getInvitationStatuses(churchState.church.id),
+    ]);
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <ChurchAdvancedSettings
           church={churchState.church}
-          systemRoleCandidates={systemRoleCandidates}
           invitationCandidates={invitationCandidates}
           invitationStatuses={invitationStatuses}
           actorRole={auth.systemRole.role}
@@ -47,14 +41,7 @@ export default async function AdvancedChurchSettingsPage() {
         <AdminPageHeader
           title="Church Administration"
           description="Sensitive controls are available only when exactly one church is configured."
-          action={
-            <Button asChild variant="outline" className="min-h-11 gap-2 px-4">
-              <Link href="/admin/church">
-                <ArrowLeft className="size-4" aria-hidden="true" />
-                <span>Back</span>
-              </Link>
-            </Button>
-          }
+          backLink={{ href: "/admin/church", label: "Church" }}
         />
         <div className="admin-panel flex items-start gap-3 p-4 sm:p-6">
           <Info

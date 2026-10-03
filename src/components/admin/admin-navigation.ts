@@ -3,6 +3,7 @@ import {
   Church,
   LayoutDashboard,
   Layers3,
+  ShieldCheck,
   Sparkles,
   Tags,
   Users,
@@ -61,6 +62,13 @@ const CHURCH_NAVIGATION_ITEM = {
   exact: false,
 } as const;
 
+const ROLES_NAVIGATION_ITEM = {
+  href: "/admin/roles",
+  label: "Roles",
+  icon: ShieldCheck,
+  exact: false,
+} as const;
+
 /**
  * Church setup is onboarding for unconfigured churches. Once configured,
  * the Church destination is accessible to Master Admins in day-to-day navigation.
@@ -74,7 +82,11 @@ export function getAdminNavigationItems(
   }
 
   if (isMasterAdmin) {
-    return [...CORE_ADMIN_NAVIGATION_ITEMS, CHURCH_NAVIGATION_ITEM];
+    return [
+      ...CORE_ADMIN_NAVIGATION_ITEMS,
+      ROLES_NAVIGATION_ITEM,
+      CHURCH_NAVIGATION_ITEM,
+    ];
   }
 
   return CORE_ADMIN_NAVIGATION_ITEMS;
