@@ -29,7 +29,6 @@ import { useIsDesktop } from "@/components/shared/responsive-editor";
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
   dropdownMaxHeight?: string;
-  fullWidth?: boolean;
   transparent?: boolean;
 };
 
@@ -330,7 +329,6 @@ function Calendar({
   captionLayout = "dropdown",
   buttonVariant = "ghost",
   dropdownMaxHeight = "max-h-56",
-  fullWidth = false,
   transparent = false,
   locale,
   formatters,
@@ -434,16 +432,10 @@ function Calendar({
         yearProps,
       }}
     >
-      <div
-        className={cn(
-          "flex flex-col items-center gap-3",
-          fullWidth && "w-full",
-        )}
-      >
+      <div className="flex flex-col items-center gap-3">
         <div
           className={cn(
-            "w-fit",
-            fullWidth && "w-full",
+            "w-full max-w-[26.25rem]",
             isDesktop === false &&
               !transparent &&
               "border-border/80 bg-card rounded-2xl border p-2 shadow",
@@ -452,8 +444,9 @@ function Calendar({
           <DayPicker
             showOutsideDays={showOutsideDays}
             className={cn(
-              "group/calendar bg-card p-2 [--cell-radius:var(--radius-md)] [--cell-size:2.75rem] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
+              "group/calendar bg-card w-full p-2 [--cell-radius:var(--radius-md)] [--cell-size:2.25rem] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent min-[400px]:[--cell-size:2.5rem] sm:[--cell-size:3rem]",
               transparent && "bg-transparent",
+              isDesktop === false && !transparent && "p-0",
               String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
               String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
               className,
@@ -466,7 +459,7 @@ function Calendar({
               ...formatters,
             }}
             classNames={{
-              root: cn(fullWidth ? "w-full" : "w-fit", defaultClassNames.root),
+              root: cn("w-full", defaultClassNames.root),
               months: cn(
                 "relative flex flex-col gap-4 md:flex-row",
                 defaultClassNames.months,
@@ -797,7 +790,7 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 data-[today=true]:not-data-[selected-single=true]:bg-muted data-[today=true]:text-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-foreground relative isolate z-10 flex aspect-square size-(--cell-size) min-h-(--cell-size) min-w-(--cell-size) cursor-pointer touch-manipulation flex-col items-center justify-center gap-1 border-0 text-sm leading-none font-medium group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[today=true]:rounded-(--cell-radius) [&>span]:text-xs [&>span]:opacity-70",
+        "group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 data-[today=true]:not-data-[selected-single=true]:bg-muted data-[today=true]:not-data-[selected-single=true]:text-foreground data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:bg-muted data-[range-middle=true]:text-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-foreground relative isolate z-10 flex aspect-square size-(--cell-size) min-h-(--cell-size) min-w-(--cell-size) cursor-pointer touch-manipulation flex-col items-center justify-center gap-1 border-0 text-sm leading-none font-medium group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[today=true]:rounded-(--cell-radius) [&>span]:text-xs [&>span]:opacity-70",
         defaultClassNames.day,
         className,
       )}
@@ -806,4 +799,33 @@ function CalendarDayButton({
   );
 }
 
-export { Calendar, CalendarDayButton, CalendarDropdown };
+function CalendarSessionDayButton({
+  count,
+  children,
+  ...props
+}: React.ComponentProps<typeof CalendarDayButton> & { count: number }) {
+  return (
+    <CalendarDayButton
+      {...props}
+      className={
+        count > 0
+          ? "text-primary not-data-[selected-single=true]:bg-primary/10 not-data-[selected-single=true]:hover:bg-primary/15 data-[today=true]:not-data-[selected-single=true]:bg-primary/10 font-bold"
+          : undefined
+      }
+    >
+      <span>{children}</span>
+      {count > 0 && (
+        <span className="bg-primary ring-card absolute top-0 right-0 size-1.5 translate-x-1/2 -translate-y-1/2 rounded-full ring-2">
+          <span className="sr-only">{count} sessions</span>
+        </span>
+      )}
+    </CalendarDayButton>
+  );
+}
+
+export {
+  Calendar,
+  CalendarDayButton,
+  CalendarDropdown,
+  CalendarSessionDayButton,
+};

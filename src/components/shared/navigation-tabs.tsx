@@ -64,7 +64,7 @@ export function NavigationTabs({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "bg-muted/60 border-border/50 relative inline-flex w-full items-center gap-1 rounded-xl border p-1 sm:w-auto",
+        "bg-muted/60 border-border/50 relative flex w-full items-center gap-1 rounded-xl border p-1 sm:w-auto",
         className,
       )}
       {...props}
@@ -111,7 +111,7 @@ export function NavigationTabLink({
       role="tab"
       aria-selected={active}
       className={cn(
-        "relative z-10 inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial",
+        "relative z-10 inline-flex min-h-11 min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial sm:px-4",
         active
           ? "text-foreground font-semibold"
           : "text-muted-foreground hover:text-foreground",
@@ -120,7 +120,7 @@ export function NavigationTabLink({
       {...props}
     >
       {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
-      <span>{children}</span>
+      <span className="min-w-0 truncate whitespace-nowrap">{children}</span>
       {badge !== undefined && (
         <span
           className={cn(
@@ -161,7 +161,7 @@ export function NavigationTabButton({
       role="tab"
       aria-selected={active}
       className={cn(
-        "relative z-10 inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial",
+        "relative z-10 inline-flex min-h-11 min-w-0 flex-1 basis-0 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition-colors select-none sm:min-h-10 sm:flex-initial sm:px-4",
         active
           ? "text-foreground font-semibold"
           : "text-muted-foreground hover:text-foreground",
@@ -170,7 +170,7 @@ export function NavigationTabButton({
       {...props}
     >
       {Icon && <Icon className="size-4 shrink-0" aria-hidden="true" />}
-      <span>{children}</span>
+      <span className="min-w-0 truncate whitespace-nowrap">{children}</span>
       {badge !== undefined && (
         <span
           className={cn(
