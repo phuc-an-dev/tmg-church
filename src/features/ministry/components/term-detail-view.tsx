@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Trash2, UserMinus, Users } from "lucide-react";
+import { CalendarDays, Plus, Trash2, UserMinus, Users } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   ExpandableActionItem,
@@ -14,9 +14,11 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { MemberAvatar } from "@/components/shared/member-avatar";
 import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
+import { ManageCollectionDrawer } from "@/components/shared/manage-collection-drawer";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { Button } from "@/components/ui/button";
 import { StatusToast } from "@/components/ui/status-toast";
+import { TermDepartmentAccessTab } from "./term-department-access-tab";
 import { deleteSessionAction } from "@/features/session/actions";
 import { SessionEditorDrawer } from "@/features/session/components/session-editor-drawer";
 import { removeMinistryMembershipAction } from "@/features/member/actions";
@@ -54,6 +56,10 @@ export function TermDetailView({
   const [removingMember, setRemovingMember] =
     React.useState<TermDetailMember | null>(null);
   const [sessionDrawerOpen, setSessionDrawerOpen] = React.useState(false);
+  const [manageSessionOpen, setManageSessionOpen] = React.useState(false);
+  const [manageSessionTab, setManageSessionTab] = React.useState<
+    "session" | "access"
+  >("session");
   const [editingSession, setEditingSession] =
     React.useState<TermDetailSession | null>(null);
   const [deletingSession, setDeletingSession] =
@@ -64,6 +70,12 @@ export function TermDetailView({
     (memberPage - 1) * memberPageSize,
     memberPage * memberPageSize,
   );
+
+  function openSessionEditor(session: TermDetailSession | null) {
+    setEditingSession(session);
+    setManageSessionOpen(false);
+    setSessionDrawerOpen(true);
+  }
 
   async function addMembers(selectedIds: string[]) {
     if (selectedIds.length === 0) return;
@@ -201,89 +213,120 @@ export function TermDetailView({
         </section>
       ) : (
         <section className="pb-24">
-          {data.sessions.length === 0 ? (
-            <EmptyState
-              icon={CalendarDays}
-              title="No sessions yet"
-              description="No term-wide sessions have been created for this term yet."
-              action={
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingSession(null);
-                    setSessionDrawerOpen(true);
-                  }}
-                  className="bg-card hover:bg-card min-h-11 gap-2 px-4"
-                >
-                  Create session
-                </Button>
-              }
-            />
-          ) : (
-            <ExpandableCoordinatorProvider>
-              <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
-                {data.sessions.map((session) => (
-                  <ExpandableActionItem
-                    key={session.id}
-                    id={session.id}
-                    name={session.title}
-                    onEdit={() => {
-                      setEditingSession(session);
-                      setSessionDrawerOpen(true);
-                    }}
-                    onDelete={
-                      session.canDelete
-                        ? () => setDeletingSession(session)
-                        : undefined
-                    }
-                    className="p-4 md:grid md:grid-cols-[1fr_180px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
-                  >
-                    <div className="flex min-w-0 items-start justify-between gap-3">
-                      <Link
-                        href={`/admin/sessions/${session.slug}${ministrySlug && termSlug ? `?returnUrl=${encodeURIComponent(`/admin/ministries/${ministrySlug}/terms/${termSlug}?section=sessions`)}` : ""}`}
-                        className="flex min-w-0 flex-1 items-center gap-3"
-                      >
-                        <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
-                          <CalendarDays className="size-5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate font-semibold">
-                            {session.title}
-                          </span>
-                          <span className="text-muted-foreground block text-xs">
-                            {format(
-                              parseISO(session.sessionDate),
-                              "MMM d, yyyy",
-                            )}{" "}
-                            · {session.participantCount} participants
-                          </span>
-                        </span>
-                      </Link>
-                      <ExpandableActionItem.Trigger className="md:hidden" />
-                    </div>
-                    <ExpandableActionItem.MobileActions />
-                    <div className="text-muted-foreground hidden text-sm md:block">
-                      {format(parseISO(session.sessionDate), "MMM d, yyyy")}
-                    </div>
-                    <div className="hidden justify-end md:flex">
-                      <ExpandableActionItem.DesktopActions />
-                    </div>
-                  </ExpandableActionItem>
-                ))}
-              </div>
-            </ExpandableCoordinatorProvider>
-          )}
           <FloatingCreateButton
             onClick={() => {
-              setEditingSession(null);
-              setSessionDrawerOpen(true);
+              setManageSessionTab("session");
+              setManageSessionOpen(true);
             }}
           >
-            Create session
+            Manage Session
           </FloatingCreateButton>
         </section>
       )}
+
+      <ManageCollectionDrawer
+        open={manageSessionOpen}
+        onOpenChange={(open) => {
+          setManageSessionOpen(open);
+          if (open) setManageSessionTab("session");
+        }}
+        title="Manage Session"
+        description="Manage term sessions and Department Leader access."
+        mobileMinHeightClass="min-h-[85dvh]"
+        maxWidthClass="sm:max-w-2xl"
+        tabs={[
+          { key: "session", label: "Session", icon: CalendarDays },
+          { key: "access", label: "Access", icon: Users },
+        ]}
+        activeTab={manageSessionTab}
+        onTabChange={setManageSessionTab}
+        footer={
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={() => setManageSessionOpen(false)}
+          >
+            Done
+          </Button>
+        }
+      >
+        {manageSessionTab === "session" ? (
+          <div className="space-y-4">
+            <Button
+              type="button"
+              className="min-h-11 gap-2"
+              onClick={() => openSessionEditor(null)}
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              Create session
+            </Button>
+            {data.sessions.length === 0 ? (
+              <EmptyState
+                icon={CalendarDays}
+                title="No sessions yet"
+                description="No term-wide sessions have been created for this term yet."
+              />
+            ) : (
+              <ExpandableCoordinatorProvider>
+                <div className="space-y-3 md:space-y-0 md:overflow-hidden md:rounded-xl md:border">
+                  {data.sessions.map((session) => (
+                    <ExpandableActionItem
+                      key={session.id}
+                      id={session.id}
+                      name={session.title}
+                      onEdit={() => openSessionEditor(session)}
+                      onDelete={
+                        session.canDelete
+                          ? () => {
+                              setManageSessionOpen(false);
+                              setDeletingSession(session);
+                            }
+                          : undefined
+                      }
+                      className="p-4 md:grid md:grid-cols-[1fr_180px_120px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                    >
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <Link
+                          href={`/admin/sessions/${session.slug}${ministrySlug && termSlug ? `?returnUrl=${encodeURIComponent(`/admin/ministries/${ministrySlug}/terms/${termSlug}?section=sessions`)}` : ""}`}
+                          onClick={() => setManageSessionOpen(false)}
+                          className="flex min-w-0 flex-1 items-center gap-3"
+                        >
+                          <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl">
+                            <CalendarDays className="size-5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-semibold">
+                              {session.title}
+                            </span>
+                            <span className="text-muted-foreground block text-xs">
+                              {format(
+                                parseISO(session.sessionDate),
+                                "MMM d, yyyy",
+                              )}{" "}
+                              · {session.participantCount} participants
+                            </span>
+                          </span>
+                        </Link>
+                        <ExpandableActionItem.Trigger className="md:hidden" />
+                      </div>
+                      <ExpandableActionItem.MobileActions />
+                      <div className="text-muted-foreground hidden text-sm md:block">
+                        {format(parseISO(session.sessionDate), "MMM d, yyyy")}
+                      </div>
+                      <div className="hidden justify-end md:flex">
+                        <ExpandableActionItem.DesktopActions />
+                      </div>
+                    </ExpandableActionItem>
+                  ))}
+                </div>
+              </ExpandableCoordinatorProvider>
+            )}
+          </div>
+        ) : (
+          <TermDepartmentAccessTab ministryTermId={termId} />
+        )}
+      </ManageCollectionDrawer>
 
       <MemberAssignDrawer
         open={memberDrawerOpen}

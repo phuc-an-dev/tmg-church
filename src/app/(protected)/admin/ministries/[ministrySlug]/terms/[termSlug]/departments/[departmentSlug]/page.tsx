@@ -46,21 +46,21 @@ export default async function DepartmentDetailPage({
     );
   }
 
-  const [context, query] = await Promise.all([
-    requireDepartmentContext(ministrySlug, termSlug, departmentSlug),
-    departmentDetailSearchParamsCache.parse(searchParams),
-  ]);
+  const context = await requireDepartmentContext(
+    ministrySlug,
+    termSlug,
+    departmentSlug,
+  );
+  const query = await departmentDetailSearchParamsCache.parse(searchParams);
 
   if (!context) notFound();
-
-  const data = await getDepartmentDetailData(
+  const queryData = await getDepartmentDetailData(
     context.ministry.slug,
     context.term.slug,
     context.department.slug,
   );
-
-  if (!data) notFound();
-
+  if (!queryData) notFound();
+  const data = queryData;
   const section = query.section;
 
   return (
