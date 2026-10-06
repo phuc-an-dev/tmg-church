@@ -47,6 +47,11 @@ import type {
   SessionParticipantDetail,
 } from "../types";
 
+type AttendanceActions = {
+  save: (raw: unknown) => Promise<{ success: boolean; error?: string }>;
+  saveBulk: (raw: unknown) => Promise<{ success: boolean; error?: string }>;
+};
+
 const FILTER_LABELS: Record<SessionFilterStatus, string> = {
   all: "All",
   pending: "Pending",
@@ -55,7 +60,19 @@ const FILTER_LABELS: Record<SessionFilterStatus, string> = {
   excused: "Excused",
 };
 
-export function AttendanceManagement({ session }: { session: SessionDetail }) {
+export function AttendanceManagement({
+  session,
+  actions,
+  basePath,
+  baseQuery,
+  returnUrl,
+}: {
+  session: SessionDetail;
+  actions?: AttendanceActions;
+  basePath?: string;
+  baseQuery?: string;
+  returnUrl?: string;
+}) {
   // URL state with nuqs (shallow: false for Server Component re-render)
   const [query, setQuery] = useQueryStates(sessionDetailSearchParams, {
     shallow: false,
@@ -156,7 +173,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
     if (savingMemberId) return;
 
     setSavingMemberId(member.memberId);
-    const result = await saveAttendanceAction({
+    const result = await (actions?.save ?? saveAttendanceAction)({
       sessionId: session.id,
       memberId: member.memberId,
       status: newStatus,
@@ -216,7 +233,7 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
   async function executeBulkAction() {
     if (!bulkConfirm) return;
     setBulkPending(true);
-    const result = await saveBulkAttendanceAction({
+    const result = await (actions?.saveBulk ?? saveBulkAttendanceAction)({
       sessionId: session.id,
       memberIds: bulkConfirm.memberIds,
       status: bulkConfirm.targetStatus,
@@ -280,10 +297,19 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
 
   const activeStatus = (query.status as SessionFilterStatus) || "all";
 
-  const isSafeReturnUrl =
-    query.returnUrl?.startsWith("/") && !query.returnUrl.startsWith("//");
-  const backHref = isSafeReturnUrl ? query.returnUrl : "/admin/sessions";
+  const targetReturnUrl = returnUrl ?? query.returnUrl;
+  const isSafeReturnUrl = Boolean(
+    targetReturnUrl?.startsWith("/") && !targetReturnUrl.startsWith("//"),
+  );
+  const backHref =
+    isSafeReturnUrl && targetReturnUrl ? targetReturnUrl : "/admin/sessions";
   const backLabel = isSafeReturnUrl ? "Back" : "Sessions";
+  const sessionPath = basePath ?? `/admin/sessions/${session.slug}`;
+  const routeQuery = baseQuery ? `?${baseQuery}` : "";
+  const returnParam =
+    !basePath && isSafeReturnUrl && targetReturnUrl
+      ? `&returnUrl=${encodeURIComponent(targetReturnUrl)}`
+      : "";
 
   return (
     <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
@@ -299,13 +325,13 @@ export function AttendanceManagement({ session }: { session: SessionDetail }) {
       {!session.departmentId && (
         <NavigationTabs aria-label="Session views">
           <NavigationTabLink
-            href={`/admin/sessions/${session.slug}${isSafeReturnUrl ? `?returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
+            href={`${sessionPath}${basePath ? routeQuery : returnParam.replace("&", "?")}`}
             active={true}
           >
             Attendance
           </NavigationTabLink>
           <NavigationTabLink
-            href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl ? `&returnUrl=${encodeURIComponent(query.returnUrl)}` : ""}`}
+            href={`${sessionPath}${basePath ? `${routeQuery}${routeQuery ? "&" : "?"}tab=assignments` : `?tab=assignments${returnParam}`}`}
             active={false}
           >
             Service Assignments

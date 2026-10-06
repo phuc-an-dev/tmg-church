@@ -526,7 +526,6 @@ function SessionCalendarOverview({
     <div className="space-y-6">
       <section>
         <Calendar
-          fullWidth
           transparent
           mode="single"
           month={calendarMonth}
@@ -540,7 +539,6 @@ function SessionCalendarOverview({
             onSelectDate(date);
           }}
           components={{ DayButton: SessionDayButton }}
-          className="w-full [--cell-size:2.75rem] sm:[--cell-size:3rem]"
         />
       </section>
 

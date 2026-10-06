@@ -39,11 +39,27 @@ import type {
 interface ServiceAssignmentManagementProps {
   assignmentData: SessionServiceAssignmentData;
   returnUrl?: string;
+  basePath?: string;
+  baseQuery?: string;
+  actions?: {
+    setRoles: (
+      raw: unknown,
+    ) => Promise<{ success: boolean; error?: string; message?: string }>;
+    batchSave: (
+      raw: unknown,
+    ) => Promise<{ success: boolean; error?: string; message?: string }>;
+    remove: (
+      raw: unknown,
+    ) => Promise<{ success: boolean; error?: string; message?: string }>;
+  };
 }
 
 export function ServiceAssignmentManagement({
   assignmentData,
   returnUrl,
+  basePath,
+  baseQuery,
+  actions,
 }: ServiceAssignmentManagementProps) {
   const router = useRouter();
   const {
@@ -90,7 +106,7 @@ export function ServiceAssignmentManagement({
   async function saveServiceRoles() {
     setPending(true);
     try {
-      const result = await setSessionServiceRolesAction({
+      const result = await (actions?.setRoles ?? setSessionServiceRolesAction)({
         sessionId: session.id,
         roleIds: draftRoleIds,
       });
@@ -151,7 +167,9 @@ export function ServiceAssignmentManagement({
     setPending(true);
     try {
       if (changes.additions.length > 0) {
-        const result = await batchSaveServiceAssignmentsAction({
+        const result = await (
+          actions?.batchSave ?? batchSaveServiceAssignmentsAction
+        )({
           sessionId: session.id,
           roleId: selectedRoleId,
           membershipIds: changes.additions,
@@ -163,10 +181,12 @@ export function ServiceAssignmentManagement({
       }
 
       for (const assignment of changes.removals) {
-        const result = await removeServiceAssignmentAction({
-          sessionId: session.id,
-          assignmentId: assignment.id,
-        });
+        const result = await (actions?.remove ?? removeServiceAssignmentAction)(
+          {
+            sessionId: session.id,
+            assignmentId: assignment.id,
+          },
+        );
         if (!result.success) {
           setFeedback(result.error ?? "Failed to remove assignment.");
           return;
@@ -202,6 +222,12 @@ export function ServiceAssignmentManagement({
   );
   const backHref = isSafeReturnUrl && returnUrl ? returnUrl : "/admin/sessions";
   const backLabel = isSafeReturnUrl ? "Back" : "Sessions";
+  const sessionPath = basePath ?? `/admin/sessions/${session.slug}`;
+  const routeQuery = baseQuery ? `?${baseQuery}` : "";
+  const returnParam =
+    !basePath && isSafeReturnUrl && returnUrl
+      ? `&returnUrl=${encodeURIComponent(returnUrl)}`
+      : "";
 
   return (
     <div className="space-y-6 pb-24">
@@ -217,13 +243,13 @@ export function ServiceAssignmentManagement({
       {/* 2. Navigation Tabs */}
       <NavigationTabs aria-label="Session views">
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}${isSafeReturnUrl && returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+          href={`${sessionPath}${basePath ? routeQuery : returnParam.replace("&", "?")}`}
           active={false}
         >
           Attendance
         </NavigationTabLink>
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl && returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+          href={`${sessionPath}${basePath ? `${routeQuery}${routeQuery ? "&" : "?"}tab=assignments` : `?tab=assignments${returnParam}`}`}
           active={true}
         >
           Service Assignments
