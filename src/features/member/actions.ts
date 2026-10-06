@@ -111,7 +111,8 @@ export async function createMemberAction(
     const { data, error } = await createMemberWithUniqueSlug({
       churchId: church.id,
       fullName,
-      email: email ?? null,
+      // The database CHECK requires stored emails to be lowercase.
+      email: email ? email.trim().toLowerCase() : null,
       phone: normalizePhoneNumber(phone),
       dateOfBirth: dateOfBirth ?? null,
       gender: gender ?? null,
@@ -178,7 +179,8 @@ export async function updateMemberAction(
       .from("member_profile")
       .update({
         full_name: fullName,
-        email: email ?? null,
+        // The database CHECK requires stored emails to be lowercase.
+        email: email ? email.trim().toLowerCase() : null,
         phone: normalizePhoneNumber(phone),
         date_of_birth: dateOfBirth ?? null,
         ...(gender === undefined ? {} : { gender }),
