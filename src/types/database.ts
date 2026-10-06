@@ -640,6 +640,41 @@ export type Database = {
           },
         ];
       };
+      ministry_operation_delegation: {
+        Row: {
+          capability: string;
+          created_at: string;
+          id: string;
+          member_profile_id: string;
+          ministry_term_id: string;
+        };
+        Insert: {
+          capability: string;
+          member_profile_id: string;
+          ministry_term_id: string;
+        };
+        Update: {
+          capability?: string;
+          member_profile_id?: string;
+          ministry_term_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ministry_operation_delegation_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ministry_operation_delegation_ministry_term_id_fkey";
+            columns: ["ministry_term_id"];
+            isOneToOne: false;
+            referencedRelation: "ministry_term";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ministry_membership: {
         Row: {
           created_at: string;
@@ -1530,6 +1565,60 @@ export type Database = {
           p_scope_type: string;
         };
         Returns: boolean;
+      };
+      portal_term_church_id: {
+        Args: { p_term_id: string };
+        Returns: string;
+      };
+      portal_department_church_id: {
+        Args: { p_department_id: string; p_ministry_term_id: string };
+        Returns: string;
+      };
+      portal_delegated_terms: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          ministry_term_id: string;
+          ministry_slug: string;
+          ministry_name: string;
+          term_slug: string;
+          term_name: string;
+        }[];
+      };
+      portal_ministry_session_attendance_data: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      portal_save_ministry_session_attendance: {
+        Args: { p_session_id: string; p_member_id: string; p_status: string };
+        Returns: undefined;
+      };
+      portal_save_bulk_ministry_session_attendance: {
+        Args: {
+          p_session_id: string;
+          p_member_ids: string[];
+          p_status: string;
+        };
+        Returns: undefined;
+      };
+      portal_ministry_session_service_assignment_data: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      portal_set_ministry_session_service_roles: {
+        Args: { p_session_id: string; p_role_ids: string[] };
+        Returns: undefined;
+      };
+      portal_batch_save_ministry_service_assignments: {
+        Args: {
+          p_session_id: string;
+          p_role_id: string;
+          p_membership_ids: string[];
+        };
+        Returns: undefined;
+      };
+      portal_remove_ministry_service_assignment: {
+        Args: { p_session_id: string; p_assignment_id: string };
+        Returns: undefined;
       };
       create_group_session: {
         Args: {
