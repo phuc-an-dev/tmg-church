@@ -46,9 +46,13 @@ docker exec -i supabase_db_tmg-church psql -v ON_ERROR_STOP=1 -U postgres -d pos
 
 ### Test email local
 
-- Không cấu hình `RESEND_API_KEY` hoặc `RESEND_FROM_EMAIL` khi test invitation local để tránh gửi email thật.
-- Chạy `pnpm dev`, gửi invitation trong app và mở activation link được in ở console dev server. Link có hiệu lực 15 phút.
+- Mặc định không cấu hình `RESEND_API_KEY` hoặc `RESEND_FROM_EMAIL` khi test invitation local để tránh gửi email thật. Khi các biến này được đặt, invitation local sẽ gửi email thật qua Resend.
+- Chạy `pnpm dev`, gửi invitation trong app và mở activation link được in ở console dev server khi chưa cấu hình Resend. Link có hiệu lực 15 phút.
 - Email do Supabase Auth tạo có thể xem tại `http://127.0.0.1:54324` khi Supabase local đang chạy.
+
+### Test trên iPhone
+
+- Chạy `pnpm dev`, rồi mở tunnel tạm bằng `ngrok http 3000 --url https://decoy-baggie-stand.ngrok-free.dev` và truy cập URL đó trên iPhone.
 
 ## Quy trình bàn giao (Delivery)
 
@@ -60,3 +64,13 @@ pnpm typecheck
 pnpm format:check
 pnpm build
 ```
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -4,6 +4,7 @@ import { Geist } from "next/font/google";
 import { cn } from "cn";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { DevRouteCopyButton } from "@/components/shared/dev-route-copy-button";
 
 const geist = Geist({
   subsets: ["latin", "vietnamese"],
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem={true}
           disableTransitionOnChange
         >
-          <NuqsAdapter>{children}</NuqsAdapter>
+          <NuqsAdapter>
+            {children}
+            <DevRouteCopyButton />
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>

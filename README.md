@@ -32,19 +32,25 @@ pnpm dev
 
 Ứng dụng sẽ chạy tại địa chỉ `http://localhost:3000`.
 
+## Kiểm thử trên iPhone qua ngrok
+
+Giữ `pnpm dev` đang chạy, rồi mở tunnel trong một terminal khác:
+
+```bash
+ngrok http 3000 --url https://decoy-baggie-stand.ngrok-free.dev
+```
+
+Mở `https://decoy-baggie-stand.ngrok-free.dev` trên iPhone. Nếu đổi hostname ngrok, cập nhật hostname đó trong `allowedDevOrigins` ở `next.config.ts`, rồi khởi động lại `pnpm dev`.
+
 ## Biến môi trường (Environment Variables)
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_SITE_URL=
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
 ```
 
 Chỉ đặt các thông tin publishable dùng trên trình duyệt vào biến `NEXT_PUBLIC_*`. Tuyệt đối không thêm `SUPABASE_SERVICE_ROLE_KEY` vào ứng dụng này hoặc để lộ cho trình duyệt.
-
-`RESEND_API_KEY` và `RESEND_FROM_EMAIL` dùng để gửi email lời mời kích hoạt tài khoản thành viên qua Resend; thiếu một trong hai biến này thì luồng invitation sẽ không gửi được email. Khi chạy local (`next dev`) mà chưa cấu hình `RESEND_API_KEY`, link kích hoạt được in ra console của dev server thay vì gửi email thật.
 
 ## Các câu lệnh thường dùng (Commands)
 
