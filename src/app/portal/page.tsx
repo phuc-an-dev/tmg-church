@@ -4,6 +4,7 @@ import { requirePortalContext } from "@/features/auth/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getPortalRequestDepartments } from "@/features/portal/department-request-queries";
+import { getPortalDelegatedTerms } from "@/features/portal/term-session-queries";
 
 export default async function PortalPage() {
   const context = await requirePortalContext();
@@ -20,6 +21,7 @@ export default async function PortalPage() {
     .select("id,name,slug,term_slug,ministry_slug")
     .order("name");
   const requestDepartments = await getPortalRequestDepartments();
+  const ministrySessionTerms = await getPortalDelegatedTerms();
   const roleLabels = [
     ...context.termRoles.map((role) => role.role.replaceAll("_", " ")),
     ...context.groupRoles.map((role) => role.role.replaceAll("_", " ")),
@@ -154,6 +156,28 @@ export default async function PortalPage() {
         </Card>
       )}
 
+      {ministrySessionTerms.length > 0 && (
+        <Card className="admin-panel">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg">Ministry sessions</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-2 sm:p-6 sm:pt-0">
+            {ministrySessionTerms.map((term) => (
+              <Link
+                key={term.ministry_term_id}
+                href={`/portal/ministries/${term.ministry_slug}/terms/${term.term_slug}`}
+                className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
+              >
+                <span className="font-semibold">
+                  {term.ministry_name} · {term.term_name}
+                </span>
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {departments && departments.length > 0 && (
         <Card className="admin-panel">
           <CardHeader className="p-4 sm:p-6">
@@ -163,7 +187,7 @@ export default async function PortalPage() {
             {departments.map((department) => (
               <Link
                 key={department.id}
-                href={`/portal/ministries/${department.ministry_slug}/terms/${department.term_slug}/departments/${department.slug}/members`}
+                href={`/portal/ministries/${department.ministry_slug}/terms/${department.term_slug}/departments/${department.slug}?section=members`}
                 className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
               >
                 <span className="font-semibold">{department.name}</span>
@@ -183,7 +207,7 @@ export default async function PortalPage() {
             {requestDepartments.map((department) => (
               <Link
                 key={department.department_id}
-                href={`/portal/ministries/${department.ministry_slug}/terms/${department.term_slug}/departments/${department.department_slug}/requests`}
+                href={`/portal/ministries/${department.ministry_slug}/terms/${department.term_slug}/departments/${department.department_slug}?section=requests`}
                 className="border-border hover:bg-muted/50 flex min-h-11 items-center justify-between rounded-xl border p-4"
               >
                 <span className="font-semibold">
