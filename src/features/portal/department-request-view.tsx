@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { Check, X } from "lucide-react";
-import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusToast } from "@/components/ui/status-toast";
 import { Button } from "@/components/ui/button";
@@ -95,129 +94,121 @@ export function PortalDepartmentRequestView({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <AdminPageHeader
-          title={department.name}
-          description="Requests to join this department."
-          backLink={{ href: "/portal", label: "Portal" }}
-        />
-
-        {!canManage && (
-          <div className="admin-surface p-4">
-            <p className="text-foreground text-sm font-medium">
-              Join this department
-            </p>
-            <p className="text-muted-foreground mt-0.5 text-xs">
-              Submit a request and a department leader will review it.
-            </p>
-            {mine ? (
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <span className="text-muted-foreground text-sm font-medium">
-                  Your request is pending review.
-                </span>
-                <Button
-                  variant="outline"
-                  className="min-h-11"
-                  disabled={pendingId === mine.id}
-                  onClick={() => void withdraw(mine.id)}
-                >
-                  Withdraw
-                </Button>
-              </div>
-            ) : (
+    <div className="space-y-3">
+      {!canManage && (
+        <div className="admin-surface p-4">
+          <p className="text-foreground text-sm font-medium">
+            Join this department
+          </p>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Submit a request and a department leader will review it.
+          </p>
+          {mine ? (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <span className="text-muted-foreground text-sm font-medium">
+                Your request is pending review.
+              </span>
               <Button
-                className="mt-3 min-h-11"
-                disabled={pendingId === "submit"}
-                onClick={() => void submit()}
+                variant="outline"
+                className="min-h-11"
+                disabled={pendingId === mine.id}
+                onClick={() => void withdraw(mine.id)}
               >
-                Submit request
+                Withdraw
               </Button>
-            )}
-          </div>
-        )}
-
-        {canManage &&
-          (rows.length === 0 ? (
-            <EmptyState
-              icon={Check}
-              title="No requests yet"
-              description="Join requests from term members will appear here for review."
-            />
+            </div>
           ) : (
-            <ExpandableCoordinatorProvider resetKey={String(pendingId)}>
-              <ListTable label="Department requests">
-                <ListTableHeader gridClassName="md:grid-cols-[1fr_140px_44px]">
-                  <div role="columnheader">Member</div>
-                  <div role="columnheader">Status</div>
-                  <div role="columnheader" className="text-right">
-                    Actions
-                  </div>
-                </ListTableHeader>
-                <ListTableBody>
-                  {rows.map((row) => {
-                    const badgeStyle = STATUS_BADGE_STYLES[row.status];
-                    const pending = pendingId === row.id;
-                    return (
-                      <ExpandableActionItem
-                        key={row.id}
-                        id={`department-request-${row.id}`}
-                        name={row.requesterName}
-                        onAdditionalAction={
-                          row.status === "pending"
-                            ? () => void decide(row.id, "approved")
-                            : undefined
-                        }
-                        additionalActionLabel="Approve request"
-                        additionalActionSectionLabel="Decision"
-                        additionalActionIcon={Check}
-                        onDelete={
-                          row.status === "pending"
-                            ? () => void decide(row.id, "rejected")
-                            : undefined
-                        }
-                        deleteLabel="Reject request"
-                        deleteIcon={X}
-                        deleteDisabled={pending}
-                        className="p-4 md:grid md:grid-cols-[1fr_140px_44px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
-                      >
-                        <div className="flex min-w-0 items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold">
-                              {row.requesterName}
-                            </p>
-                            <p className="text-muted-foreground text-xs md:hidden">
-                              <span className="capitalize">{row.status}</span>
-                              {row.reason ? ` · ${row.reason}` : ""}
-                            </p>
-                          </div>
-                          <ExpandableActionItem.Trigger className="md:hidden" />
+            <Button
+              className="mt-3 min-h-11"
+              disabled={pendingId === "submit"}
+              onClick={() => void submit()}
+            >
+              Submit request
+            </Button>
+          )}
+        </div>
+      )}
+
+      {canManage &&
+        (rows.length === 0 ? (
+          <EmptyState
+            icon={Check}
+            title="No requests yet"
+            description="Join requests from term members will appear here for review."
+          />
+        ) : (
+          <ExpandableCoordinatorProvider resetKey={String(pendingId)}>
+            <ListTable label="Department requests">
+              <ListTableHeader gridClassName="md:grid-cols-[1fr_140px_44px]">
+                <div role="columnheader">Member</div>
+                <div role="columnheader">Status</div>
+                <div role="columnheader" className="text-right">
+                  Actions
+                </div>
+              </ListTableHeader>
+              <ListTableBody>
+                {rows.map((row) => {
+                  const badgeStyle = STATUS_BADGE_STYLES[row.status];
+                  const pending = pendingId === row.id;
+                  return (
+                    <ExpandableActionItem
+                      key={row.id}
+                      id={`department-request-${row.id}`}
+                      name={row.requesterName}
+                      onAdditionalAction={
+                        row.status === "pending"
+                          ? () => void decide(row.id, "approved")
+                          : undefined
+                      }
+                      additionalActionLabel="Approve request"
+                      additionalActionSectionLabel="Decision"
+                      additionalActionIcon={Check}
+                      onDelete={
+                        row.status === "pending"
+                          ? () => void decide(row.id, "rejected")
+                          : undefined
+                      }
+                      deleteLabel="Reject request"
+                      deleteIcon={X}
+                      deleteDisabled={pending}
+                      className="p-4 md:grid md:grid-cols-[1fr_140px_44px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                    >
+                      <div className="flex min-w-0 items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {row.requesterName}
+                          </p>
+                          <p className="text-muted-foreground text-xs md:hidden">
+                            <span className="capitalize">{row.status}</span>
+                            {row.reason ? ` · ${row.reason}` : ""}
+                          </p>
                         </div>
-                        <ExpandableActionItem.MobileActions />
-                        <div role="cell" className="hidden md:block">
-                          {badgeStyle ? (
-                            <span
-                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${badgeStyle}`}
-                            >
-                              {row.status}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              {row.status}
-                            </span>
-                          )}
-                        </div>
-                        <div role="cell" className="hidden justify-end md:flex">
-                          <ExpandableActionItem.DesktopActions />
-                        </div>
-                      </ExpandableActionItem>
-                    );
-                  })}
-                </ListTableBody>
-              </ListTable>
-            </ExpandableCoordinatorProvider>
-          ))}
-      </div>
+                        <ExpandableActionItem.Trigger className="md:hidden" />
+                      </div>
+                      <ExpandableActionItem.MobileActions />
+                      <div role="cell" className="hidden md:block">
+                        {badgeStyle ? (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${badgeStyle}`}
+                          >
+                            {row.status}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            {row.status}
+                          </span>
+                        )}
+                      </div>
+                      <div role="cell" className="hidden justify-end md:flex">
+                        <ExpandableActionItem.DesktopActions />
+                      </div>
+                    </ExpandableActionItem>
+                  );
+                })}
+              </ListTableBody>
+            </ListTable>
+          </ExpandableCoordinatorProvider>
+        ))}
       {toast && <StatusToast message={toast} onDismiss={() => setToast("")} />}
     </div>
   );

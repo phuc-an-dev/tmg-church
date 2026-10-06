@@ -18,7 +18,48 @@ export async function getPortalDepartmentRequests(
     .eq("term_slug", termSlug)
     .eq("ministry_slug", ministrySlug)
     .order("created_at", { ascending: false });
-  if (error || !rows?.[0]) return null;
+  if (error) return null;
+  if (!rows?.[0]) {
+    // No requests (or no visibility): still resolve department identity so
+    // the empty state and join card can render.
+    const { data: managed } = await s
+      .from("portal_department_directory")
+      .select("id,name")
+      .eq("slug", departmentSlug)
+      .eq("term_slug", termSlug)
+      .eq("ministry_slug", ministrySlug)
+      .maybeSingle();
+    if (managed) {
+      const { data: canManageDirectory } = await s.rpc("has_capability", {
+        p_capability: "department.members.manage",
+        p_scope_type: "department",
+        p_scope_id: managed.id,
+      });
+      return {
+        department: { id: managed.id, name: managed.name },
+        canManage: canManageDirectory === true,
+        memberProfileId: context.memberProfileId,
+        requests: [],
+      };
+    }
+    const { data: targets } = await s
+      .from("portal_department_request_targets")
+      .select("department_id,department_name")
+      .eq("department_slug", departmentSlug)
+      .eq("term_slug", termSlug)
+      .eq("ministry_slug", ministrySlug)
+      .limit(1);
+    if (!targets?.[0]) return null;
+    return {
+      department: {
+        id: targets[0].department_id,
+        name: targets[0].department_name,
+      },
+      canManage: false,
+      memberProfileId: context.memberProfileId,
+      requests: [],
+    };
+  }
   const department = rows[0];
   const { data: canManage } = await s.rpc("has_capability", {
     p_capability: "department.members.manage",

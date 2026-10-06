@@ -18,7 +18,25 @@ export async function getPortalDepartmentServices(
     .eq("term_slug", termSlug)
     .eq("ministry_slug", ministrySlug)
     .order("role_name");
-  if (error || !rows?.[0]) return null;
+  if (error) return null;
+  if (!rows?.[0]) {
+    // No roles yet: resolve the managed department so the section renders.
+    const { data: managed } = await s
+      .from("portal_department_directory")
+      .select("id,name")
+      .eq("slug", departmentSlug)
+      .eq("term_slug", termSlug)
+      .eq("ministry_slug", ministrySlug)
+      .maybeSingle();
+    if (!managed) return null;
+    return {
+      department: { id: managed.id, name: managed.name },
+      roles: [],
+      sessions: [],
+      members: [],
+      assignments: [],
+    };
+  }
   const department = rows[0];
   const [sessionsResult, membersResult, assignmentsResult] = await Promise.all([
     s
