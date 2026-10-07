@@ -1,6 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { requirePortalContext } from "@/features/auth/queries";
+import {
+  buildSessionAttendanceDetail,
+  type AttendanceFilters,
+} from "@/features/session/attendance-detail";
+import type { SessionDetail } from "@/features/session/types";
 
 export type PortalDepartmentSessionRow = {
   id: string;
@@ -19,7 +24,9 @@ export async function getPortalDepartment(
   const s = await createClient();
   const { data: department, error } = await s
     .from("portal_department_directory")
-    .select("id,name,slug,ministry_term_id,ministry_slug,term_slug")
+    .select(
+      "id,name,slug,ministry_term_id,ministry_slug,term_slug,accent_color,icon_key",
+    )
     .eq("slug", departmentSlug)
     .eq("term_slug", termSlug)
     .eq("ministry_slug", ministrySlug)
@@ -33,6 +40,8 @@ export async function getPortalDepartment(
     ministryTermId: department.ministry_term_id,
     ministrySlug: department.ministry_slug,
     termSlug: department.term_slug,
+    accentColor: department.accent_color,
+    iconKey: department.icon_key,
   };
 }
 
@@ -56,26 +65,13 @@ export async function getPortalDepartmentSessions(
   }));
 }
 
-export type PortalDepartmentSessionDetail = {
-  id: string;
-  slug: string;
-  title: string;
-  sessionDate: string;
-  departmentName: string;
-  members: Array<{
-    id: string;
-    name: string;
-    gender: string | null;
-    status: "present" | "absent" | "excused" | null;
-  }>;
-};
-
 export async function getPortalDepartmentSessionDetail(
   ministrySlug: string,
   termSlug: string,
   departmentSlug: string,
   sessionSlug: string,
-): Promise<PortalDepartmentSessionDetail | null> {
+  filters: AttendanceFilters = {},
+): Promise<SessionDetail | null> {
   const department = await getPortalDepartment(
     ministrySlug,
     termSlug,
@@ -114,19 +110,38 @@ export async function getPortalDepartmentSessionDetail(
         record.status as "present" | "absent" | "excused",
       );
   }
-  return {
-    id: session.id,
-    slug: session.slug,
-    title: session.title,
-    sessionDate: session.session_date,
-    departmentName: department.name,
-    members: (roster ?? [])
-      .filter((member) => member.assignment_id)
-      .map((member) => ({
-        id: member.member_id,
-        name: member.full_name,
-        gender: member.gender,
-        status: statusByMember.get(member.member_id) ?? null,
-      })),
-  };
+  const participants = (roster ?? [])
+    .filter((member) => member.assignment_id)
+    .map((member) => ({
+      memberId: member.member_id,
+      fullName: member.full_name,
+      gender: member.gender,
+      status: statusByMember.get(member.member_id) ?? null,
+      group: null,
+      departments: [
+        {
+          id: department.id,
+          name: department.name,
+          accentColor: department.accentColor,
+          iconKey: department.iconKey,
+        },
+      ],
+    }));
+  return buildSessionAttendanceDetail(
+    {
+      id: session.id,
+      slug: session.slug,
+      title: session.title,
+      sessionDate: session.session_date,
+      departmentId: department.id,
+      termId: department.ministryTermId,
+      termName: "",
+      ministryName: "",
+      scopeLabel: department.name,
+      participantCount: attendance?.length ?? 0,
+      canDelete: false,
+    },
+    participants,
+    filters,
+  );
 }

@@ -1,19 +1,30 @@
 "use client";
 
-import { useActionState } from "react";
-import { LockKeyhole, Loader2, AlertCircle } from "lucide-react";
+import { useActionState, useState } from "react";
+import { LockKeyhole, Loader2 } from "lucide-react";
 import { signInWithPassword } from "@/features/auth/actions";
 import { initialLoginState } from "@/features/auth/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StatusToast } from "@/components/ui/status-toast";
 
 interface LoginFormProps {
   initialErrorMessage?: string;
 }
 
 function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
+  const [toast, setToast] = useState<{ message: string; id: number } | null>(
+    initialErrorMessage ? { message: initialErrorMessage, id: 0 } : null,
+  );
   const [state, formAction, isPending] = useActionState(
-    signInWithPassword,
+    async (previousState: typeof initialLoginState, formData: FormData) => {
+      setToast(null);
+      const result = await signInWithPassword(previousState, formData);
+      if (result.status === "error" && result.message) {
+        setToast({ message: result.message, id: Date.now() });
+      }
+      return result;
+    },
     initialLoginState,
   );
 
@@ -24,24 +35,14 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
       autoComplete="off"
       className="space-y-5"
     >
-      {initialErrorMessage && state.status === "idle" && (
-        <div
-          role="alert"
-          className="border-destructive/20 bg-destructive/10 text-destructive flex items-start gap-2.5 rounded-lg border p-4 text-sm"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>{initialErrorMessage}</span>
-        </div>
-      )}
-
-      {state.status === "error" && state.message && (
-        <div
-          role="alert"
-          className="border-destructive/20 bg-destructive/10 text-destructive flex items-start gap-2.5 rounded-lg border p-4 text-sm"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>{state.message}</span>
-        </div>
+      {toast && (
+        <StatusToast
+          key={toast.id}
+          message={toast.message}
+          variant="error"
+          duration={5000}
+          onDismiss={() => setToast(null)}
+        />
       )}
 
       <div className="flex flex-col gap-1.5">
@@ -57,20 +58,8 @@ function LoginFormInner({ initialErrorMessage }: LoginFormProps) {
           disabled={isPending}
           placeholder="leader@tmgchurch.website"
           className="h-12 px-4 text-lg"
-          aria-describedby={
-            state.fieldErrors?.email ? "email-error" : undefined
-          }
           aria-invalid={state.fieldErrors?.email ? "true" : "false"}
         />
-        {state.fieldErrors?.email && (
-          <p
-            id="email-error"
-            className="text-destructive text-xs font-medium"
-            role="alert"
-          >
-            {state.fieldErrors.email[0]}
-          </p>
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">

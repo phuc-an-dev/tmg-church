@@ -801,9 +801,13 @@ function CalendarDayButton({
 
 function CalendarSessionDayButton({
   count,
+  hasAssignment,
   children,
   ...props
-}: React.ComponentProps<typeof CalendarDayButton> & { count: number }) {
+}: React.ComponentProps<typeof CalendarDayButton> & {
+  count: number;
+  hasAssignment?: boolean;
+}) {
   return (
     <CalendarDayButton
       {...props}
@@ -815,9 +819,15 @@ function CalendarSessionDayButton({
     >
       <span>{children}</span>
       {count > 0 && (
-        <span className="bg-primary ring-card absolute top-0 right-0 size-1.5 translate-x-1/2 -translate-y-1/2 rounded-full ring-2">
-          <span className="sr-only">{count} sessions</span>
+        <span className="sr-only">
+          {count} sessions{hasAssignment ? ", you have an assignment" : ""}
         </span>
+      )}
+      {count > 0 && hasAssignment !== false && (
+        <span
+          aria-hidden="true"
+          className="bg-primary ring-card absolute top-0 right-0 size-1.5 translate-x-1/2 -translate-y-1/2 rounded-full ring-2"
+        />
       )}
     </CalendarDayButton>
   );

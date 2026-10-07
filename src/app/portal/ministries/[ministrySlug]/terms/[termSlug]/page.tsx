@@ -15,6 +15,7 @@ export default async function PortalTermPage({
   params: Promise<{ ministrySlug: string; termSlug: string }>;
   searchParams: Promise<{
     date?: string | string[];
+    createSession?: string | string[];
     fromDepartment?: string | string[];
   }>;
 }) {
@@ -40,6 +41,7 @@ export default async function PortalTermPage({
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(query.fromDepartment)
       ? query.fromDepartment
       : null;
+  const initialCreate = query.createSession === "true" && Boolean(initialDate);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
@@ -63,6 +65,7 @@ export default async function PortalTermPage({
           fromDepartment={fromDepartment ?? undefined}
           sessions={term.sessions}
           initialDate={initialDate}
+          initialCreate={initialCreate}
         />
       </div>
     </div>

@@ -28,6 +28,7 @@ type Session = {
   title: string;
   sessionDate: string;
   participantCount: number;
+  roster: { roleId: string; roleName: string; memberNames: string[] }[];
 };
 
 export function PortalTermSessionView({
@@ -37,6 +38,7 @@ export function PortalTermSessionView({
   fromDepartment,
   sessions,
   initialDate,
+  initialCreate = false,
 }: {
   ministryTermId: string;
   ministrySlug: string;
@@ -44,11 +46,16 @@ export function PortalTermSessionView({
   fromDepartment?: string;
   sessions: Session[];
   initialDate?: string;
+  initialCreate?: boolean;
 }) {
   const router = useRouter();
-  const [editing, setEditing] = React.useState<Session | "new" | null>(null);
+  const [editing, setEditing] = React.useState<Session | "new" | null>(
+    initialCreate ? "new" : null,
+  );
   const [title, setTitle] = React.useState("");
-  const [date, setDate] = React.useState("");
+  const [date, setDate] = React.useState(
+    initialCreate ? (initialDate ?? "") : "",
+  );
   const [pending, setPending] = React.useState(false);
   const [toast, setToast] = React.useState("");
   const today = format(new Date(), "yyyy-MM-dd");
@@ -113,12 +120,13 @@ export function PortalTermSessionView({
         }}
       />
       <section aria-live="polite" className="space-y-3">
-        <div className="px-1">
+        <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 className="text-base font-semibold">
             Sessions on {format(parseISO(activeDate), "MMM d, yyyy")}
           </h2>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            {(byDate[activeDate] ?? []).length} sessions
+          <p className="text-muted-foreground shrink-0 text-xs">
+            {(byDate[activeDate] ?? []).length}{" "}
+            {(byDate[activeDate] ?? []).length === 1 ? "session" : "sessions"}
           </p>
         </div>
         {(byDate[activeDate] ?? []).length ? (
@@ -136,7 +144,7 @@ export function PortalTermSessionView({
                     deleteLabel="Delete session"
                     deleteIcon={Trash2}
                     deleteDisabled={pending}
-                    className="p-4 md:grid md:grid-cols-[1fr_44px] md:items-center md:gap-4 md:border-b md:last:border-b-0"
+                    className="p-4 md:border-b md:last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <Link
@@ -146,22 +154,73 @@ export function PortalTermSessionView({
                         <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
                           <CalendarDays className="size-5" aria-hidden="true" />
                         </span>
-                        <span className="min-w-0">
-                          <span className="block truncate font-semibold group-hover/item:underline">
-                            {session.title}
-                          </span>
-                          <span className="text-muted-foreground block text-xs">
-                            {session.sessionDate} · {session.participantCount}{" "}
-                            attendance records
-                          </span>
+                        <span className="min-w-0 flex-1 text-base font-medium group-hover/item:underline">
+                          {session.title}
                         </span>
                       </Link>
                       <ExpandableActionItem.Trigger className="ml-auto md:hidden" />
+                      <div className="hidden shrink-0 md:block">
+                        <ExpandableActionItem.DesktopActions />
+                      </div>
                     </div>
+                    {session.roster.length > 0 ? (
+                      <table className="border-border/70 mt-3 w-full table-fixed border-collapse border-t text-left">
+                        <caption className="sr-only">
+                          Service roster for {session.title}
+                        </caption>
+                        <colgroup>
+                          <col className="w-[35%]" />
+                          <col className="w-[65%]" />
+                        </colgroup>
+                        <thead>
+                          <tr className="border-border/70 border-b">
+                            <th
+                              scope="col"
+                              className="text-muted-foreground py-2 pr-3 text-xs font-medium"
+                            >
+                              Role
+                            </th>
+                            <th
+                              scope="col"
+                              className="text-muted-foreground py-2 text-xs font-medium"
+                            >
+                              Members
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {session.roster.map((role) => (
+                            <tr
+                              key={role.roleId}
+                              className="border-border/70 border-b last:border-b-0"
+                            >
+                              <th
+                                scope="row"
+                                className="text-foreground py-3 pr-3 align-top text-sm font-semibold break-words"
+                              >
+                                {role.roleName}
+                              </th>
+                              <td className="text-muted-foreground py-3 align-top text-sm font-normal break-words">
+                                <div className="space-y-1">
+                                  {role.memberNames.length
+                                    ? role.memberNames.map((name) => (
+                                        <span key={name} className="block">
+                                          {name}
+                                        </span>
+                                      ))
+                                    : "Unassigned"}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className="text-muted-foreground mt-3 text-sm">
+                        No assignments yet
+                      </p>
+                    )}
                     <ExpandableActionItem.MobileActions />
-                    <div role="cell" className="hidden justify-end md:flex">
-                      <ExpandableActionItem.DesktopActions />
-                    </div>
                   </ExpandableActionItem>
                 ))}
               </ListTableBody>

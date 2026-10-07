@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { BrandLockup } from "@/components/brand/brand-lockup";
-import { AdminAccountMenu } from "@/components/admin/admin-account-menu";
+import { PortalSidebar } from "./portal-sidebar";
+import { getPortalDashboardData } from "@/features/portal/portal-dashboard-queries";
 
 interface PortalHeaderProps {
   email: string;
 }
 
-export function PortalHeader({ email }: PortalHeaderProps) {
+export async function PortalHeader({ email }: PortalHeaderProps) {
+  const data = await getPortalDashboardData();
   return (
     <header className="border-border/80 bg-card sticky top-0 z-40 border-b">
       <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -16,7 +18,21 @@ export function PortalHeader({ email }: PortalHeaderProps) {
         >
           <BrandLockup name="TMG Church" subtitle="Portal" />
         </Link>
-        <AdminAccountMenu email={email} />
+        <PortalSidebar
+          email={email}
+          workspaces={data.workspaces}
+          memberMode={data.memberMode}
+          todoCount={
+            data.memberMode
+              ? data.sessions.filter(
+                  (session) => (session.myRoles?.length ?? 0) > 0,
+                ).length
+              : data.readiness.departments.reduce(
+                  (count, department) => count + department.issues.length,
+                  0,
+                )
+          }
+        />
       </div>
     </header>
   );

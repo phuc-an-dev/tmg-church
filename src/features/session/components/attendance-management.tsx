@@ -66,12 +66,14 @@ export function AttendanceManagement({
   basePath,
   baseQuery,
   returnUrl,
+  description,
 }: {
   session: SessionDetail;
   actions?: AttendanceActions;
   basePath?: string;
   baseQuery?: string;
   returnUrl?: string;
+  description?: string;
 }) {
   // URL state with nuqs (shallow: false for Server Component re-render)
   const [query, setQuery] = useQueryStates(sessionDetailSearchParams, {
@@ -315,7 +317,10 @@ export function AttendanceManagement({
     <div className="space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
       <AdminPageHeader
         title={session.title}
-        description={`${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`}
+        description={
+          description ??
+          `${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`
+        }
         backLink={{
           href: backHref,
           label: backLabel,

@@ -94,6 +94,10 @@ export interface ItemActionButtonsProps {
   id?: string;
   onEdit?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   editLabel?: string;
+  editIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
   editDisabled?: boolean;
   editDisabledReason?: string;
   onDelete?: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -116,6 +120,7 @@ export function ItemActionButtons({
   id,
   onEdit,
   editLabel = "Edit",
+  editIcon,
   editDisabled = false,
   editDisabledReason,
   onDelete,
@@ -152,6 +157,7 @@ export function ItemActionButtons({
         {onEdit && (
           <EditActionButton
             label={editLabel}
+            icon={editIcon}
             disabled={editDisabled}
             aria-describedby={editReasonId}
             onClick={(event) => {

@@ -17,10 +17,6 @@ import {
   ListTableHeader,
 } from "@/components/shared/list-table";
 import {
-  ExpandableActionItem,
-  ExpandableCoordinatorProvider,
-} from "@/components/shared/expandable-action-item";
-import {
   NavigationTabs,
   NavigationTabLink,
 } from "@/components/shared/navigation-tabs";
@@ -217,6 +213,22 @@ export function ServiceAssignmentManagement({
     0,
   );
 
+  const staffedRoles = selectedDepartments.reduce(
+    (count, department) =>
+      count +
+      department.roles.filter((role) =>
+        assignments.some(
+          (assignment) =>
+            assignment.termDepartmentId === department.id &&
+            assignment.departmentServiceRoleId === role.id,
+        ),
+      ).length,
+    0,
+  );
+  const completionPercent = totalRoles
+    ? Math.round((staffedRoles / totalRoles) * 100)
+    : 0;
+
   const isSafeReturnUrl = Boolean(
     returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//"),
   );
@@ -256,59 +268,34 @@ export function ServiceAssignmentManagement({
         </NavigationTabLink>
       </NavigationTabs>
 
-      {/* 3. Summary Stats */}
-      <section aria-label="Service assignment summary">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="border-border/80 bg-card rounded-xl border p-3.5 shadow-2xs">
-            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-              Total Assignments
-            </p>
-            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
-              {assignments.length}
-            </p>
-          </div>
-          <div className="border-border/80 bg-card rounded-xl border p-3.5 shadow-2xs">
-            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-              Configured Roles
-            </p>
-            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
-              {totalRoles}
-            </p>
-          </div>
-          <div className="border-border/80 bg-card col-span-2 rounded-xl border p-3.5 shadow-2xs sm:col-span-1">
-            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-              Departments
-            </p>
-            <p className="text-foreground mt-1 text-2xl font-bold tracking-tight">
-              {selectedDepartments.length}
-            </p>
-          </div>
+      <section
+        aria-label="Service assignment completion"
+        className="border-border/80 bg-card space-y-3 rounded-xl border p-4 shadow-2xs"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium">Assignment completion</p>
+          <p className="text-primary text-base font-medium tabular-nums">
+            {staffedRoles}/{totalRoles}
+          </p>
+        </div>
+        <div
+          role="progressbar"
+          aria-label="Roles staffed"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={completionPercent}
+          aria-valuetext={`${staffedRoles} of ${totalRoles} roles staffed`}
+          className="bg-primary/10 h-2 overflow-hidden rounded-full"
+        >
+          <div
+            className="bg-primary h-full rounded-full transition-[width] motion-reduce:transition-none"
+            style={{ width: `${completionPercent}%` }}
+          />
         </div>
       </section>
 
       {/* 4. Selected service roles */}
-      {selectedDepartments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-8 text-center sm:p-12">
-          <div className="bg-primary/10 text-primary mx-auto flex size-12 items-center justify-center rounded-xl">
-            <Users className="size-6" />
-          </div>
-          <h2 className="text-foreground mt-3 text-base font-semibold">
-            No service roles selected
-          </h2>
-          <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">
-            Select the service roles needed for this session, then assign
-            members to them.
-          </p>
-          <Button
-            type="button"
-            className="mt-4 min-h-11"
-            onClick={openServiceRolesDrawer}
-          >
-            <Plus className="size-4" />
-            Select service roles
-          </Button>
-        </div>
-      ) : (
+      {selectedDepartments.length > 0 && (
         <div className="space-y-6">
           {/* If 0 roles configured yet, show an informational banner */}
           {totalRoles === 0 && (
@@ -345,103 +332,89 @@ export function ServiceAssignmentManagement({
           )}
 
           {/* Service roster */}
-          <ExpandableCoordinatorProvider>
-            <div className="space-y-8">
-              {selectedDepartments.map((dept) => {
-                const deptAssignments = assignments.filter(
-                  (a) => a.termDepartmentId === dept.id,
-                );
-                const staffedRoleCount = dept.roles.filter((role) =>
-                  deptAssignments.some(
-                    (assignment) =>
-                      assignment.departmentServiceRoleId === role.id,
-                  ),
-                ).length;
+          <div className="space-y-8">
+            {selectedDepartments.map((dept) => {
+              const deptAssignments = assignments.filter(
+                (a) => a.termDepartmentId === dept.id,
+              );
+              const staffedRoleCount = dept.roles.filter((role) =>
+                deptAssignments.some(
+                  (assignment) =>
+                    assignment.departmentServiceRoleId === role.id,
+                ),
+              ).length;
 
-                return (
-                  <section key={dept.id} className="space-y-2">
-                    <div className="flex items-center gap-3 px-1">
-                      <IdentityTile
-                        accentColor={dept.accentColor}
-                        iconKey={dept.iconKey}
-                        className="size-10 rounded-xl !border-0"
-                      />
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-semibold">
-                          {dept.name}
-                        </h2>
-                        <p className="text-muted-foreground text-xs">
-                          {staffedRoleCount}/{dept.roles.length} staffed
-                        </p>
-                      </div>
+              return (
+                <section key={dept.id} className="space-y-2">
+                  <div className="flex items-center gap-3 px-1">
+                    <IdentityTile
+                      accentColor={dept.accentColor}
+                      iconKey={dept.iconKey}
+                      className="size-10 rounded-xl !border-0"
+                    />
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-semibold">
+                        {dept.name}
+                      </h2>
+                      <p className="text-muted-foreground text-xs">
+                        {staffedRoleCount}/{dept.roles.length} staffed
+                      </p>
                     </div>
+                  </div>
 
-                    <div className="border-border/70 ml-5 border-l pl-4 md:ml-0 md:border-l-0 md:pl-0">
-                      <ListTable label={`Service roles for ${dept.name}`}>
-                        <ListTableHeader gridClassName="md:grid-cols-[1fr_80px]">
-                          <div role="columnheader">Role</div>
-                          <div role="columnheader" className="text-right">
-                            Actions
-                          </div>
-                        </ListTableHeader>
-                        <ListTableBody>
-                          {dept.roles.map((role) => {
-                            const roleAssignments = deptAssignments.filter(
-                              (assignment) =>
-                                assignment.departmentServiceRoleId === role.id,
-                            );
+                  <div className="border-border/70 ml-5 border-l pl-4 md:ml-0 md:border-l-0 md:pl-0">
+                    <ListTable label={`Service roles for ${dept.name}`}>
+                      <ListTableHeader gridClassName="md:grid-cols-1">
+                        <div role="columnheader">Role</div>
+                      </ListTableHeader>
+                      <ListTableBody>
+                        {dept.roles.map((role) => {
+                          const roleAssignments = deptAssignments.filter(
+                            (assignment) =>
+                              assignment.departmentServiceRoleId === role.id,
+                          );
 
-                            return (
-                              <ExpandableActionItem
-                                key={role.id}
-                                id={`session-role-${session.id}-${role.id}`}
-                                name={`${dept.name} ${role.name}`}
-                                onEdit={() => openAssignDrawer(dept, role.id)}
-                                editLabel="Manage"
-                                className="before:bg-border/70 p-4 before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4 md:grid md:grid-cols-[1fr_80px] md:items-center md:gap-4 md:p-3 md:before:hidden"
-                              >
-                                <div role="cell" className="min-w-0">
-                                  <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="truncate text-base font-semibold md:text-sm">
-                                        {role.name}
-                                      </p>
-                                      {roleAssignments.length === 0 ? (
-                                        <p className="text-muted-foreground mt-0.5 text-sm">
-                                          Unassigned
-                                        </p>
-                                      ) : (
-                                        <p className="text-muted-foreground mt-0.5 truncate text-sm">
-                                          {roleAssignments
-                                            .map(
-                                              (assignment) =>
-                                                assignment.memberName,
-                                            )
-                                            .join(" · ")}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <ExpandableActionItem.Trigger className="md:hidden" />
-                                  </div>
-                                  <ExpandableActionItem.MobileActions />
-                                </div>
-                                <div
-                                  role="cell"
-                                  className="hidden justify-end md:flex"
+                          return (
+                            <div
+                              key={role.id}
+                              role="row"
+                              className="bg-card before:bg-border/70 relative rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] before:absolute before:top-1/2 before:-left-4 before:h-px before:w-4 md:rounded-none md:border-0 md:shadow-none md:before:hidden"
+                            >
+                              <div role="cell">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openAssignDrawer(dept, role.id)
+                                  }
+                                  aria-label={`Manage ${dept.name} ${role.name}`}
+                                  aria-haspopup="dialog"
+                                  className="hover:bg-muted/50 focus-visible:ring-ring block min-h-14 w-full rounded-2xl p-4 text-left transition-colors focus-visible:ring-2 focus-visible:outline-hidden md:rounded-none md:p-3"
                                 >
-                                  <ExpandableActionItem.DesktopActions />
-                                </div>
-                              </ExpandableActionItem>
-                            );
-                          })}
-                        </ListTableBody>
-                      </ListTable>
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          </ExpandableCoordinatorProvider>
+                                  <span className="block truncate text-base font-semibold md:text-sm">
+                                    {role.name}
+                                  </span>
+                                  <span className="text-muted-foreground mt-0.5 block truncate text-sm">
+                                    {roleAssignments.length === 0
+                                      ? "Unassigned"
+                                      : roleAssignments
+                                          .map(
+                                            (assignment) =>
+                                              assignment.memberName,
+                                          )
+                                          .join(" · ")}
+                                  </span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </ListTableBody>
+                    </ListTable>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         </div>
       )}
 

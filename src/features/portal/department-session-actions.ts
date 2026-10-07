@@ -5,6 +5,11 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requirePortalContext } from "@/features/auth/queries";
 import { generateVietnameseSlug, isUuid } from "@/lib/slug";
+import {
+  attendanceSchema,
+  bulkAttendanceSchema,
+} from "@/features/session/schemas";
+import type { SessionAttendanceStatus } from "@/features/session/types";
 
 const saveSchema = z.object({
   sessionId: z.string().uuid().nullable().optional(),
@@ -21,12 +26,6 @@ const saveSchema = z.object({
 });
 
 const deleteSchema = z.object({ sessionId: z.string().uuid() });
-
-const attendanceSchema = z.object({
-  sessionId: z.string().uuid(),
-  memberId: z.string().uuid(),
-  status: z.enum(["present", "absent", "excused"]),
-});
 
 type Result = { success: boolean; error?: string };
 
@@ -155,13 +154,37 @@ export async function savePortalDepartmentAttendanceAction(
   await requirePortalContext();
   const parsed = attendanceSchema.safeParse(raw);
   if (!parsed.success) return { success: false, error: "Invalid attendance." };
+  return writeDepartmentAttendance(
+    parsed.data.sessionId,
+    [parsed.data.memberId],
+    parsed.data.status,
+  );
+}
+
+export async function saveBulkPortalDepartmentAttendanceAction(
+  raw: unknown,
+): Promise<Result> {
+  await requirePortalContext();
+  const parsed = bulkAttendanceSchema.safeParse(raw);
+  if (!parsed.success)
+    return { success: false, error: "Invalid bulk attendance request." };
+  return writeDepartmentAttendance(
+    parsed.data.sessionId,
+    parsed.data.memberIds,
+    parsed.data.status,
+  );
+}
+
+async function writeDepartmentAttendance(
+  sessionId: string,
+  memberIds: string[],
+  status: SessionAttendanceStatus,
+): Promise<Result> {
   const s = await createClient();
-  // RLS on session_participant/attendance_record enforces
-  // department.session.manage for department-scoped sessions.
-  const { error } = await s.rpc("save_session_attendance", {
-    target_session_id: parsed.data.sessionId,
-    target_member_id: parsed.data.memberId,
-    target_status: parsed.data.status,
+  const { error } = await s.rpc("portal_save_department_attendance", {
+    p_session_id: sessionId,
+    p_member_ids: memberIds,
+    p_status: status,
   });
   if (error)
     return {
@@ -171,5 +194,6 @@ export async function savePortalDepartmentAttendanceAction(
           ? "You do not have permission to record attendance for this member."
           : "Unable to save attendance.",
     };
+  revalidatePath("/portal", "layout");
   return { success: true };
 }

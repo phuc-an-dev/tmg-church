@@ -169,6 +169,10 @@ interface ExpandableItemContextValue {
   toggleActions: () => void;
   onEdit?: () => void;
   editLabel?: string;
+  editIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
   onDelete?: () => void;
   deleteLabel?: string;
   deleteIcon?: React.ComponentType<{
@@ -208,6 +212,10 @@ export interface ExpandableActionItemProps {
   name: string;
   onEdit?: () => void;
   editLabel?: string;
+  editIcon?: React.ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean | "true" | "false";
+  }>;
   onDelete?: () => void;
   deleteLabel?: string;
   deleteIcon?: React.ComponentType<{
@@ -288,6 +296,7 @@ export function ExpandableActionMobileActions({
     isOpen,
     onEdit,
     editLabel = "Edit",
+    editIcon,
     onDelete,
     deleteLabel = "Delete",
     deleteIcon: DeleteIcon = Trash2,
@@ -344,6 +353,7 @@ export function ExpandableActionMobileActions({
             id={id}
             onEdit={onEdit}
             editLabel={editLabel}
+            editIcon={editIcon}
             editDisabled={editDisabled}
             editDisabledReason={editDisabledReason}
             onDelete={onDelete}
@@ -377,6 +387,7 @@ export function ExpandableActionDesktopMenu({
     name,
     onEdit,
     editLabel = "Edit",
+    editIcon: EditIcon = Pencil,
     onDelete,
     deleteLabel = "Delete",
     deleteIcon: DeleteIcon = Trash2,
@@ -446,7 +457,7 @@ export function ExpandableActionDesktopMenu({
               }}
               className="gap-2"
             >
-              <Pencil className="size-4 shrink-0" aria-hidden="true" />
+              <EditIcon className="size-4 shrink-0" aria-hidden="true" />
               <div className="flex flex-col gap-0.5">
                 <span>{editLabel}</span>
                 {editDisabled && editDisabledReason && (
@@ -502,6 +513,7 @@ export function ExpandableActionItem({
   name,
   onEdit,
   editLabel = "Edit",
+  editIcon,
   onDelete,
   deleteLabel = "Delete",
   deleteIcon = Trash2,
@@ -551,6 +563,7 @@ export function ExpandableActionItem({
       toggleActions,
       onEdit: onEdit ? handleEdit : undefined,
       editLabel,
+      editIcon,
       onDelete: onDelete ? handleDelete : undefined,
       deleteLabel,
       deleteIcon,
@@ -575,6 +588,7 @@ export function ExpandableActionItem({
       onEdit,
       handleEdit,
       editLabel,
+      editIcon,
       onDelete,
       handleDelete,
       deleteLabel,

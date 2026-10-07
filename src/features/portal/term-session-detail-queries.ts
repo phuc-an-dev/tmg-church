@@ -1,18 +1,15 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import {
+  buildSessionAttendanceDetail,
+  type AttendanceFilters,
+} from "@/features/session/attendance-detail";
 import { requirePortalContext } from "@/features/auth/queries";
 import type {
   SessionDetail,
   SessionParticipantDetail,
   SessionServiceAssignmentData,
 } from "@/features/session/types";
-
-type AttendanceFilters = {
-  q?: string;
-  status?: "all" | "pending" | "present" | "absent" | "excused";
-  page?: number;
-  pageSize?: number;
-};
 
 export async function getPortalTermSessionDetail(
   ministrySlug: string,
@@ -62,54 +59,11 @@ export async function getPortalTermSessionDetail(
   };
   const participantDetails = payload.participants;
 
-  const q = filters.q?.trim().toLocaleLowerCase() ?? "";
-  const filteredParticipants = participantDetails.filter((participant) => {
-    if (q && !participant.fullName.toLocaleLowerCase().includes(q))
-      return false;
-    if (filters.status === "pending") return participant.status === null;
-    if (filters.status && filters.status !== "all")
-      return participant.status === filters.status;
-    return true;
-  });
-  const pageSize = [20, 50, 100].includes(filters.pageSize ?? 20)
-    ? (filters.pageSize ?? 20)
-    : 20;
-  const count = filteredParticipants.length;
-  const pageCount = Math.max(1, Math.ceil(count / pageSize));
-  const page = Math.min(Math.max(1, filters.page ?? 1), pageCount);
-  const pageParticipants = filteredParticipants.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
+  return buildSessionAttendanceDetail(
+    payload.session,
+    participantDetails,
+    filters,
   );
-  const summary = participantDetails.reduce(
-    (counts, participant) => {
-      if (participant.status) counts.recordedCount += 1;
-      else counts.pendingCount += 1;
-      if (participant.status === "present") counts.presentCount += 1;
-      if (participant.status === "absent") counts.absentCount += 1;
-      if (participant.status === "excused") counts.excusedCount += 1;
-      return counts;
-    },
-    {
-      enrolledCount: participantDetails.length,
-      recordedCount: 0,
-      presentCount: 0,
-      absentCount: 0,
-      excusedCount: 0,
-      pendingCount: 0,
-    },
-  );
-  return {
-    ...payload.session,
-    summary,
-    participants: pageParticipants,
-    count,
-    page,
-    pageSize,
-    filteredMemberIds: filteredParticipants.map(
-      (participant) => participant.memberId,
-    ),
-  };
 }
 
 export async function getPortalTermSessionServiceAssignmentData(

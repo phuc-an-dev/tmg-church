@@ -1431,6 +1431,8 @@ export type Database = {
       };
       portal_department_directory: {
         Row: {
+          accent_color: string;
+          icon_key: string;
           id: string;
           ministry_slug: string;
           ministry_term_id: string;
@@ -1582,7 +1584,46 @@ export type Database = {
           ministry_name: string;
           term_slug: string;
           term_name: string;
+          accent_color: string;
+          icon_key: string;
         }[];
+      };
+      portal_save_department_attendance: {
+        Args: {
+          p_session_id: string;
+          p_member_ids: string[];
+          p_status: string;
+        };
+        Returns: undefined;
+      };
+      portal_ministry_quarter_readiness: {
+        Args: {
+          p_term_id: string;
+          p_department_id: string;
+          p_start_date: string;
+          p_end_date: string;
+        };
+        Returns: {
+          session_id: string;
+          session_slug: string;
+          session_title: string;
+          session_date: string;
+          selected_role_count: number;
+          assigned_role_count: number;
+          unassigned_role_names: string[];
+        }[];
+      };
+      portal_ministry_session_exemptions: {
+        Args: { p_term_id: string; p_start_date: string; p_end_date: string };
+        Returns: { session_date: string; reason: string | null }[];
+      };
+      portal_save_ministry_session_exemption: {
+        Args: { p_term_id: string; p_session_date: string; p_reason?: string };
+        Returns: undefined;
+      };
+      portal_delete_ministry_session_exemption: {
+        Args: { p_term_id: string; p_session_date: string };
+        Returns: undefined;
       };
       portal_ministry_session_attendance_data: {
         Args: { p_session_id: string };
@@ -1599,6 +1640,19 @@ export type Database = {
           p_status: string;
         };
         Returns: undefined;
+      };
+      portal_member_sessions: {
+        Args: { p_session_slug?: string };
+        Returns: Json;
+      };
+      portal_ministry_session_roster: {
+        Args: { p_term_id: string };
+        Returns: {
+          session_id: string;
+          role_id: string;
+          role_name: string;
+          member_names: string[];
+        }[];
       };
       portal_ministry_session_service_assignment_data: {
         Args: { p_session_id: string };

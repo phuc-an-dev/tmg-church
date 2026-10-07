@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getPortalDelegatedTerms } from "@/features/portal/term-session-queries";
+import { getPortalMemberData } from "@/features/portal/member-session-queries";
+import { MemberSessionDetail } from "@/features/portal/member-session-detail";
 import { AttendanceManagement } from "@/features/session/components/attendance-management";
 import { ServiceAssignmentManagement } from "@/features/session/components/service-assignment-management";
 import { sessionDetailSearchParamsCache } from "@/features/session/search-params";
@@ -25,9 +28,11 @@ export async function generateMetadata({
   const query = await searchParams;
   return {
     title:
-      query.tab === "assignments"
-        ? "Service Assignments"
-        : "Session Attendance",
+      query.from === "upcoming" || query.from === "assignments"
+        ? "Session"
+        : query.tab === "assignments"
+          ? "Service Assignments"
+          : "Session Attendance",
   };
 }
 
@@ -44,16 +49,53 @@ export default async function PortalMinistrySessionDetailPage({
 }) {
   const { ministrySlug, termSlug, sessionSlug } = await params;
   const query = await searchParams;
+  if (
+    ![ministrySlug, termSlug, sessionSlug].every((slug) =>
+      SLUG_PATTERN.test(slug),
+    )
+  )
+    notFound();
+  const delegatedTerms = await getPortalDelegatedTerms();
+  if (
+    !delegatedTerms.some(
+      (term) =>
+        term.ministry_slug === ministrySlug && term.term_slug === termSlug,
+    )
+  ) {
+    const data = await getPortalMemberData(sessionSlug);
+    const session = data.sessions.find(
+      (item) =>
+        item.ministrySlug === ministrySlug &&
+        item.termSlug === termSlug &&
+        item.slug === sessionSlug,
+    );
+    if (!session) notFound();
+    return (
+      <MemberSessionDetail
+        session={session}
+        fromAssignments={query.from === "assignments"}
+      />
+    );
+  }
   const fromDepartment =
     typeof query.fromDepartment === "string" &&
     SLUG_PATTERN.test(query.fromDepartment)
       ? query.fromDepartment
       : null;
   const basePath = `/portal/ministries/${ministrySlug}/terms/${termSlug}/sessions/${sessionSlug}`;
-  const baseQuery = fromDepartment
-    ? `fromDepartment=${encodeURIComponent(fromDepartment)}`
-    : undefined;
-  const sessionListPath = `/portal/ministries/${ministrySlug}/terms/${termSlug}${fromDepartment ? `?fromDepartment=${encodeURIComponent(fromDepartment)}` : ""}`;
+  const fromTodo = query.from === "todo";
+  const baseQuery =
+    [
+      fromDepartment
+        ? `fromDepartment=${encodeURIComponent(fromDepartment)}`
+        : null,
+      fromTodo ? "from=todo" : null,
+    ]
+      .filter(Boolean)
+      .join("&") || undefined;
+  const sessionListPath = fromTodo
+    ? "/portal?section=readiness"
+    : `/portal/ministries/${ministrySlug}/terms/${termSlug}${fromDepartment ? `?fromDepartment=${encodeURIComponent(fromDepartment)}` : ""}`;
 
   if (query.tab === "assignments") {
     const assignmentData = await getPortalTermSessionServiceAssignmentData(
