@@ -38,9 +38,9 @@ import {
 import { ManageCollectionDrawer } from "@/components/shared/manage-collection-drawer";
 import {
   ExportPanel,
+  CsvExportFooter,
   ImportPanel,
   downloadCsvFile,
-  downloadJsonFile,
   useCollectionImport,
   type TransferColumn,
 } from "@/components/shared/collection-transfer";
@@ -380,6 +380,7 @@ export function MinistryManagement({
   const [manageTab, setManageTab] = React.useState<"add" | "import" | "export">(
     "add",
   );
+  const [exportFields, setExportFields] = React.useState(EXPORT_COLUMNS[mode]);
   const plural = pluralFor(mode);
   const importColumns = React.useMemo(() => importColumnsForMode(mode), [mode]);
   const {
@@ -566,7 +567,8 @@ export function MinistryManagement({
     });
   }
 
-  function submitExport(format: "json" | "csv") {
+  function submitExport() {
+    if (pending || !exportFields.length) return;
     startTransition(async () => {
       const response = await exportCollectionAction({
         section: mode,
@@ -580,20 +582,13 @@ export function MinistryManagement({
         return;
       }
       const columns = EXPORT_COLUMNS[mode];
-      if (format === "json") {
-        downloadJsonFile(`tmg-church-${mode}`, {
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          [mode]: response.data.rows,
-        });
-        return;
-      }
       downloadCsvFile(
         `tmg-church-${mode}`,
         columns,
         response.data.rows.map((row) =>
           columns.map((column) => row[column] ?? ""),
         ),
+        exportFields,
       );
     });
   }
@@ -1136,7 +1131,14 @@ export function MinistryManagement({
         activeTab={manageTab}
         onTabChange={setManageTab}
         footer={
-          manageTab === "add" ? (
+          manageTab === "export" ? (
+            <CsvExportFooter
+              onCancel={() => setManageOpen(false)}
+              onExport={submitExport}
+              pending={pending}
+              disabled={!exportFields.length}
+            />
+          ) : manageTab === "add" ? (
             <>
               <Button
                 type="button"
@@ -1306,22 +1308,23 @@ export function MinistryManagement({
         )}
         {manageTab === "export" && (
           <ExportPanel
-            formats={[
-              {
-                title: "JSON Format",
-                description: `Structured backup with metadata for all ${plural.toLowerCase()}.`,
-                buttonLabel: "Export JSON",
-                icon: <Download className="size-4" aria-hidden="true" />,
-                onClick: () => submitExport("json"),
-              },
-              {
-                title: "CSV Format (Excel)",
-                description: `Spreadsheet-ready list of every ${label.toLowerCase()} in this scope.`,
-                buttonLabel: "Export CSV",
-                icon: <Download className="size-4" aria-hidden="true" />,
-                onClick: () => submitExport("csv"),
-              },
-            ]}
+            fields={EXPORT_COLUMNS[mode].map((key) => ({
+              key,
+              label: (
+                {
+                  name: "Name",
+                  slug: "Slug",
+                  accentColor: "Color",
+                  iconKey: "Icon",
+                  startDate: "Start date",
+                  endDate: "End date",
+                  lifecycle: "Status",
+                } as Record<string, string>
+              )[key],
+            }))}
+            selectedFields={exportFields}
+            onSelectedFieldsChange={setExportFields}
+            disabled={pending}
           />
         )}
       </ManageCollectionDrawer>

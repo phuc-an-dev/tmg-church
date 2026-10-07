@@ -393,6 +393,15 @@ export const getPortalDashboardData = cache(
     ];
 
     const memberData = await getPortalMemberData();
+    const managedSessionIds = new Set(sessions.map((session) => session.id));
+    for (const session of memberData.sessions) {
+      if (
+        !managedSessionIds.has(session.id) &&
+        !managedSessionIds.has(session.slug)
+      ) {
+        sessions.push(session);
+      }
+    }
     const myRolesBySession = new Map(
       memberData.sessions.map((session) => [session.id, session.myRoles]),
     );

@@ -13,7 +13,7 @@ import { ConfirmationSheet } from "@/components/shared/confirmation-sheet";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingCreateButton } from "@/components/shared/floating-create-button";
 import { MemberAvatar } from "@/components/shared/member-avatar";
-import { MemberAssignDrawer } from "@/components/shared/member-assign-drawer";
+import { TermMemberManagementDrawer } from "./term-member-management-drawer";
 import { ManageCollectionDrawer } from "@/components/shared/manage-collection-drawer";
 import { PaginationCard } from "@/components/shared/pagination-card";
 import { Button } from "@/components/ui/button";
@@ -151,7 +151,7 @@ export function TermDetailView({
                   onClick={() => setMemberDrawerOpen(true)}
                   className="bg-card hover:bg-card min-h-11 gap-2 px-4"
                 >
-                  Add member
+                  Manage members
                 </Button>
               }
             />
@@ -207,8 +207,11 @@ export function TermDetailView({
               />
             </>
           )}
-          <FloatingCreateButton onClick={() => setMemberDrawerOpen(true)}>
-            Add member
+          <FloatingCreateButton
+            icon={<Users className="size-5" aria-hidden="true" />}
+            onClick={() => setMemberDrawerOpen(true)}
+          >
+            Manage members
           </FloatingCreateButton>
         </section>
       ) : (
@@ -328,23 +331,16 @@ export function TermDetailView({
         )}
       </ManageCollectionDrawer>
 
-      <MemberAssignDrawer
+      <TermMemberManagementDrawer
+        key={String(memberDrawerOpen)}
         open={memberDrawerOpen}
         onOpenChange={(open) => {
           setMemberDrawerOpen(open);
           if (!open) setMemberAssignError(null);
         }}
-        title="Add members"
-        description="Select active church members who are not enrolled in this term."
-        searchPlaceholder="Search unassigned members..."
-        assignLabel="Add"
-        members={data.eligibleMembers.map((m) => ({
-          id: m.id,
-          name: m.name,
-          gender: m.gender,
-          subtitle: `/${m.slug}`,
-        }))}
-        onAssign={addMembers}
+        termId={termId}
+        members={data.eligibleMembers}
+        onAdd={addMembers}
         pending={memberPending}
         error={memberAssignError}
       />

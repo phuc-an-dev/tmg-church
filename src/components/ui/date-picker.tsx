@@ -32,9 +32,12 @@ export interface DatePickerProps {
   className?: string;
   dropdownMaxHeight?: string;
   startMonth?: Date;
+  defaultMonth?: Date;
   endMonth?: Date;
   dateFormat?: string;
   "aria-label"?: string;
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"];
+  "aria-describedby"?: string;
 }
 
 function parseDate(value?: string | null): Date | undefined {
@@ -88,9 +91,12 @@ export function DatePicker({
   className,
   dropdownMaxHeight = "max-h-56",
   startMonth,
+  defaultMonth,
   endMonth,
   dateFormat = "yyyy-MM-dd",
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: DatePickerProps) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState<string>(
     defaultValue ?? "",
@@ -113,14 +119,14 @@ export function DatePicker({
   const maxDate = React.useMemo(() => parseDate(max), [max]);
 
   const [month, setMonth] = React.useState<Date>(
-    () => selectedDate ?? minDate ?? new Date(),
+    () => selectedDate ?? defaultMonth ?? minDate ?? new Date(),
   );
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
       setDraftDate(selectedDate);
       setHasSelectedDate(false);
-      setMonth(selectedDate ?? minDate ?? new Date());
+      setMonth(selectedDate ?? defaultMonth ?? minDate ?? new Date());
     }
     setOpen(nextOpen);
   }
@@ -174,8 +180,11 @@ export function DatePicker({
 
   const triggerButton = (
     <Button
+      id={name ? undefined : id}
       type="button"
       variant="outline"
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
       disabled={disabled}
       onClick={isDesktop === false ? () => handleOpenChange(true) : undefined}
       aria-label={

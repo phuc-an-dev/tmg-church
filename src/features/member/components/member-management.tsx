@@ -35,7 +35,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import {
+  ExportPanel,
+  CsvExportFooter,
+  downloadCsvFile,
+} from "@/components/shared/collection-transfer";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { GenderDropdown } from "./gender-dropdown";
 import {
@@ -336,6 +342,14 @@ function SortIcon({
   return <Icon className="size-3.5" aria-hidden="true" />;
 }
 
+const MEMBER_EXPORT_FIELDS = [
+  { key: "fullName", label: "Name" },
+  { key: "email", label: "Email" },
+  { key: "phone", label: "Phone" },
+  { key: "dateOfBirth", label: "Date of birth" },
+  { key: "gender", label: "Gender" },
+];
+
 function MemberManagerDrawer({
   open,
   onClose,
@@ -454,53 +468,39 @@ function MemberManagerDrawer({
     onSuccess(result.message ?? "Members imported successfully.");
   };
 
-  // Tab 3: Export state
   const [isExporting, setIsExporting] = React.useState(false);
-
-  const handleExportJson = async () => {
-    setIsExporting(true);
-    const result = await exportAllMembersAction();
-    setIsExporting(false);
-    if (!result.success || !result.data) {
-      setImportError(result.error ?? "Failed to export members.");
-      return;
-    }
-
-    const jsonString = JSON.stringify(result.data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tmg-church-members-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const [exportFields, setExportFields] = React.useState(
+    MEMBER_EXPORT_FIELDS.map((field) => field.key),
+  );
+  const [exportError, setExportError] = React.useState<string | null>(null);
 
   const handleExportCsv = async () => {
+    if (isExporting || !exportFields.length) return;
     setIsExporting(true);
-    const result = await exportAllMembersAction();
-    setIsExporting(false);
-    if (!result.success || !result.data) {
-      setImportError(result.error ?? "Failed to export members.");
-      return;
+    setExportError(null);
+    try {
+      const result = await exportAllMembersAction();
+      if (!result.success || !result.data) {
+        setExportError(result.error ?? "Failed to export members.");
+        return;
+      }
+      downloadCsvFile(
+        "tmg-church-members",
+        MEMBER_EXPORT_FIELDS.map((field) => field.key),
+        result.data.map((member) => [
+          member.fullName,
+          member.email ?? "",
+          member.phone ?? "",
+          member.dateOfBirth ?? "",
+          member.gender ?? "",
+        ]),
+        exportFields,
+      );
+    } catch {
+      setExportError("Unable to export members.");
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = "Full Name,Email,Phone,Date of birth,Gender\n";
-    const rows = result.data
-      .map(
-        (m) =>
-          `"${m.fullName.replace(/"/g, '""')}","${m.email ?? ""}","${m.phone ?? ""}","${m.dateOfBirth ?? ""}","${m.gender ?? ""}"`,
-      )
-      .join("\n");
-    const blob = new Blob(["\uFEFF" + headers + rows], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tmg-church-members-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const renderFooter = () => {
@@ -583,16 +583,13 @@ function MemberManagerDrawer({
       );
     }
 
-    // tab === "export"
     return (
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onClose}
-        className="col-span-2 min-h-11 w-full font-semibold"
-      >
-        Cancel
-      </Button>
+      <CsvExportFooter
+        onCancel={onClose}
+        onExport={() => void handleExportCsv()}
+        pending={isExporting}
+        disabled={!exportFields.length}
+      />
     );
   };
 
@@ -600,7 +597,7 @@ function MemberManagerDrawer({
     <ResponsiveEditor
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !isSaving && !isImporting) {
+        if (!nextOpen && !isSaving && !isImporting && !isExporting) {
           resetAddForm();
           resetImportState();
           onClose();
@@ -747,11 +744,12 @@ function MemberManagerDrawer({
 
             <div className="space-y-2">
               <Label htmlFor="create-member-date-of-birth">Date of birth</Label>
-              <Input
+              <DatePicker
                 id="create-member-date-of-birth"
-                type="date"
+                defaultMonth={new Date(2000, 0, 1)}
                 value={dateOfBirth}
-                onChange={(event) => setDateOfBirth(event.target.value)}
+                onChange={setDateOfBirth}
+                placeholder="Select date of birth"
                 disabled={isSaving}
                 aria-invalid={Boolean(fieldErrors.dateOfBirth?.[0])}
                 aria-describedby={
@@ -895,72 +893,19 @@ function MemberManagerDrawer({
           </div>
         )}
 
-        {/* TAB 3: EXPORT */}
         {tab === "export" && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-foreground text-sm font-medium">
-                Export Format
-              </Label>
-              <div className="space-y-3">
-                <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground text-sm font-semibold">
-                      JSON Format
-                    </p>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      Structured backup with full member directory and profiles.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleExportJson}
-                    disabled={isExporting}
-                    className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
-                  >
-                    {isExporting ? (
-                      <Loader2
-                        className="size-4 animate-spin motion-reduce:animate-none"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Download className="size-4" aria-hidden="true" />
-                    )}
-                    <span>Export JSON</span>
-                  </Button>
-                </div>
-
-                <div className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-foreground text-sm font-semibold">
-                      CSV Format (Excel)
-                    </p>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      Spreadsheet-ready list (Name, Email, Phone, Date of birth,
-                      Gender) with UTF-8 BOM encoding.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleExportCsv}
-                    disabled={isExporting}
-                    className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
-                  >
-                    {isExporting ? (
-                      <Loader2
-                        className="size-4 animate-spin motion-reduce:animate-none"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <Download className="size-4" aria-hidden="true" />
-                    )}
-                    <span>Export CSV</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
+            {exportError && (
+              <p role="alert" className="text-destructive text-sm">
+                {exportError}
+              </p>
+            )}
+            <ExportPanel
+              fields={MEMBER_EXPORT_FIELDS}
+              selectedFields={exportFields}
+              onSelectedFieldsChange={setExportFields}
+              disabled={isExporting}
+            />
           </div>
         )}
       </div>
@@ -1144,11 +1089,12 @@ function MemberEditor({
 
         <div className="space-y-2">
           <Label htmlFor="member-date-of-birth">Date of birth</Label>
-          <Input
+          <DatePicker
             id="member-date-of-birth"
-            type="date"
+            defaultMonth={new Date(2000, 0, 1)}
             value={dateOfBirth}
-            onChange={(event) => setDateOfBirth(event.target.value)}
+            onChange={setDateOfBirth}
+            placeholder="Select date of birth"
             disabled={isSaving}
             aria-invalid={Boolean(fieldErrors.dateOfBirth?.[0])}
             aria-describedby={

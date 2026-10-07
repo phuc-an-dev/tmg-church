@@ -57,8 +57,8 @@ import {
 import {
   ImportPanel,
   ExportPanel,
+  CsvExportFooter,
   downloadCsvFile,
-  downloadJsonFile,
   useCollectionImport,
   type TransferColumn,
 } from "@/components/shared/collection-transfer";
@@ -215,6 +215,10 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
 
   // Drawers and Toast state
   const [manageDrawerOpen, setManageDrawerOpen] = React.useState(false);
+  const [exportFields, setExportFields] = React.useState([
+    "name",
+    "display_order",
+  ]);
   const [manageTab, setManageTab] = React.useState<ManageTab>("add");
   const [deleteConfirmIcon, setDeleteConfirmIcon] =
     React.useState<FrequentIconItem | null>(null);
@@ -284,19 +288,12 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
     });
   };
 
-  const handleExportJson = () => {
-    downloadJsonFile("tmg-church-icons", {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      icons: orderedIcons.map((i) => i.name),
-    });
-  };
-
   const handleExportCsv = () => {
     downloadCsvFile(
       "tmg-church-icons",
       ["name", "display_order"],
       orderedIcons.map((i, index) => [i.name, String(index)]),
+      exportFields,
     );
   };
 
@@ -595,7 +592,13 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
         activeTab={manageTab}
         onTabChange={setManageTab}
         footer={
-          manageTab === "import" && importParsedIcons.valid.length > 0 ? (
+          manageTab === "export" ? (
+            <CsvExportFooter
+              onCancel={() => setManageDrawerOpen(false)}
+              onExport={handleExportCsv}
+              disabled={!exportFields.length || !orderedIcons.length}
+            />
+          ) : manageTab === "import" && importParsedIcons.valid.length > 0 ? (
             <>
               <Button
                 type="button"
@@ -795,24 +798,12 @@ export function IconManagement({ frequentIcons }: IconManagementProps) {
         {/* TAB 3: EXPORT */}
         {manageTab === "export" && (
           <ExportPanel
-            formats={[
-              {
-                title: "JSON Format",
-                description: `Structured backup with metadata (${orderedIcons.length} ${orderedIcons.length === 1 ? "icon" : "icons"}).`,
-                buttonLabel: "Export JSON",
-                icon: <Download className="size-4" aria-hidden="true" />,
-                disabled: orderedIcons.length === 0,
-                onClick: handleExportJson,
-              },
-              {
-                title: "CSV Format (Excel)",
-                description: `Spreadsheet-ready list with display order (${orderedIcons.length} ${orderedIcons.length === 1 ? "icon" : "icons"}).`,
-                buttonLabel: "Export CSV",
-                icon: <Download className="size-4" aria-hidden="true" />,
-                disabled: orderedIcons.length === 0,
-                onClick: handleExportCsv,
-              },
+            fields={[
+              { key: "name", label: "Name" },
+              { key: "display_order", label: "Display order" },
             ]}
+            selectedFields={exportFields}
+            onSelectedFieldsChange={setExportFields}
           />
         )}
       </ManageCollectionDrawer>

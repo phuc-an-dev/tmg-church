@@ -34,6 +34,7 @@ export interface MemberAssignDrawerProps {
   selectedIds?: readonly string[];
   onSelectedIdsChange?: (selectedIds: string[]) => void;
   isSubmitDisabled?: boolean;
+  embedded?: boolean;
 }
 
 export function MemberAssignDrawer({
@@ -54,6 +55,7 @@ export function MemberAssignDrawer({
   selectedIds,
   onSelectedIdsChange,
   isSubmitDisabled,
+  embedded = false,
 }: MemberAssignDrawerProps) {
   const [uncontrolledSelectedIds, setUncontrolledSelectedIds] = React.useState<
     string[]
@@ -140,61 +142,8 @@ export function MemberAssignDrawer({
     void onAssign([...activeSelectedIds]);
   };
 
-  return (
-    <ResponsiveEditor
-      open={open}
-      onOpenChange={handleOpenChange}
-      title={title}
-      description={description}
-      mobileMinHeightClass="min-h-[85dvh]"
-      bodyClassName="pb-3 sm:pb-3"
-      bottomBar={
-        totalCount >= 20 ? (
-          <PaginationCard
-            page={currentPage}
-            pageSize={pageSize}
-            count={totalCount}
-            itemLabel="members"
-            onPageChange={handlePageChange}
-            className="border-t-0 pt-0"
-          />
-        ) : null
-      }
-      footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={pending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={
-              pending ||
-              isSubmitDisabled === true ||
-              (isSubmitDisabled === undefined && activeSelectedIds.length === 0)
-            }
-          >
-            {pending ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                <span>{assignLabel}...</span>
-              </>
-            ) : (
-              <span>
-                {activeSelectedIds.length > 0 && !singleSelect
-                  ? `${assignLabel} (${activeSelectedIds.length})`
-                  : assignLabel}
-              </span>
-            )}
-          </Button>
-        </>
-      }
-    >
+  const content = (
+    <>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div
@@ -328,6 +277,75 @@ export function MemberAssignDrawer({
           )}
         </div>
       </form>
+      {embedded && totalCount >= 20 && (
+        <PaginationCard
+          page={currentPage}
+          pageSize={pageSize}
+          count={totalCount}
+          itemLabel="members"
+          onPageChange={handlePageChange}
+        />
+      )}
+    </>
+  );
+  if (embedded) return content;
+
+  return (
+    <ResponsiveEditor
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={title}
+      description={description}
+      mobileMinHeightClass="min-h-[85dvh]"
+      bodyClassName="pb-3 sm:pb-3"
+      bottomBar={
+        totalCount >= 20 ? (
+          <PaginationCard
+            page={currentPage}
+            pageSize={pageSize}
+            count={totalCount}
+            itemLabel="members"
+            onPageChange={handlePageChange}
+            className="border-t-0 pt-0"
+          />
+        ) : null
+      }
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={pending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleSubmit()}
+            disabled={
+              pending ||
+              isSubmitDisabled === true ||
+              (isSubmitDisabled === undefined && activeSelectedIds.length === 0)
+            }
+          >
+            {pending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                <span>{assignLabel}...</span>
+              </>
+            ) : (
+              <span>
+                {activeSelectedIds.length > 0 && !singleSelect
+                  ? `${assignLabel} (${activeSelectedIds.length})`
+                  : assignLabel}
+              </span>
+            )}
+          </Button>
+        </>
+      }
+    >
+      {content}
     </ResponsiveEditor>
   );
 }

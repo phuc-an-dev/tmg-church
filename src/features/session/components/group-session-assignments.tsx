@@ -62,9 +62,22 @@ const GROUP_ROLES: Array<{
 export function GroupSessionAssignments({
   assignmentData,
   returnUrl,
+  basePath,
+  description,
+  actions,
 }: {
   assignmentData: SessionServiceAssignmentData;
   returnUrl?: string;
+  basePath?: string;
+  description?: string;
+  actions?: {
+    save: (
+      raw: unknown,
+    ) => Promise<{ success: boolean; error?: string; message?: string }>;
+    remove: (
+      raw: unknown,
+    ) => Promise<{ success: boolean; error?: string; message?: string }>;
+  };
 }) {
   const router = useRouter();
   const { session, groupMembers = [], groupAssignments = [] } = assignmentData;
@@ -108,7 +121,7 @@ export function GroupSessionAssignments({
     if (current?.ministryMembershipId === value) return;
 
     setPending(true);
-    const result = await saveGroupSessionAssignmentAction({
+    const result = await (actions?.save ?? saveGroupSessionAssignmentAction)({
       sessionId: session.id,
       role: pickerRole,
       membershipId: value,
@@ -119,6 +132,7 @@ export function GroupSessionAssignments({
       setFeedback(result.error ?? "Unable to save assignment.");
       return;
     }
+    setPickerRole(null);
     setFeedback(result.message ?? "Assignment saved.");
     router.refresh();
   }
@@ -126,7 +140,9 @@ export function GroupSessionAssignments({
   async function handleRemove() {
     if (!removing) return;
     setPending(true);
-    const result = await removeGroupSessionAssignmentAction({
+    const result = await (
+      actions?.remove ?? removeGroupSessionAssignmentAction
+    )({
       sessionId: session.id,
       assignmentId: removing.id,
     });
@@ -147,12 +163,20 @@ export function GroupSessionAssignments({
   );
   const backHref = isSafeReturnUrl && returnUrl ? returnUrl : "/admin/sessions";
   const backLabel = isSafeReturnUrl ? "Back" : "Sessions";
+  const sessionPath = basePath ?? `/admin/sessions/${session.slug}`;
+  const returnQuery =
+    !basePath && isSafeReturnUrl && returnUrl
+      ? `returnUrl=${encodeURIComponent(returnUrl)}`
+      : "";
 
   return (
     <div className="space-y-6 pb-24">
       <AdminPageHeader
         title={session.title}
-        description={`${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`}
+        description={
+          description ??
+          `${session.ministryName} · ${session.termName} · ${session.scopeLabel} · ${session.sessionDate}`
+        }
         backLink={{
           href: backHref,
           label: backLabel,
@@ -161,13 +185,13 @@ export function GroupSessionAssignments({
 
       <NavigationTabs aria-label="Session views">
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}${isSafeReturnUrl && returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+          href={`${sessionPath}${returnQuery ? `?${returnQuery}` : ""}`}
           active={false}
         >
           Attendance
         </NavigationTabLink>
         <NavigationTabLink
-          href={`/admin/sessions/${session.slug}?tab=assignments${isSafeReturnUrl && returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+          href={`${sessionPath}?tab=assignments${returnQuery ? `&${returnQuery}` : ""}`}
           active={true}
         >
           Service Assignments
@@ -180,7 +204,9 @@ export function GroupSessionAssignments({
           title="No members in this group"
           description="Assign members to this group in the Term Structure to start assigning guides for this session."
           action={
-            assignmentData.ministrySlug && assignmentData.termSlug ? (
+            !basePath &&
+            assignmentData.ministrySlug &&
+            assignmentData.termSlug ? (
               <Button asChild variant="outline" className="min-h-11">
                 <Link
                   href={`/admin/ministries/${assignmentData.ministrySlug}/terms/${assignmentData.termSlug}?section=groups`}

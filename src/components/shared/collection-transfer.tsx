@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Upload } from "lucide-react";
+import { Check, Upload } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,7 @@ export type ParsedTransfer = {
 export function parseTransferInput(
   raw: string,
   columns: TransferColumn[],
+  preserveDuplicates = false,
 ): ParsedTransfer {
   const trimmed = raw.trim();
   if (!trimmed) return { valid: [], skipped: [] };
@@ -59,7 +60,7 @@ export function parseTransferInput(
       row[column.key] = value;
     }
     const key = JSON.stringify(row);
-    if (seen.has(key)) return;
+    if (!preserveDuplicates && seen.has(key)) return;
     seen.add(key);
     valid.push(row);
   };
@@ -117,7 +118,9 @@ export function parseTransferInput(
   const headerCells = splitDelimitedLine(lines[0]);
   const headerColumns = headerCells.map((cell) => matchColumn(cell, columns));
   const matchedHeaders = headerColumns.filter(Boolean).length;
-  const hasHeader = matchedHeaders >= Math.min(2, columns.length);
+  const hasHeader =
+    matchedHeaders >= Math.min(2, columns.length) ||
+    (headerCells.length === 1 && matchedHeaders === 1);
   const rows = hasHeader ? lines.slice(1) : lines;
 
   for (const line of rows) {
@@ -239,6 +242,7 @@ export interface ImportPanelProps {
   parsed: ParsedTransfer;
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   replaceLabel?: string;
+  allowReplace?: boolean;
   renderChip?: (row: Record<string, string>) => React.ReactNode;
 }
 
@@ -252,6 +256,7 @@ export function ImportPanel({
   parsed,
   onFileSelect,
   replaceLabel,
+  allowReplace = true,
   renderChip,
 }: ImportPanelProps) {
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -272,48 +277,50 @@ export function ImportPanel({
       />
 
       {/* Strategy Selection with Switch */}
-      <div className="space-y-2">
-        <Label
-          htmlFor={`${fileInputId}-replace-mode-switch`}
-          className="text-foreground text-sm font-medium"
-        >
-          Import Strategy
-        </Label>
-        <label
-          htmlFor={`${fileInputId}-replace-mode-switch`}
-          className={cn(
-            "flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-colors",
-            importMode === "replace"
-              ? "border-destructive/40 bg-destructive/5"
-              : "border-border/80 bg-card hover:bg-muted/30",
+      {allowReplace && (
+        <div className="space-y-2">
+          <Label
+            htmlFor={`${fileInputId}-replace-mode-switch`}
+            className="text-foreground text-sm font-medium"
+          >
+            Import Strategy
+          </Label>
+          <label
+            htmlFor={`${fileInputId}-replace-mode-switch`}
+            className={cn(
+              "flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl border p-4 transition-colors",
+              importMode === "replace"
+                ? "border-destructive/40 bg-destructive/5"
+                : "border-border/80 bg-card hover:bg-muted/30",
+            )}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-foreground text-sm font-semibold">
+                {resolvedReplaceLabel}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs leading-normal">
+                {importMode === "replace"
+                  ? `Clear current ${entityLabel} and replace with imported rows.`
+                  : `Keep existing ${entityLabel} and append new ones.`}
+              </p>
+            </div>
+            <Switch
+              id={`${fileInputId}-replace-mode-switch`}
+              checked={importMode === "replace"}
+              onCheckedChange={(checked) =>
+                onImportModeChange(checked ? "replace" : "merge")
+              }
+              aria-label={resolvedReplaceLabel}
+            />
+          </label>
+          {importMode === "replace" && (
+            <p className="text-destructive text-xs leading-normal">
+              Warning: This will delete all currently saved {entityLabel} and
+              replace them with the imported list.
+            </p>
           )}
-        >
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground text-sm font-semibold">
-              {resolvedReplaceLabel}
-            </p>
-            <p className="text-muted-foreground mt-0.5 text-xs leading-normal">
-              {importMode === "replace"
-                ? `Clear current ${entityLabel} and replace with imported rows.`
-                : `Keep existing ${entityLabel} and append new ones.`}
-            </p>
-          </div>
-          <Switch
-            id={`${fileInputId}-replace-mode-switch`}
-            checked={importMode === "replace"}
-            onCheckedChange={(checked) =>
-              onImportModeChange(checked ? "replace" : "merge")
-            }
-            aria-label={resolvedReplaceLabel}
-          />
-        </label>
-        {importMode === "replace" && (
-          <p className="text-destructive text-xs leading-normal">
-            Warning: This will delete all currently saved {entityLabel} and
-            replace them with the imported list.
-          </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* File Upload Only */}
       <div className="space-y-2">
@@ -378,51 +385,107 @@ export function ImportPanel({
   );
 }
 
-export interface ExportFormatItem {
-  title: string;
-  description: string;
-  buttonLabel: string;
-  icon?: React.ReactNode;
+export function ExportPanel({
+  fields,
+  selectedFields,
+  onSelectedFieldsChange,
+  disabled = false,
+}: {
+  fields: Array<{ key: string; label: string }>;
+  selectedFields: string[];
+  onSelectedFieldsChange: (fields: string[]) => void;
   disabled?: boolean;
-  onClick: () => void;
-}
-
-export function ExportPanel({ formats }: { formats: ExportFormatItem[] }) {
+}) {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label className="text-foreground text-sm font-medium">
-          Export Format
-        </Label>
-        <div className="space-y-3">
-          {formats.map((format) => (
-            <div
-              key={format.title}
-              className="border-border/80 bg-card flex flex-col items-start justify-between gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground text-sm font-semibold">
-                  {format.title}
-                </p>
-                <p className="text-muted-foreground mt-0.5 text-xs">
-                  {format.description}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={format.onClick}
-                disabled={format.disabled}
-                className="min-h-11 w-full gap-2 rounded-xl text-sm font-semibold sm:w-auto"
-              >
-                {format.icon}
-                {format.buttonLabel}
-              </Button>
-            </div>
-          ))}
-        </div>
+      <div className="bg-muted/30 rounded-xl border p-4">
+        <p className="text-base font-medium">CSV (Excel)</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Select the fields to include in your CSV file.
+        </p>
       </div>
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-base font-medium">Export fields</legend>
+        {fields.map((field) => {
+          const selected = selectedFields.includes(field.key);
+          return (
+            <button
+              key={field.key}
+              type="button"
+              aria-pressed={selected}
+              disabled={disabled}
+              className={cn(
+                "hover:bg-muted/60 flex min-h-14 w-full items-center justify-between rounded-xl border p-3.5 text-left text-base transition-colors disabled:opacity-50",
+                selected
+                  ? "border-primary bg-primary/5"
+                  : "border-border/70 bg-card",
+              )}
+              onClick={() =>
+                onSelectedFieldsChange(
+                  selected
+                    ? selectedFields.filter((key) => key !== field.key)
+                    : [...selectedFields, field.key],
+                )
+              }
+            >
+              <span className="text-foreground text-base font-normal">
+                {field.label}
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "ml-3 flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-muted-foreground/40 bg-transparent",
+                )}
+              >
+                {selected && <Check className="size-3.5 stroke-3" />}
+              </span>
+            </button>
+          );
+        })}
+        {!selectedFields.length && (
+          <p role="status" className="text-muted-foreground text-sm">
+            Select at least one field to export.
+          </p>
+        )}
+      </fieldset>
     </div>
+  );
+}
+
+export function CsvExportFooter({
+  onCancel,
+  onExport,
+  disabled = false,
+  pending = false,
+}: {
+  onCancel: () => void;
+  onExport: () => void;
+  disabled?: boolean;
+  pending?: boolean;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-11"
+        disabled={pending}
+        onClick={onCancel}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        className="min-h-11"
+        disabled={disabled || pending}
+        onClick={onExport}
+      >
+        {pending ? "Exporting..." : "Export CSV"}
+      </Button>
+    </>
   );
 }
 
@@ -439,24 +502,26 @@ function datedFileName(baseName: string, extension: string) {
   return `${baseName}-${new Date().toISOString().slice(0, 10)}.${extension}`;
 }
 
-export function downloadJsonFile(baseName: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
-  triggerDownload(blob, datedFileName(baseName, "json"));
-}
-
 export function downloadCsvFile(
   baseName: string,
   headers: string[],
   rows: string[][],
+  selectedHeaders = headers,
 ) {
   const escape = (value: string) =>
     /[",;\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  const indexes = headers.flatMap((header, index) =>
+    selectedHeaders.includes(header) ? [index] : [],
+  );
+  if (!indexes.length) return;
   const content = [
-    headers.map(escape).join(","),
-    ...rows.map((row) => row.map(escape).join(",")),
+    indexes.map((index) => escape(headers[index])).join(","),
+    ...rows.map((row) =>
+      indexes.map((index) => escape(row[index] ?? "")).join(","),
+    ),
   ].join("\n");
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF" + content], {
+    type: "text/csv;charset=utf-8;",
+  });
   triggerDownload(blob, datedFileName(baseName, "csv"));
 }

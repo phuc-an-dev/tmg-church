@@ -1,4 +1,8 @@
 import "server-only";
+import type {
+  SessionServiceAssignmentData,
+  SessionGroupAssignmentRole,
+} from "@/features/session/types";
 import { createClient } from "@/lib/supabase/server";
 import { requirePortalContext } from "@/features/auth/queries";
 
@@ -14,6 +18,8 @@ export type PortalGroupSession = {
 
 export type PortalGroupSessionDetail = PortalGroupSession & {
   groupName: string;
+  groupId: string;
+  termId: string;
   members: Array<{
     id: string;
     name: string;
@@ -124,6 +130,8 @@ export async function getPortalGroupSessionDetail(
   return {
     ...session,
     groupName: data.group.name,
+    groupId: data.group.id,
+    termId: data.group.ministryTermId,
     members: (members ?? [])
       .filter((member) => member.id && member.full_name)
       .map((member) => ({
@@ -131,5 +139,79 @@ export async function getPortalGroupSessionDetail(
         name: member.full_name as string,
         status: statusByMember.get(member.id as string) ?? null,
       })),
+  };
+}
+
+export async function getPortalGroupSessionAssignmentData(
+  session: PortalGroupSessionDetail,
+  ministrySlug: string,
+  termSlug: string,
+): Promise<SessionServiceAssignmentData | null> {
+  if (!session.canManage) return null;
+  const s = await createClient();
+  const [members, assignments] = await Promise.all([
+    s
+      .from("portal_group_member_directory")
+      .select(
+        "membership_id,member_id,full_name,gender,group_membership_id,status,ended_at",
+      )
+      .eq("group_id", session.groupId),
+    s
+      .from("group_session_assignment")
+      .select("id,role,ministry_membership_id")
+      .eq("ministry_session_id", session.id)
+      .order("created_at"),
+  ]);
+  if (members.error || assignments.error)
+    throw new Error("Failed to fetch group session assignments");
+  const memberByMembership = new Map(
+    (members.data ?? []).map((member) => [member.membership_id, member]),
+  );
+  return {
+    session: {
+      ...session,
+      termName: "",
+      ministryName: "",
+      scopeLabel: session.groupName,
+    },
+    ministrySlug,
+    termSlug,
+    scope: "group",
+    groupMembers: (members.data ?? [])
+      .filter(
+        (member) =>
+          member.group_membership_id &&
+          member.status === "active" &&
+          !member.ended_at,
+      )
+      .flatMap((member) =>
+        member.membership_id && member.full_name
+          ? [
+              {
+                membershipId: member.membership_id,
+                memberName: member.full_name,
+                memberSlug: "",
+                gender: member.gender,
+              },
+            ]
+          : [],
+      )
+      .sort((a, b) => a.memberName.localeCompare(b.memberName)),
+    groupAssignments: (assignments.data ?? []).flatMap((assignment) => {
+      const member = memberByMembership.get(assignment.ministry_membership_id);
+      return member?.member_id && member.full_name
+        ? [
+            {
+              id: assignment.id,
+              role: assignment.role as SessionGroupAssignmentRole,
+              ministryMembershipId: assignment.ministry_membership_id,
+              memberId: member.member_id,
+              memberName: member.full_name,
+              memberSlug: "",
+              gender: member.gender,
+            },
+          ]
+        : [];
+    }),
   };
 }

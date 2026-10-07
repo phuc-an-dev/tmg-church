@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePortalContext } from "@/features/auth/queries";
 import { generateVietnameseSlug } from "@/lib/slug";
@@ -8,6 +9,8 @@ import {
   bulkAttendanceSchema,
   deleteSessionSchema,
   sessionSchema,
+  saveGroupSessionAssignmentSchema,
+  removeGroupSessionAssignmentSchema,
 } from "@/features/session/schemas";
 
 type Result = { success: boolean; error?: string; slug?: string };
@@ -120,6 +123,7 @@ export async function savePortalAttendanceAction(
     target_member_id: p.data.memberId,
     target_status: p.data.status,
   });
+  if (!error) revalidatePath("/portal", "layout");
   return error
     ? { success: false, error: "Unable to save attendance." }
     : { success: true, slug: session.slug };
@@ -146,7 +150,68 @@ export async function savePortalBulkAttendanceAction(
     target_member_ids: p.data.memberIds,
     target_status: p.data.status,
   });
+  if (!error) revalidatePath("/portal", "layout");
   return error
     ? { success: false, error: "Unable to save attendance." }
     : { success: true, slug: session.slug };
+}
+
+async function getManageableGroupSession(sessionId: string) {
+  const s = await createClient();
+  const { data: session } = await s
+    .from("ministry_session")
+    .select("id,term_group_id")
+    .eq("id", sessionId)
+    .maybeSingle();
+  return session?.term_group_id && (await canManageGroup(session.term_group_id))
+    ? session
+    : null;
+}
+
+export async function savePortalGroupAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const p = saveGroupSessionAssignmentSchema.safeParse(raw);
+  if (!p.success)
+    return { success: false, error: "Invalid assignment request." };
+  const session = await getManageableGroupSession(p.data.sessionId);
+  if (!session)
+    return {
+      success: false,
+      error: "You do not have permission to manage this group session.",
+    };
+  const s = await createClient();
+  const { error } = await s.from("group_session_assignment").upsert(
+    {
+      ministry_session_id: session.id,
+      ministry_membership_id: p.data.membershipId,
+      role: p.data.role,
+    },
+    { onConflict: "ministry_session_id,role" },
+  );
+  if (error) return { success: false, error: "Unable to save assignment." };
+  revalidatePath("/portal", "layout");
+  return { success: true };
+}
+
+export async function removePortalGroupAssignmentAction(
+  raw: unknown,
+): Promise<Result> {
+  const p = removeGroupSessionAssignmentSchema.safeParse(raw);
+  if (!p.success) return { success: false, error: "Invalid removal request." };
+  const session = await getManageableGroupSession(p.data.sessionId);
+  if (!session)
+    return {
+      success: false,
+      error: "You do not have permission to manage this group session.",
+    };
+  const s = await createClient();
+  const { error } = await s
+    .from("group_session_assignment")
+    .delete()
+    .eq("id", p.data.assignmentId)
+    .eq("ministry_session_id", session.id);
+  if (error) return { success: false, error: "Unable to remove assignment." };
+  revalidatePath("/portal", "layout");
+  return { success: true };
 }
