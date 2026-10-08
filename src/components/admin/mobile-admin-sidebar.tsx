@@ -27,6 +27,7 @@ interface MobileAdminSidebarProps {
   activeChurch: { name: string; slug: string } | null;
   userEmail: string;
   isMasterAdmin?: boolean;
+  pendingAccessRequests?: number;
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
@@ -38,6 +39,7 @@ export function MobileAdminSidebar({
   activeChurch,
   userEmail,
   isMasterAdmin = false,
+  pendingAccessRequests = 0,
   triggerRef,
 }: MobileAdminSidebarProps) {
   const pathname = usePathname();
@@ -142,6 +144,15 @@ export function MobileAdminSidebar({
                 >
                   <Icon className="size-5 shrink-0" aria-hidden="true" />
                   <span>{item.label}</span>
+                  {item.href === "/admin/access-requests" &&
+                    pendingAccessRequests > 0 && (
+                      <span
+                        className="bg-destructive ml-auto rounded-full px-2 py-0.5 text-xs text-white"
+                        aria-label={`${pendingAccessRequests} pending access requests`}
+                      >
+                        {pendingAccessRequests}
+                      </span>
+                    )}
                 </Link>
               );
             })}

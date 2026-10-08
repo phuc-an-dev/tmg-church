@@ -160,7 +160,7 @@ export async function requirePortalContext(): Promise<PortalContext> {
   if (!context) {
     const auth = await getAuthContext();
     if (auth.status === "unauthenticated") redirect("/login");
-    redirect("/admin/unauthorized");
+    redirect("/access-pending");
   }
   return context;
 }

@@ -34,6 +34,100 @@ export type Database = {
   };
   public: {
     Tables: {
+      member_access_request: {
+        Row: {
+          church_id: string;
+          created_at: string;
+          date_of_birth: string | null;
+          gender: string | null;
+          email: string;
+          full_name: string;
+          id: string;
+          member_profile_id: string | null;
+          phone: string | null;
+          rejection_reason: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          status: string;
+          user_id: string;
+        };
+        Insert: {
+          church_id: string;
+          created_at?: string;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          email: string;
+          full_name: string;
+          id?: string;
+          member_profile_id?: string | null;
+          phone?: string | null;
+          rejection_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          user_id: string;
+        };
+        Update: {
+          church_id?: string;
+          created_at?: string;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          email?: string;
+          full_name?: string;
+          id?: string;
+          member_profile_id?: string | null;
+          phone?: string | null;
+          rejection_reason?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          status?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "member_access_request_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "church";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "member_access_request_church_id_fkey";
+            columns: ["church_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["church_id"];
+          },
+          {
+            foreignKeyName: "member_access_request_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "member_access_request_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "member_access_request_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "member_access_request_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
+        ];
+      };
       application_audit_log: {
         Row: {
           action: string;
@@ -1522,6 +1616,17 @@ export type Database = {
       };
     };
     Functions: {
+      review_member_access_request: {
+        Args: {
+          p_decision: string;
+          p_member_id?: string;
+          p_new_member_slug?: string;
+          p_reason?: string;
+          p_registration_fields?: string[];
+          p_request_id: string;
+        };
+        Returns: string;
+      };
       assign_group_member: {
         Args: { target_group_id: string; target_membership_id: string };
         Returns: string;

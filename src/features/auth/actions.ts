@@ -64,7 +64,7 @@ export async function signInWithPassword(
 
     redirect("/portal");
   }
-  redirect("/admin/unauthorized");
+  redirect("/access-pending");
 }
 
 /**

@@ -1,7 +1,7 @@
 /**
- * Validates the `next` redirect target to ensure it is strictly within the /admin space.
+ * Validates the `next` redirect target to ensure it is within the /admin space or the access status page.
  * Rejects external origins, protocol-relative URLs, backslashes, encoded path tricks,
- * and destinations outside /admin.
+ * and other destinations.
  */
 export function getSafeAdminRedirect(next: string | null | undefined): string {
   if (!next || typeof next !== "string") {
@@ -41,7 +41,11 @@ export function getSafeAdminRedirect(next: string | null | undefined): string {
     }
 
     const pathname = parsed.pathname;
-    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (
+      pathname === "/access-pending" ||
+      pathname === "/admin" ||
+      pathname.startsWith("/admin/")
+    ) {
       return `${pathname}${parsed.search}${parsed.hash}`;
     }
   } catch {

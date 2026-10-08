@@ -26,23 +26,51 @@ export function StatusToast({
   const [touchOffsetY, setTouchOffsetY] = React.useState(0);
   const dismissedRef = React.useRef(false);
   const startYRef = React.useRef<number | null>(null);
+  const actionRef = React.useRef<(() => void) | null>(null);
+  const exitTimerRef = React.useRef<number | null>(null);
 
   const dismissOnce = React.useCallback(() => {
     if (dismissedRef.current) return;
     dismissedRef.current = true;
+    actionRef.current?.();
     onDismiss();
   }, [onDismiss]);
 
+  const startDismiss = () => {
+    setTouchOffsetY(0);
+    setIsVisible(false);
+    if (exitTimerRef.current !== null) return;
+    exitTimerRef.current = window.setTimeout(dismissOnce, 350);
+  };
+
   React.useEffect(() => {
-    const enterFrame = window.requestAnimationFrame(() => setIsVisible(true));
+    return () => {
+      if (exitTimerRef.current !== null)
+        window.clearTimeout(exitTimerRef.current);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let visibleFrame: number | undefined;
+    const enterFrame = window.requestAnimationFrame(() => {
+      visibleFrame = window.requestAnimationFrame(() => setIsVisible(true));
+    });
+    if (duration <= 0) {
+      return () => {
+        window.cancelAnimationFrame(enterFrame);
+        if (visibleFrame !== undefined)
+          window.cancelAnimationFrame(visibleFrame);
+      };
+    }
     const exitTimeoutId = window.setTimeout(
       () => setIsVisible(false),
-      Math.max(0, duration - 150),
+      Math.max(0, duration - 300),
     );
     const dismissFallbackId = window.setTimeout(dismissOnce, duration + 50);
 
     return () => {
       window.cancelAnimationFrame(enterFrame);
+      if (visibleFrame !== undefined) window.cancelAnimationFrame(visibleFrame);
       window.clearTimeout(exitTimeoutId);
       window.clearTimeout(dismissFallbackId);
     };
@@ -62,8 +90,7 @@ export function StatusToast({
 
   const handleTouchEnd = () => {
     if (touchOffsetY > 30) {
-      setIsVisible(false);
-      dismissOnce();
+      startDismiss();
     } else {
       setTouchOffsetY(0);
     }
@@ -98,7 +125,7 @@ export function StatusToast({
               dismissOnce();
             }
           }}
-          className="border-border/80 bg-card text-foreground pointer-events-auto flex max-w-md translate-y-4 cursor-grab items-center gap-3 rounded-xl border px-5 py-3.5 text-base font-medium opacity-0 shadow-lg transition-[opacity,transform] duration-150 active:cursor-grabbing data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
+          className="border-border/80 bg-card text-foreground pointer-events-auto flex max-w-md translate-y-[calc(100%+2rem)] cursor-grab items-center gap-3 rounded-xl border px-5 py-3.5 text-base font-medium opacity-0 shadow-lg transition-[opacity,translate,transform] duration-300 ease-out active:cursor-grabbing data-[visible=true]:translate-y-0 data-[visible=true]:opacity-100 motion-reduce:transition-none"
         >
           <Icon
             className={`size-5 shrink-0 ${variant === "error" ? "text-destructive" : "text-primary"}`}
@@ -110,10 +137,10 @@ export function StatusToast({
               <button
                 type="button"
                 onClick={() => {
-                  action.onClick();
-                  dismissOnce();
+                  actionRef.current = action.onClick;
+                  startDismiss();
                 }}
-                className="text-primary shrink-0 cursor-pointer text-sm font-semibold hover:underline"
+                className="text-primary min-h-11 min-w-11 shrink-0 cursor-pointer text-sm font-semibold hover:underline"
               >
                 {action.label}
               </button>

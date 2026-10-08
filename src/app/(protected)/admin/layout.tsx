@@ -1,3 +1,4 @@
+import { getPendingAccessRequestCount } from "@/features/access/queries";
 import type { Metadata } from "next";
 import { requireSystemAdmin } from "@/features/auth/queries";
 import { getAdminChurchState } from "@/features/church/queries";
@@ -19,7 +20,10 @@ export default async function ProtectedAdminLayout({
   children,
 }: ProtectedAdminLayoutProps) {
   const auth = await requireSystemAdmin();
-  const churchState = await getAdminChurchState();
+  const [churchState, pendingAccessRequests] = await Promise.all([
+    getAdminChurchState(),
+    getPendingAccessRequestCount(),
+  ]);
 
   const activeChurch =
     churchState.status === "one"
@@ -34,6 +38,7 @@ export default async function ProtectedAdminLayout({
         activeChurch={activeChurch}
         userEmail={auth.email}
         isMasterAdmin={isMasterAdmin}
+        pendingAccessRequests={pendingAccessRequests}
       />
       <main className="flex-1">{children}</main>
     </div>

@@ -17,12 +17,14 @@ interface AdminHeaderProps {
   activeChurch: { name: string; slug: string } | null;
   userEmail: string;
   isMasterAdmin?: boolean;
+  pendingAccessRequests?: number;
 }
 
 export function AdminHeader({
   activeChurch,
   userEmail,
   isMasterAdmin = false,
+  pendingAccessRequests = 0,
 }: AdminHeaderProps) {
   const pathname = usePathname();
   const navigationItems = getAdminNavigationItems(
@@ -94,6 +96,15 @@ export function AdminHeader({
                 >
                   <Icon className="size-4" aria-hidden="true" />
                   <span>{item.label}</span>
+                  {item.href === "/admin/access-requests" &&
+                    pendingAccessRequests > 0 && (
+                      <span
+                        className="bg-destructive ml-auto rounded-full px-2 py-0.5 text-xs text-white"
+                        aria-label={`${pendingAccessRequests} pending access requests`}
+                      >
+                        {pendingAccessRequests}
+                      </span>
+                    )}
                 </Link>
               );
             })}
@@ -107,6 +118,7 @@ export function AdminHeader({
         activeChurch={activeChurch}
         userEmail={userEmail}
         isMasterAdmin={isMasterAdmin}
+        pendingAccessRequests={pendingAccessRequests}
         triggerRef={triggerRef}
       />
     </>

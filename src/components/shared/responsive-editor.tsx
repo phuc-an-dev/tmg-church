@@ -21,6 +21,8 @@ import {
 
 export interface ResponsiveEditorProps {
   open: boolean;
+  keepOverlay?: boolean;
+  onExitComplete?: () => void;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
@@ -121,6 +123,8 @@ function getFocusableElements(container: HTMLElement): HTMLElement[] {
  */
 export function ResponsiveEditor({
   open,
+  keepOverlay = false,
+  onExitComplete,
   onOpenChange,
   title,
   description,
@@ -134,6 +138,26 @@ export function ResponsiveEditor({
   const isDesktop = useIsDesktop();
   const bodyRef = React.useRef<HTMLDivElement>(null);
   const animationHandledRef = React.useRef(false);
+
+  const exitHandledRef = React.useRef(false);
+  const finishExit = React.useCallback(() => {
+    if (open || exitHandledRef.current) return;
+    exitHandledRef.current = true;
+    onExitComplete?.();
+  }, [open, onExitComplete]);
+
+  React.useEffect(() => {
+    if (open) {
+      exitHandledRef.current = false;
+      return;
+    }
+    if (!onExitComplete) return;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const timer = setTimeout(finishExit, reducedMotion ? 0 : 250);
+    return () => clearTimeout(timer);
+  }, [open, onExitComplete, finishExit]);
 
   // Focus first editable input
   const focusFirstInput = React.useCallback(() => {
@@ -164,12 +188,17 @@ export function ResponsiveEditor({
   // Mobile: focus only after bottom sheet slide-in animation finishes
   const handleAnimationEnd = React.useCallback(
     (event: React.AnimationEvent<HTMLDivElement>) => {
-      if (event.target === event.currentTarget && open) {
+      if (event.target !== event.currentTarget) return;
+      if (!open) {
+        finishExit();
+        return;
+      }
+      if (open) {
         animationHandledRef.current = true;
         focusFirstInput();
       }
     },
-    [open, focusFirstInput],
+    [open, focusFirstInput, finishExit],
   );
 
   // Mobile safety fallback: in case animationend does not fire (e.g. headless, test env)
@@ -296,6 +325,11 @@ export function ResponsiveEditor({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
+          keepOverlay={keepOverlay}
+          onAnimationEnd={handleAnimationEnd}
+          onCloseAutoFocus={(event) => {
+            if (keepOverlay) event.preventDefault();
+          }}
           onOpenAutoFocus={handleOpenAutoFocus}
           onKeyDown={handleKeyDown}
           className={cn(
@@ -342,6 +376,10 @@ export function ResponsiveEditor({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        keepOverlay={keepOverlay}
+        onCloseAutoFocus={(event) => {
+          if (keepOverlay) event.preventDefault();
+        }}
         side="bottom"
         showCloseButton={false}
         onOpenAutoFocus={handleOpenAutoFocus}

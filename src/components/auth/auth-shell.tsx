@@ -4,7 +4,7 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 
 interface AuthShellProps {
   children: ReactNode;
-  contentPosition?: "center" | "upper";
+  contentPosition?: "center" | "upper" | "top";
 }
 
 export function AuthShell({
@@ -18,7 +18,14 @@ export function AuthShell({
           <BrandLockup name="TMG Church" subtitle="Administration" />
         </div>
       </header>
-      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+      <main
+        className={cn(
+          "flex flex-1 justify-center px-4 sm:px-6",
+          contentPosition === "top"
+            ? "items-start pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:py-8"
+            : "items-center py-10",
+        )}
+      >
         <div
           className={cn(
             "w-full max-w-md",

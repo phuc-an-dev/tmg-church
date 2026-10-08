@@ -144,7 +144,10 @@ export function MemberAssignDrawer({
 
   const content = (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className={cn(embedded && singleSelect ? "space-y-1" : "space-y-4")}
+      >
         {error && (
           <div
             className="border-destructive/30 bg-destructive/10 text-destructive rounded-lg border p-3 text-sm"

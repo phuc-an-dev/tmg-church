@@ -7,6 +7,7 @@ import {
   Sparkles,
   Tags,
   Users,
+  UserRoundPlus,
 } from "lucide-react";
 
 const CORE_ADMIN_NAVIGATION_ITEMS = [
@@ -20,6 +21,12 @@ const CORE_ADMIN_NAVIGATION_ITEMS = [
     href: "/admin/members",
     label: "Members",
     icon: Users,
+    exact: false,
+  },
+  {
+    href: "/admin/access-requests",
+    label: "Access requests",
+    icon: UserRoundPlus,
     exact: false,
   },
   {

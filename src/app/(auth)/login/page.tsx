@@ -1,10 +1,11 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthShell } from "@/components/auth/auth-shell";
 
 export const metadata: Metadata = {
-  title: "Admin Sign In",
-  description: "Sign-in portal for authorized church leaders",
+  title: "Sign In",
+  description: "Sign in to TMG Church",
 };
 
 interface LoginPageProps {
@@ -26,10 +27,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="admin-panel-strong overflow-hidden">
         <div className="p-6 sm:p-8">
           <h1 className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl">
-            Admin Sign In
+            Sign In
           </h1>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+            Access your church community, sessions, and assignments.
+          </p>
           <div className="mt-6">
             <LoginForm initialErrorMessage={initialErrorMessage} />
+            <p className="text-muted-foreground mt-4 flex flex-wrap items-center justify-center gap-x-1 text-sm">
+              <span>New to TMG Church?</span>
+              <Link
+                href="/register"
+                className="text-primary inline-flex min-h-11 items-center"
+              >
+                Create an account
+              </Link>
+            </p>
           </div>
         </div>
       </div>
