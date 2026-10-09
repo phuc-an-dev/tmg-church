@@ -613,7 +613,7 @@ export function ExpandableActionItem({
         role="row"
         data-expandable-item={id}
         className={cn(
-          "bg-card relative rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)] md:rounded-none md:border-0 md:shadow-none",
+          "admin-item-card md:rounded-none md:border-0 md:shadow-none",
           className,
         )}
       >

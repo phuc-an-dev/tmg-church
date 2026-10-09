@@ -8,6 +8,7 @@ import {
   Tags,
   Users,
   UserRoundPlus,
+  History,
 } from "lucide-react";
 
 const CORE_ADMIN_NAVIGATION_ITEMS = [
@@ -45,6 +46,12 @@ const CORE_ADMIN_NAVIGATION_ITEMS = [
     href: "/admin/sessions",
     label: "Sessions",
     icon: CalendarDays,
+    exact: false,
+  },
+  {
+    href: "/admin/audit",
+    label: "Audit",
+    icon: History,
     exact: false,
   },
   {

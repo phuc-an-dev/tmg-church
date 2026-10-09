@@ -1647,6 +1647,29 @@ export type Database = {
       };
     };
     Views: {
+      audit_log_directory: {
+        Row: {
+          id: string | null;
+          church_id: string | null;
+          actor_id: string | null;
+          action: string | null;
+          scope_type: string | null;
+          scope_id: string | null;
+          target_type: string | null;
+          target_id: string | null;
+          created_at: string | null;
+          actor_name: string | null;
+          target_name: string | null;
+          scope_name: string | null;
+          ministry_id: string | null;
+          ministry_name: string | null;
+          group_id: string | null;
+          group_name: string | null;
+          module: string | null;
+          payload: Json | null;
+        };
+        Relationships: [];
+      };
       member_access_invitation_status: {
         Row: {
           church_id: string | null;
@@ -1803,6 +1826,10 @@ export type Database = {
       };
     };
     Functions: {
+      get_audit_filter_options: {
+        Args: { p_church_id: string };
+        Returns: Json;
+      };
       add_care_note: {
         Args: { p_case_id: string; p_note: string };
         Returns: string;

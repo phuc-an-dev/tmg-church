@@ -141,6 +141,10 @@
     @apply border-border/80 bg-card !gap-0 rounded-2xl border !py-0 shadow-[0_22px_56px_-36px_color-mix(in_oklch,var(--foreground)_35%,transparent)] ring-0;
   }
 
+  .admin-item-card {
+    @apply bg-card relative rounded-2xl border shadow-[0_12px_28px_-24px_color-mix(in_oklch,var(--foreground)_60%,transparent)];
+  }
+
   .admin-surface {
     @apply border-border/70 bg-muted/25 rounded-xl border;
   }
