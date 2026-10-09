@@ -216,30 +216,116 @@ export type Database = {
       };
       care_flag: {
         Row: {
+          assignee_member_profile_id: string | null;
           created_at: string;
+          created_by_member_profile_id: string | null;
           flag_type: string;
           id: string;
           member_profile_id: string;
           ministry_term_id: string;
+          next_contact_date: string | null;
+          resolved_at: string | null;
+          resolved_by_member_profile_id: string | null;
+          slug: string;
+          source: string;
+          source_evidence: NonNullable<Json>;
+          status: string;
+          term_group_id: string | null;
           updated_at: string;
         };
         Insert: {
+          assignee_member_profile_id?: string | null;
           created_at?: string;
+          created_by_member_profile_id?: string | null;
           flag_type: string;
           id?: string;
           member_profile_id: string;
           ministry_term_id: string;
+          next_contact_date?: string | null;
+          resolved_at?: string | null;
+          resolved_by_member_profile_id?: string | null;
+          slug?: string;
+          source?: string;
+          source_evidence?: NonNullable<Json>;
+          status?: string;
+          term_group_id?: string | null;
           updated_at?: string;
         };
         Update: {
+          assignee_member_profile_id?: string | null;
           created_at?: string;
+          created_by_member_profile_id?: string | null;
           flag_type?: string;
           id?: string;
           member_profile_id?: string;
           ministry_term_id?: string;
+          next_contact_date?: string | null;
+          resolved_at?: string | null;
+          resolved_by_member_profile_id?: string | null;
+          slug?: string;
+          source?: string;
+          source_evidence?: NonNullable<Json>;
+          status?: string;
+          term_group_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "care_flag_assignee_member_profile_id_fkey";
+            columns: ["assignee_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_assignee_member_profile_id_fkey";
+            columns: ["assignee_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_assignee_member_profile_id_fkey";
+            columns: ["assignee_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_assignee_member_profile_id_fkey";
+            columns: ["assignee_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_created_by_member_profile_id_fkey";
+            columns: ["created_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_created_by_member_profile_id_fkey";
+            columns: ["created_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_created_by_member_profile_id_fkey";
+            columns: ["created_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_created_by_member_profile_id_fkey";
+            columns: ["created_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
           {
             foreignKeyName: "care_flag_member_profile_id_fkey";
             columns: ["member_profile_id"];
@@ -255,6 +341,20 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "care_flag_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_member_profile_id_fkey";
+            columns: ["member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
             foreignKeyName: "care_flag_ministry_term_id_fkey";
             columns: ["ministry_term_id"];
             isOneToOne: false;
@@ -268,10 +368,67 @@ export type Database = {
             referencedRelation: "ministry_term";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "care_flag_resolved_by_member_profile_id_fkey";
+            columns: ["resolved_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_resolved_by_member_profile_id_fkey";
+            columns: ["resolved_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_resolved_by_member_profile_id_fkey";
+            columns: ["resolved_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_resolved_by_member_profile_id_fkey";
+            columns: ["resolved_by_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_flag_term_group_id_fkey";
+            columns: ["term_group_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["term_group_id"];
+          },
+          {
+            foreignKeyName: "care_flag_term_group_id_fkey";
+            columns: ["term_group_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_directory";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_flag_term_group_id_fkey";
+            columns: ["term_group_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["group_id"];
+          },
+          {
+            foreignKeyName: "care_flag_term_group_id_fkey";
+            columns: ["term_group_id"];
+            isOneToOne: false;
+            referencedRelation: "term_group";
+            referencedColumns: ["id"];
+          },
         ];
       };
       care_note: {
         Row: {
+          author_member_profile_id: string | null;
           care_flag_id: string;
           created_at: string;
           id: string;
@@ -279,6 +436,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          author_member_profile_id?: string | null;
           care_flag_id: string;
           created_at?: string;
           id?: string;
@@ -286,6 +444,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          author_member_profile_id?: string | null;
           care_flag_id?: string;
           created_at?: string;
           id?: string;
@@ -293,6 +452,34 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "care_note_author_member_profile_id_fkey";
+            columns: ["author_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_note_author_member_profile_id_fkey";
+            columns: ["author_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "member_profile_public";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "care_note_author_member_profile_id_fkey";
+            columns: ["author_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_department_member_directory";
+            referencedColumns: ["member_id"];
+          },
+          {
+            foreignKeyName: "care_note_author_member_profile_id_fkey";
+            columns: ["author_member_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "portal_group_member_directory";
+            referencedColumns: ["member_id"];
+          },
           {
             foreignKeyName: "care_note_care_flag_id_fkey";
             columns: ["care_flag_id"];
@@ -1616,6 +1803,75 @@ export type Database = {
       };
     };
     Functions: {
+      add_care_note: {
+        Args: { p_case_id: string; p_note: string };
+        Returns: string;
+      };
+      assign_care_follow_up: {
+        Args: { p_assignee_id: string; p_case_id: string };
+        Returns: undefined;
+      };
+      care_absence_evidence: {
+        Args: { p_group_id: string; p_member_id: string };
+        Returns: Json;
+      };
+      care_assert_assignee: {
+        Args: { p_assignee_id: string; p_group_id: string };
+        Returns: undefined;
+      };
+      care_can_coordinate: { Args: { p_term_id: string }; Returns: boolean };
+      care_can_manage_group: { Args: { p_group_id: string }; Returns: boolean };
+      care_can_read_case: { Args: { p_case_id: string }; Returns: boolean };
+      care_can_read_notes: { Args: { p_case_id: string }; Returns: boolean };
+      care_case_json: { Args: { p_case_id: string }; Returns: Json };
+      care_write_audit: {
+        Args: { p_action: string; p_case_id: string };
+        Returns: undefined;
+      };
+      create_care_follow_up: {
+        Args: {
+          p_assignee_id: string;
+          p_group_id: string;
+          p_member_id: string;
+          p_next_contact_date: string;
+        };
+        Returns: string;
+      };
+      create_care_follow_up_from_absence: {
+        Args: {
+          p_assignee_id: string;
+          p_group_id: string;
+          p_member_id: string;
+          p_next_contact_date: string;
+        };
+        Returns: string;
+      };
+      get_care_absence_suggestions: {
+        Args: { p_group_id: string; p_page: number; p_term_id: string };
+        Returns: Json;
+      };
+      get_care_detail: { Args: { p_case_id: string }; Returns: Json };
+      get_care_detail_by_slug: { Args: { p_care_slug: string }; Returns: Json };
+      get_care_group_options: { Args: { p_group_id: string }; Returns: Json };
+      get_care_list: {
+        Args: {
+          p_group_id: string;
+          p_page: number;
+          p_query: string;
+          p_tab: string;
+          p_term_id: string;
+        };
+        Returns: Json;
+      };
+      get_my_care_scopes: { Args: Record<PropertyKey, never>; Returns: Json };
+      update_care_follow_up: {
+        Args: {
+          p_case_id: string;
+          p_next_contact_date: string;
+          p_status: string;
+        };
+        Returns: undefined;
+      };
       review_member_access_request: {
         Args: {
           p_decision: string;

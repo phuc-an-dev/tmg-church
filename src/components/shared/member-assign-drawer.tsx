@@ -146,7 +146,7 @@ export function MemberAssignDrawer({
     <>
       <form
         onSubmit={handleSubmit}
-        className={cn(embedded && singleSelect ? "space-y-1" : "space-y-4")}
+        className={cn(embedded && singleSelect ? "space-y-1" : "space-y-2")}
       >
         {error && (
           <div

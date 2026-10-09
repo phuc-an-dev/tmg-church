@@ -4,6 +4,7 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  HeartHandshake,
   CalendarDays,
   CheckCircle2,
   Building2,
@@ -42,8 +43,10 @@ export function PortalSidebar({
   workspaces,
   todoCount,
   memberMode = false,
+  canAccessCare = false,
 }: {
   memberMode?: boolean;
+  canAccessCare?: boolean;
   email: string;
   workspaces: Workspace[];
   todoCount: number;
@@ -164,6 +167,22 @@ export function PortalSidebar({
                   )}
               </Link>
             ))}
+            {canAccessCare && (
+              <Link
+                href="/portal/care"
+                onClick={() => setOpen(false)}
+                className={navigationClass(/\/care(?:\/|$)/.test(pathname))}
+                aria-current={
+                  /\/care(?:\/|$)/.test(pathname) ? "page" : undefined
+                }
+              >
+                <HeartHandshake
+                  className="size-5 shrink-0"
+                  aria-hidden="true"
+                />
+                <span>Care</span>
+              </Link>
+            )}
             {workspaces.length > 0 && (
               <p className="text-muted-foreground px-3 pt-5 pb-2 text-xs font-medium">
                 Your workspaces

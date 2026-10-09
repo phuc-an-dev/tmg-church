@@ -3,12 +3,17 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { PortalSidebar } from "./portal-sidebar";
 import { getPortalDashboardData } from "@/features/portal/portal-dashboard-queries";
 
+import { getCareScopes } from "@/features/care/queries";
+
 interface PortalHeaderProps {
   email: string;
 }
 
 export async function PortalHeader({ email }: PortalHeaderProps) {
-  const data = await getPortalDashboardData();
+  const [data, careScopes] = await Promise.all([
+    getPortalDashboardData(),
+    getCareScopes(),
+  ]);
   return (
     <header className="border-border/80 bg-card sticky top-0 z-40 border-b">
       <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -20,6 +25,7 @@ export async function PortalHeader({ email }: PortalHeaderProps) {
         </Link>
         <PortalSidebar
           email={email}
+          canAccessCare={careScopes.length > 0}
           workspaces={data.workspaces}
           memberMode={data.memberMode}
           todoCount={
